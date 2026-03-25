@@ -24,7 +24,24 @@ window.voices = [
   { id: 'ru-male', name: 'WebSim Russian (Male)', language: 'ru', gender: 'male', provider: 'websim' },
   { id: 'ru-female', name: 'WebSim Russian (Female)', language: 'ru', gender: 'female', provider: 'websim' },
   { id: 'hi-male', name: 'WebSim Hindi (Male)', language: 'hi', gender: 'male', provider: 'websim' },
-  { id: 'hi-female', name: 'WebSim Hindi (Female)', language: 'hi', gender: 'female', provider: 'websim' }
+  { id: 'hi-female', name: 'WebSim Hindi (Female)', language: 'hi', gender: 'female', provider: 'websim' },
+
+  // Browser SpeechSynthesis Voices (built-in, no rate limits)
+  { id: 'browser-female', name: 'Browser Voice (Female)', language: 'en-US', gender: 'female', provider: 'browser' },
+  { id: 'browser-male', name: 'Browser Voice (Male)', language: 'en-US', gender: 'male', provider: 'browser' },
+
+  // Kokoro TTS Voices (Local ONNX)
+  { id: 'af_heart', name: 'Kokoro: Heart (Female)', language: 'en-US', gender: 'female', provider: 'kokoro' },
+  { id: 'af_bella', name: 'Kokoro: Bella (Female)', language: 'en-US', gender: 'female', provider: 'kokoro' },
+  { id: 'af_nicole', name: 'Kokoro: Nicole (Female)', language: 'en-US', gender: 'female', provider: 'kokoro' },
+  { id: 'af_sarah', name: 'Kokoro: Sarah (Female)', language: 'en-US', gender: 'female', provider: 'kokoro' },
+  { id: 'af_sky', name: 'Kokoro: Sky (Female)', language: 'en-US', gender: 'female', provider: 'kokoro' },
+  { id: 'am_adam', name: 'Kokoro: Adam (Male)', language: 'en-US', gender: 'male', provider: 'kokoro' },
+  { id: 'am_michael', name: 'Kokoro: Michael (Male)', language: 'en-US', gender: 'male', provider: 'kokoro' },
+  { id: 'bf_alice', name: 'Kokoro: Alice (Female, UK)', language: 'en-GB', gender: 'female', provider: 'kokoro' },
+  { id: 'bf_emma', name: 'Kokoro: Emma (Female, UK)', language: 'en-GB', gender: 'female', provider: 'kokoro' },
+  { id: 'bm_george', name: 'Kokoro: George (Male, UK)', language: 'en-GB', gender: 'male', provider: 'kokoro' },
+  { id: 'bm_lewis', name: 'Kokoro: Lewis (Male, UK)', language: 'en-GB', gender: 'male', provider: 'kokoro' }
 ];
 
 // Map languages to a proxy base language whose voices they should inherit

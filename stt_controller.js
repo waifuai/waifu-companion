@@ -82,6 +82,10 @@
       try {
         // Just start; onstart handler handles initialization
         recognition.start();
+
+        if (typeof trackEvent === 'function') {
+          trackEvent('voice_input_used');
+        }
       } catch (e) {
         debugLog(`STT: Failed to start recognition: ${e}`, 'error');
       }

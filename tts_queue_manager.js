@@ -3,10 +3,10 @@ let ttsQueue = [];
 let isCurrentlySpeaking = false; // Tracks if processNextTTSInQueue is actively processing a message
 let ttsCancelled = false; // Internal flag to stop a running chunk loop
 
-async function playTTS(fullText, languageCode, messageId = null, startIndex = 0) {
+async function playTTS(fullText, languageCode, messageId = null, startIndex = 0, preloadedBuffer = null) {
   if (fullText) {
     debugLog(`TTS: Queuing request for language ${languageCode || 'default_en-US'}: "${fullText.toString().substring(0, 50)}..."`, 'info');
-    ttsQueue.push({ fullText: fullText.toString(), languageCode: languageCode || 'en-US', messageId, startIndex });
+    ttsQueue.push({ fullText: fullText.toString(), languageCode: languageCode || 'en-US', messageId, startIndex, preloadedBuffer });
   } else if (messageId) {
     // Retry/Resume flow: re-queue the existing message content
     const msgDiv = document.getElementById(messageId);
@@ -31,7 +31,7 @@ async function processNextTTSInQueue() {
   ttsCancelled = false;
   
   let currentTask = ttsQueue.shift();
-  const { fullText, languageCode, messageId, startIndex } = currentTask;
+  const { fullText, languageCode, messageId, startIndex, preloadedBuffer } = currentTask;
   
   try {
     const langs = Array.isArray(window.languages) ? window.languages : [{ code:'en-US', englishName:'English (US)', defaultVoiceId:'en_us_001' }];
@@ -65,6 +65,8 @@ async function processNextTTSInQueue() {
 
     debugLog(`TTS: Grouped ${sentences.length} sentences into ${chunks.length} chunks (limit: ${limit})`, 'info');
     
+    let nextChunkPromise = null; // Look-ahead preloader
+
     for (let i = 0; i < chunks.length; i++) {
       if (ttsCancelled) break;
 
@@ -77,16 +79,37 @@ async function processNextTTSInQueue() {
       }
 
       try {
-        // Preloading logic works on chunk level now
-        const preloaded = await TTSPreloader.getPreloadedBuffer(i, chunkText, voiceId);
-        
-        // Start preloading NEXT chunk immediately
+        // Handle trigger for next ambient TTS preload on the last chunk
+        if (i === chunks.length - 1 && window.isAmbientPreloadEnabled && window.ambientPreloadBuffer && !window.ambientPreloadTTSBuffer) {
+          if (typeof window.preloadAmbientTTS === 'function') {
+            window.preloadAmbientTTS(window.ambientPreloadBuffer.reply);
+          }
+        }
+
+        // Use the preloaded buffer from the previous iteration or the initial call
+        let preloaded = null;
+        if (i === 0 && preloadedBuffer) {
+          preloaded = preloadedBuffer;
+        } else if (nextChunkPromise) {
+          try {
+            preloaded = await nextChunkPromise;
+          } catch (e) {
+            debugLog(`TTS: Preloaded chunk failed, will generate on demand: ${e.message}`, 'warn');
+            preloaded = null;
+          }
+          nextChunkPromise = null;
+        }
+
+        // Kick off preloading the NEXT chunk before we start playing the current one
         if (i + 1 < chunks.length && !ttsCancelled) {
-          TTSPreloader.preloadNext(i + 1, chunks[i+1].text, voiceId);
+          const nextText = chunks[i + 1].text;
+          debugLog(`TTS: Preloading next chunk [${i + 2}/${chunks.length}] in background...`, 'info');
+          nextChunkPromise = fetchTTSBuffer(nextText, voiceId);
         }
 
         await tryPlaySingleChunk(chunkText, voiceId, 0, preloaded);
       } catch (err) {
+        nextChunkPromise = null; // Discard any in-flight preload on error
         const isRateLimit = err.status === 429 || (err.message && err.message.includes('429'));
         const errorType = isRateLimit ? 'Rate Limit (429)' : 'Error';
         debugLog(`TTS: ${errorType} at sentence ${i}: ${err.message}`, 'error');
@@ -121,12 +144,18 @@ async function processNextTTSInQueue() {
   }
 
   isCurrentlySpeaking = false;
-  processNextTTSInQueue();
+  
+  if (ttsQueue.length === 0 && typeof window.onAIResponseFullyFinished === 'function') {
+    window.onAIResponseFullyFinished();
+  } else {
+    processNextTTSInQueue();
+  }
 }
 
 function pauseTTS() {
   debugLog("TTS: Pausing playback (stopping current audio, keeping queue)", "info");
   ttsCancelled = true;
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
   if (window.currentAudio) {
     try { window.currentAudio.stop(); } catch (e) {}
     window.currentAudio = null;
@@ -138,6 +167,7 @@ function stopTTS() {
   debugLog("TTS: Stopping all playback and clearing queue", "info");
   ttsCancelled = true;
   ttsQueue = [];
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
   if (window.TTSPreloader) window.TTSPreloader.clear();
   if (window.currentAudio) {
     try {

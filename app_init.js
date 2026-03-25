@@ -18,8 +18,10 @@ window.addEventListener('load', async () => { // Make async to await model load
       debugLog('Loaded conversation context from localStorage', 'info');
       chatHistory.innerHTML = ''; 
       conversationContext.forEach(msg => {
-        addMessage(msg.content, msg.role === 'user', null, null, msg.role === 'user' ? 'en-US' : (msg.languageCode || selectedLanguageCode));
+        const id = addMessage(msg.content, msg.role === 'user', null, null, msg.role === 'user' ? 'en-US' : (msg.languageCode || selectedLanguageCode));
+        msg.id = id;
       });
+      updateSummaryMarker();
     } else {
        conversationContext = []; 
        debugLog('No conversation context found in localStorage', 'info');
@@ -89,21 +91,21 @@ window.addEventListener('load', async () => { // Make async to await model load
 
   // Decide initial settings panel visibility:
   // - If "always show" is enabled, open.
-  // - Else if no previous state saved (first load), open.
+  // - Else if no previous state saved (first load), closed by default.
   // - Else restore last saved state.
-  let initialSettingsVisible = true; // default open on first load
+  let initialSettingsVisible = false; // default closed on first load
   try {
     const lastOpen = localStorage.getItem('settingsPanelLastOpen'); // 'true' | 'false' | null
     if (alwaysShowSettings) {
       initialSettingsVisible = true;
     } else if (lastOpen === null) {
-      initialSettingsVisible = true; // first page load: open
+      initialSettingsVisible = true; // first page load: open by default
     } else {
       initialSettingsVisible = (lastOpen === 'true');
     }
   } catch (e) {
     debugLog(`Error reading settingsPanelLastOpen: ${e}`, 'warn');
-    initialSettingsVisible = true;
+    initialSettingsVisible = false;
   }
   setSettingsPanelVisible(initialSettingsVisible);
 
@@ -115,7 +117,7 @@ window.addEventListener('load', async () => { // Make async to await model load
   debugLog(`Include time in context initialized to: ${includeTimeInContext}`, 'info');
   
   const storedIncludeBattery = localStorage.getItem('includeBatteryInContext');
-  includeBatteryInContext = storedIncludeBattery !== null ? (storedIncludeBattery === 'true') : true;
+  includeBatteryInContext = storedIncludeBattery !== null ? (storedIncludeBattery === 'true') : false;
   if (includeBatteryCheckbox) includeBatteryCheckbox.checked = includeBatteryInContext;
   debugLog(`Include battery in context initialized to: ${includeBatteryInContext}`, 'info');
 
@@ -200,6 +202,10 @@ window.addEventListener('load', async () => { // Make async to await model load
   
   const storedPersona = localStorage.getItem('userPersonaPrompt');
   window.userPersonaPrompt = storedPersona || "";
+
+  window.conversationSummary = localStorage.getItem('conversationSummary') || "";
+  window.messageCountSinceLastSummary = parseInt(localStorage.getItem('messageCountSinceLastSummary') || "0");
+  window.summaryTriggerCount = parseInt(localStorage.getItem('summaryTriggerCount') || "30");
   
   const coreTextarea = document.getElementById('corePersonaPrompt');
   if (coreTextarea) {
@@ -210,16 +216,76 @@ window.addEventListener('load', async () => { // Make async to await model load
   if (personaTextarea) {
     personaTextarea.value = window.userPersonaPrompt;
   }
+
+  const summaryTextarea = document.getElementById('conversationSummary');
+  if (summaryTextarea) {
+    summaryTextarea.value = window.conversationSummary;
+  }
+  
+  // Initialize Summary trigger and length from storage
+  const savedTrigger = localStorage.getItem('summaryTriggerCount');
+  if (savedTrigger) {
+    window.summaryTriggerCount = parseInt(savedTrigger);
+  }
+  const triggerSlider = document.getElementById('summaryTriggerCount');
+  const triggerVal = document.getElementById('summaryTriggerCountValue');
+  if (triggerSlider) triggerSlider.value = window.summaryTriggerCount;
+  if (triggerVal) triggerVal.textContent = window.summaryTriggerCount;
+  document.getElementById('summaryTriggerCount')?.addEventListener('input', handleSummaryTriggerCountChange);
+
+  const savedLength = localStorage.getItem('summaryLengthPreference');
+  if (savedLength) {
+    window.summaryLengthPreference = savedLength;
+    const lengthSelect = document.getElementById('summaryLengthPreference');
+    if (lengthSelect) lengthSelect.value = window.summaryLengthPreference;
+  }
+  document.getElementById('summaryLengthPreference')?.addEventListener('change', handleSummaryLengthPreferenceChange);
+
   document.getElementById('savePersonaBtn')?.addEventListener('click', handleSavePersona);
   document.getElementById('resetPersonaBtn')?.addEventListener('click', handleResetPersona);
+  document.getElementById('manualSummarizeBtn')?.addEventListener('click', handleManualSummarize);
 
-  // --- Initialize Enable Voice Setting ---
-  const storedEnableVoice = localStorage.getItem('enableVoice');
-  // Default to true if not found in storage
-  enableVoice = storedEnableVoice !== null ? (storedEnableVoice === 'true') : true; 
-  if (enableVoiceCheckbox) enableVoiceCheckbox.checked = enableVoice;
-  if (voiceControls) voiceControls.style.display = enableVoice ? 'block' : 'none';
-  debugLog(`Voice (TTS) enabled state initialized to: ${enableVoice}`, 'info');
+  // --- Initialize Enable Voice Settings ---
+  const storedPrimary = localStorage.getItem('enablePrimaryVoice');
+  const storedFallback = localStorage.getItem('enableFallbackVoice');
+  
+  // Backwards compatibility: if old enableVoice existed and was false, disable both
+  const oldEnableVoice = localStorage.getItem('enableVoice');
+  
+  window.enablePrimaryVoice = storedPrimary !== null ? (storedPrimary === 'true') : 
+                              (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
+  window.enableFallbackVoice = storedFallback !== null ? (storedFallback === 'true') : 
+                               (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
+
+  if (document.getElementById('enablePrimaryVoiceCheckbox')) {
+    document.getElementById('enablePrimaryVoiceCheckbox').checked = window.enablePrimaryVoice;
+    document.getElementById('enablePrimaryVoiceCheckbox').addEventListener('change', (e) => {
+        window.enablePrimaryVoice = e.target.checked;
+        localStorage.setItem('enablePrimaryVoice', window.enablePrimaryVoice.toString());
+        if (typeof trackEvent === 'function') {
+          trackEvent('voice_enabled_toggle', { type: 'primary', enabled: window.enablePrimaryVoice });
+        }
+        debugLog(`Primary voice enabled: ${window.enablePrimaryVoice}`, 'info');
+    });
+  }
+  
+  if (document.getElementById('enableFallbackVoiceCheckbox')) {
+    document.getElementById('enableFallbackVoiceCheckbox').checked = window.enableFallbackVoice;
+    document.getElementById('enableFallbackVoiceCheckbox').addEventListener('change', (e) => {
+        window.enableFallbackVoice = e.target.checked;
+        localStorage.setItem('enableFallbackVoice', window.enableFallbackVoice.toString());
+        if (typeof trackEvent === 'function') {
+          trackEvent('voice_enabled_toggle', { type: 'fallback', enabled: window.enableFallbackVoice });
+        }
+        debugLog(`Fallback voice enabled: ${window.enableFallbackVoice}`, 'info');
+    });
+  }
+
+  // The main voiceControls container usually depends on at least one being active, 
+  // but many apps just keep it visible if 'Enable Voice' was once there.
+  // We'll keep it simple for now and just set global enableVoice for tts_queue compatibility
+  window.enableVoice = true; // Use individual flags in audio_player
+  debugLog(`Voice (TTS) enabled states initialized. Primary: ${window.enablePrimaryVoice}, Fallback: ${window.enableFallbackVoice}`, 'info');
 
   // --- Initialize Opacity Settings ---
   const storedChatboxOpacity = localStorage.getItem('chatboxOpacity') || '0.9';
@@ -373,9 +439,116 @@ window.addEventListener('load', async () => { // Make async to await model load
   if (showClockCheckbox) showClockCheckbox.addEventListener('change', handleShowClockChange);
   if (voiceSelector) voiceSelector.addEventListener('change', handleVoiceChange);
   if (enableVoiceCheckbox) enableVoiceCheckbox.addEventListener('change', handleEnableVoiceChange);
-  document.getElementById('globalPlayTTSBtn')?.addEventListener('click', () => window.playTTS?.());
-  document.getElementById('globalPauseTTSBtn')?.addEventListener('click', () => window.pauseTTS?.());
-  document.getElementById('globalStopTTSBtn')?.addEventListener('click', () => window.stopTTS?.());
+  document.getElementById('globalPlayTTSBtn')?.addEventListener('click', () => { 
+    if (typeof trackEvent === 'function') trackEvent('tts_action', { action: 'play', source: 'global' });
+    window.playTTS?.(); 
+  });
+  document.getElementById('globalPauseTTSBtn')?.addEventListener('click', () => { 
+    if (typeof trackEvent === 'function') trackEvent('tts_action', { action: 'pause', source: 'global' });
+    window.pauseTTS?.(); 
+  });
+  document.getElementById('globalStopTTSBtn')?.addEventListener('click', () => { 
+    if (typeof trackEvent === 'function') trackEvent('tts_action', { action: 'stop', source: 'global' });
+    window.stopTTS?.(); 
+  });
+  
+  // Initialize TTS Fallback Voice
+  const ttsFallbackVoiceSelector = document.getElementById('ttsFallbackVoiceSelector');
+  const savedFallbackVoice = localStorage.getItem('ttsFallbackVoiceId') || 'browser-female';
+  window.ttsFallbackVoiceId = savedFallbackVoice;
+  if (ttsFallbackVoiceSelector) {
+    ttsFallbackVoiceSelector.value = savedFallbackVoice;
+    ttsFallbackVoiceSelector.addEventListener('change', window.handleTTSFallbackVoiceChange);
+  }
+  debugLog(`TTS fallback voice initialized to: ${window.ttsFallbackVoiceId}`, 'info');
+
+  // Initialize Kokoro Settings
+  const enableKokoroVoiceCheckbox = document.getElementById('enableKokoroVoiceCheckbox');
+  const kokoroVoiceSelector = document.getElementById('kokoroVoiceSelector');
+  
+  const savedEnableKokoro = localStorage.getItem('enableKokoro');
+  if (savedEnableKokoro !== null) {
+      window.enableKokoro = savedEnableKokoro === 'true';
+  }
+  if (enableKokoroVoiceCheckbox) {
+      enableKokoroVoiceCheckbox.checked = window.enableKokoro;
+      enableKokoroVoiceCheckbox.addEventListener('change', window.handleEnableKokoroVoiceChange);
+  }
+
+  const savedKokoroVoiceId = localStorage.getItem('selectedKokoroVoiceId') || 'af_heart';
+  window.selectedKokoroVoiceId = savedKokoroVoiceId;
+  if (kokoroVoiceSelector) {
+      kokoroVoiceSelector.value = savedKokoroVoiceId;
+      kokoroVoiceSelector.addEventListener('change', window.handleKokoroVoiceChange);
+  }
+  debugLog(`Kokoro settings initialized. Enabled: ${window.enableKokoro}, Selected Voice: ${window.selectedKokoroVoiceId}`, 'info');
+
+  // Nudge browser to load voices early
+  if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+  }
+
+  // --- Initialize Automation & Queuing Settings ---
+  const enableUserMessageQueueCheckbox = document.getElementById('enableUserMessageQueueCheckbox');
+  const enableAmbientQueueCheckbox = document.getElementById('enableAmbientQueueCheckbox');
+  const ambientDelaySlider = document.getElementById('ambientDelay');
+  
+  const savedUserQueue = localStorage.getItem('isUserMessageQueueEnabled');
+  if (savedUserQueue !== null) {
+    window.isUserMessageQueueEnabled = savedUserQueue === 'true';
+  }
+  if (enableUserMessageQueueCheckbox) {
+    enableUserMessageQueueCheckbox.checked = window.isUserMessageQueueEnabled;
+    enableUserMessageQueueCheckbox.addEventListener('change', window.handleEnableUserMessageQueueChange);
+  }
+
+  const savedAmbientQueue = localStorage.getItem('isAmbientQueueEnabled');
+  if (savedAmbientQueue !== null) {
+    window.isAmbientQueueEnabled = savedAmbientQueue === 'true';
+  }
+  if (enableAmbientQueueCheckbox) {
+    enableAmbientQueueCheckbox.checked = window.isAmbientQueueEnabled;
+    enableAmbientQueueCheckbox.addEventListener('change', window.handleEnableAmbientQueueChange);
+  }
+
+  const savedAmbientDelay = localStorage.getItem('ambientDelay');
+  if (savedAmbientDelay !== null) {
+    window.ambientDelay = parseInt(savedAmbientDelay);
+  }
+  if (ambientDelaySlider) {
+    ambientDelaySlider.value = window.ambientDelay;
+    const valEl = document.getElementById('ambientDelayValue');
+    if (valEl) valEl.textContent = window.ambientDelay + 's';
+    ambientDelaySlider.addEventListener('input', window.handleAmbientDelayChange);
+  }
+
+  const ambientPromptInput = document.getElementById('ambientPromptInput');
+  const ambientPromptContainer = document.getElementById('ambientPromptContainer');
+  const savedAmbientPrompt = localStorage.getItem('ambientPrompt');
+  if (savedAmbientPrompt) {
+      window.ambientPrompt = savedAmbientPrompt;
+  }
+  if (ambientPromptInput) {
+      ambientPromptInput.value = window.ambientPrompt;
+      ambientPromptInput.addEventListener('change', window.handleAmbientPromptChange);
+  }
+
+  const savedAmbientPreload = localStorage.getItem('isAmbientPreloadEnabled');
+  if (savedAmbientPreload !== null) {
+      window.isAmbientPreloadEnabled = savedAmbientPreload === 'true';
+  }
+  const ambientPreloadCheckbox = document.getElementById('ambientPreloadCheckbox');
+  if (ambientPreloadCheckbox) {
+      ambientPreloadCheckbox.checked = window.isAmbientPreloadEnabled;
+      ambientPreloadCheckbox.addEventListener('change', window.handleEnableAmbientPreloadChange);
+  }
+  
+  const clearQueueBtn = document.getElementById('clearQueueBtn');
+  if (clearQueueBtn) {
+    clearQueueBtn.addEventListener('click', window.handleClearQueue);
+  }
+
+  debugLog(`Automation settings initialized. Message Queue: ${window.isUserMessageQueueEnabled}, Ambient: ${window.isAmbientQueueEnabled}, Delay: ${window.ambientDelay}s`, 'info');
 
   // Initialize TTS Chunk Limit
   const ttsChunkLimitSlider = document.getElementById('ttsChunkLimit');
@@ -388,6 +561,31 @@ window.addEventListener('load', async () => { // Make async to await model load
   }
   if (ttsChunkLimitSlider) {
     ttsChunkLimitSlider.addEventListener('input', handleTTSChunkLimitChange);
+  }
+
+  // Initialize TTS Volume
+  const ttsVolumeSlider = document.getElementById('ttsVolume');
+  const ttsVolumeValueEl = document.getElementById('ttsVolumeValue');
+  const savedTtsVolume = localStorage.getItem('ttsVolume');
+  if (savedTtsVolume !== null) {
+    window.ttsVolume = parseFloat(savedTtsVolume);
+  }
+  if (ttsVolumeSlider) {
+    ttsVolumeSlider.value = window.ttsVolume.toString();
+  }
+  if (ttsVolumeValueEl) {
+    ttsVolumeValueEl.textContent = window.ttsVolume.toFixed(2);
+  }
+  try {
+    if (typeof getTTSGainNode === 'function') {
+      const gain = getTTSGainNode();
+      gain.gain.value = window.ttsVolume;
+    }
+  } catch (e) {
+    debugLog(`Could not apply initial TTS volume to gain node: ${e}`, 'warn');
+  }
+  if (ttsVolumeSlider) {
+    ttsVolumeSlider.addEventListener('input', handleTTSVolumeChange);
   }
   if (includeTimeCheckbox) includeTimeCheckbox.addEventListener('change', handleIncludeTimeChange);
   if (includeBatteryCheckbox) includeBatteryCheckbox.addEventListener('change', handleIncludeBatteryChange);
@@ -418,6 +616,125 @@ window.addEventListener('load', async () => { // Make async to await model load
     showTTSDebugLogsCheckbox.addEventListener('change', handleShowTTSDebugLogsChange);
   }
 
+  const allowAIModSettingsCheckbox = document.getElementById('allowAIModSettingsCheckbox');
+  if (allowAIModSettingsCheckbox) {
+    const stored = localStorage.getItem('allowAIModSettings') === 'true';
+    window.allowAIModSettings = stored;
+    allowAIModSettingsCheckbox.checked = stored;
+    allowAIModSettingsCheckbox.addEventListener('change', handleAllowAIModSettingsChange);
+  }
+
+  const includeTutorialCheckbox = document.getElementById('includeTutorialInContextCheckbox');
+  if (includeTutorialCheckbox) {
+    const stored = localStorage.getItem('includeTutorialInContext') === 'true';
+    window.includeTutorialInContext = stored;
+    includeTutorialCheckbox.checked = stored;
+    includeTutorialCheckbox.addEventListener('change', handleIncludeTutorialInContextChange);
+  }
+
+  const useJsonCheckbox = document.getElementById('useJsonForEmotionCheckbox');
+  if (useJsonCheckbox) {
+    const stored = localStorage.getItem('useJsonForEmotion') === 'true';
+    window.useJsonForEmotion = stored;
+    useJsonCheckbox.checked = stored;
+    useJsonCheckbox.addEventListener('change', handleUseJsonForEmotionChange);
+  }
+
+  const disableAutoOfflineCheckbox = document.getElementById('disableAutoOfflineCheckbox');
+  if (disableAutoOfflineCheckbox) {
+    const storedDisable = localStorage.getItem('disableAutoOfflineMode') === 'true';
+    window.disableAutoOfflineMode = storedDisable;
+    disableAutoOfflineCheckbox.checked = storedDisable;
+    disableAutoOfflineCheckbox.addEventListener('change', handleDisableAutoOfflineChange);
+  }
+
+  if (useOpenRouterCheckbox) {
+    try {
+      const storedUseOR = localStorage.getItem('useOpenRouter') === 'true';
+      window.useOpenRouter = storedUseOR;
+      useOpenRouterCheckbox.checked = storedUseOR;
+    } catch(e) {
+      debugLog(`Error reading useOpenRouter: ${e}`, 'warn');
+      window.useOpenRouter = false;
+      useOpenRouterCheckbox.checked = false;
+    }
+    useOpenRouterCheckbox.addEventListener('change', handleUseOpenRouterChange);
+  }
+
+  if (openRouterApiKeyInput) {
+    try {
+      window.openRouterApiKey = localStorage.getItem('openRouterApiKey') || '';
+      openRouterApiKeyInput.value = window.openRouterApiKey;
+    } catch(e) {
+      debugLog(`Error reading openRouterApiKey: ${e}`, 'warn');
+      window.openRouterApiKey = '';
+    }
+    openRouterApiKeyInput.addEventListener('change', handleOpenRouterApiKeyChange);
+    openRouterApiKeyInput.addEventListener('blur', handleOpenRouterApiKeyChange);
+  }
+
+  if (openRouterModelInput) {
+    try {
+      window.openRouterModel = localStorage.getItem('openRouterModel') || 'stepfun/step-3.5-flash:free';
+      openRouterModelInput.value = window.openRouterModel;
+    } catch(e) {
+      debugLog(`Error reading openRouterModel: ${e}`, 'warn');
+      window.openRouterModel = '';
+    }
+    openRouterModelInput.addEventListener('change', handleOpenRouterModelChange);
+    openRouterModelInput.addEventListener('blur', handleOpenRouterModelChange);
+  }
+
+  const openRouterFallbackModelsInput = document.getElementById('openRouterFallbackModelsInput');
+  if (openRouterFallbackModelsInput) {
+    try {
+      window.openRouterFallbackModels = localStorage.getItem('openRouterFallbackModels') || '';
+      openRouterFallbackModelsInput.value = window.openRouterFallbackModels;
+    } catch(e) {
+      debugLog(`Error reading openRouterFallbackModels: ${e}`, 'warn');
+      window.openRouterFallbackModels = '';
+    }
+    openRouterFallbackModelsInput.addEventListener('change', handleOpenRouterFallbackModelsChange);
+    openRouterFallbackModelsInput.addEventListener('blur', handleOpenRouterFallbackModelsChange);
+  }
+
+  const linksList = document.querySelector('.links-list');
+  if (linksList) {
+    linksList.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (link && typeof trackEvent === 'function') {
+        const name = link.querySelector('.link-name')?.textContent || link.href;
+        trackEvent('external_link_clicked', { link_name: name, url: link.href });
+      }
+    });
+  }
+
+  const openRouterFallbackModel1Input = document.getElementById('openRouterFallbackModel1Input');
+  if (openRouterFallbackModel1Input) {
+    try {
+      window.openRouterFallbackModel1 = localStorage.getItem('openRouterFallbackModel1') || 'nvidia/nemotron-3-super-120b-a12b:free';
+      openRouterFallbackModel1Input.value = window.openRouterFallbackModel1;
+    } catch(e) {
+      debugLog(`Error reading openRouterFallbackModel1: ${e}`, 'warn');
+      window.openRouterFallbackModel1 = '';
+    }
+    openRouterFallbackModel1Input.addEventListener('change', handleOpenRouterFallbackModel1Change);
+    openRouterFallbackModel1Input.addEventListener('blur', handleOpenRouterFallbackModel1Change);
+  }
+
+  const openRouterFallbackModel2Input = document.getElementById('openRouterFallbackModel2Input');
+  if (openRouterFallbackModel2Input) {
+    try {
+      window.openRouterFallbackModel2 = localStorage.getItem('openRouterFallbackModel2') || 'arcee-ai/trinity-large-preview:free';
+      openRouterFallbackModel2Input.value = window.openRouterFallbackModel2;
+    } catch(e) {
+      debugLog(`Error reading openRouterFallbackModel2: ${e}`, 'warn');
+      window.openRouterFallbackModel2 = '';
+    }
+    openRouterFallbackModel2Input.addEventListener('change', handleOpenRouterFallbackModel2Change);
+    openRouterFallbackModel2Input.addEventListener('blur', handleOpenRouterFallbackModel2Change);
+  }
+
   if (forceOfflineCheckbox) {
     const storedOffline = localStorage.getItem('forceOfflineMode') === 'true';
     window.forceOfflineMode = storedOffline;
@@ -425,13 +742,41 @@ window.addEventListener('load', async () => { // Make async to await model load
     forceOfflineCheckbox.addEventListener('change', handleForceOfflineChange);
     
     if (storedOffline) {
-        const chatContainer = document.querySelector('.chat-container');
-        const statusInd = document.getElementById('chat-status-indicator');
         window.isOfflineMode = true;
-        if (chatContainer) chatContainer.classList.add('offline-mode');
-        if (statusInd) statusInd.textContent = 'OFFLINE MODE (FORCED)';
+        if (typeof updateChatOfflineUI === 'function') {
+          updateChatOfflineUI(true, 'OFFLINE MODE (FORCED)');
+        }
+        if (typeof startOfflineCountdown === 'function') startOfflineCountdown();
     }
   }
+
+  const goOnlineBtn = document.getElementById('goOnlineBtn');
+  if (goOnlineBtn && typeof handleGoOnlineClick === 'function') {
+    goOnlineBtn.addEventListener('click', handleGoOnlineClick);
+  }
+
+  const offlineDurationSlider = document.getElementById('offlineDuration');
+  const offlineDurationValueEl = document.getElementById('offlineDurationValue');
+  const storedOfflineDuration = localStorage.getItem('offlineModeDuration');
+  if (storedOfflineDuration) {
+      window.offlineModeDuration = parseInt(storedOfflineDuration);
+      if (offlineDurationSlider) offlineDurationSlider.value = window.offlineModeDuration;
+      if (offlineDurationValueEl) {
+          offlineDurationValueEl.textContent = window.offlineModeDuration > 3600 ? '∞ (Permanent)' : window.offlineModeDuration + 's';
+      }
+  }
+  if (offlineDurationSlider) {
+      offlineDurationSlider.addEventListener('input', handleOfflineDurationChange);
+  }
+
+  const showChatContextCheckbox = document.getElementById('showChatContextCheckbox');
+  if (showChatContextCheckbox) {
+    const stored = localStorage.getItem('showChatContextLogs') === 'true';
+    window.showChatContextLogs = stored;
+    showChatContextCheckbox.checked = stored;
+    showChatContextCheckbox.addEventListener('change', handleShowChatContextLogsChange);
+  }
+
   debugLog('Language, display, clock, navigation, voice, context, and debug settings listeners attached.', 'info');
 
   // Initialize chat controller (e.g., to add Enter key listener)
@@ -454,19 +799,16 @@ window.addEventListener('load', async () => { // Make async to await model load
 
   debugLog('Application initialization complete.', 'info');
 
-  // Reorder: Voice first, Language second
-  try {
-    const panel = settingsPanel;
-    const groups = Array.from(panel.querySelectorAll('.settings-group'));
-    const voiceGroup = groups.find(g => /voice settings/i.test(g.querySelector('h3')?.textContent || ''));
-    const langGroup  = groups.find(g => /language settings/i.test(g.querySelector('h3')?.textContent || ''));
-    if (voiceGroup) panel.insertBefore(voiceGroup, panel.firstChild);
-    if (langGroup && voiceGroup) panel.insertBefore(langGroup, voiceGroup.nextSibling);
-  } catch(e){ debugLog('Settings group reorder failed: '+e,'warn'); }
-
-  document.getElementById('openModelGalleryBtn')?.addEventListener('click', ()=>window.openModelGallery?.());
-  document.getElementById('modelGalleryCloseBtn')?.addEventListener('click', ()=>window.closeModelGallery?.());
+  document.getElementById('openModelGalleryBtn')?.addEventListener('click', ()=>{
+    if (typeof trackEvent === 'function') trackEvent('model_gallery_opened');
+    window.openModelGallery?.();
+  });
   document.getElementById('resetLanguagesBtn')?.addEventListener('click', handleResetLanguages);
+
+  // Trigger Kokoro background preloading (Fire and Forget)
+  if (typeof window.preloadKokoroInBackground === 'function') {
+    window.preloadKokoroInBackground();
+  }
 
 });
 

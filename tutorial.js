@@ -6,75 +6,81 @@
       body: "This app pairs a Live2D character 🎭 with a chat 🗨️ powered by an AI model 🤖. You can move 🖱️ and zoom 🔍 the character, chat 💬, and even listen to radio 🎶 while using TTS 🔊."
     },
     {
-      title: "💬 Chat",
-      body: "Type your message ⌨️ and press Enter ↩️ or Send 📨. The conversation history is saved locally 💾. Use Reset Chat 🗑️ to clear it."
+      title: "💬 Chat & AI",
+      body: "Type your message ⌨️ and press Enter ↩️. The AI processes your input and responds with text, emotion, and gestures 🎭. Your conversation history is saved locally 💾. Use Reset Chat 🗑️ to clear it and start fresh."
     },
     {
-      title: "🧩 Models",
-      body: "Open Settings ⚙️ → Model Settings 🧩 to switch the Live2D model. You can add your own model via a .model3.json URL 🔗 and optional thumbnail 🖼️."
+      title: "🤖 OpenRouter (LLM)",
+      body: "By default, the app uses built-in WebSim AI. For more power, enable **OpenRouter** 🚀 in Settings → LLM / OpenRouter. Provide your API key 🔑 and a model name (e.g., `openrouter/free` or `arcee-ai/trinity-large-preview:free`). OpenRouter supports **Streaming** ⚡ for real-time replies!"
     },
     {
-      title: "🖼️ Backgrounds",
-      body: "In Settings ⚙️ → Background Image 🖼️ you can generate a background from a typed prompt 💡 or from the current conversation 🗣️, and manage the Background Library 📚: open a fullscreen viewer 🖥️, select multiple to delete 🗑️, or clear the library 🧹. The active background image is saved automatically 💾 so your scene ✨ is ready next time."
+      title: "🧠 Persona & Memory",
+      body: "Customize your AI's identity 🆔 and personality 🎭 in Persona Settings. The AI has **Long-Term Memory** 🧵: it remembers the last few dozen messages and automatically creates a **Conversation Summary** 📝 to retain important facts even after they leave immediate memory."
     },
     {
-      title: "🌐 Languages",
-      body: "Response Language 🗣️ sets the AI reply language 🌍. Translate Response To 🔁 shows an extra translated line 📝. Transliteration 🔤 helps with Japanese/Korean 🇯🇵🇰🇷 so you can read the pronunciation more easily 😊."
+      title: "🧩 Live2D Models",
+      body: "Switch characters in Settings → Model Settings 🧩. You can pick from built-in models or add your own via a `.model3.json` URL 🔗. The AI can trigger **Emotions** (Happy, Sad, Surprised, etc.) and **Gestures** (Nod, Shake Head) automatically during chat ✨."
     },
     {
       title: "🔊 Voice (TTS)",
-      body: "Enable Voice 🔈 toggles TTS playback 🎧. Choose a voice 🎙️ per language. If no voice exists, select None 🚫 to disable for that language. WebSim voices are available for many languages (for example English, Japanese, German, Portuguese, Spanish, French, Chinese (Simplified/Traditional), Filipino, Italian, Russian, Hindi) 🌎; you can pick a different WebSim voice per language in Voice Settings 🎛️."
+      body: "Enable Voice 🔈 to hear the AI. You can choose a different voice 🎙️ for each response language. WebSim voices are high-quality and available for many languages 🌎. Adjust volume 🔉 and chunk limits in Voice Settings."
     },
     {
-      title: "📻 Audio / Radio",
-      body: "Use the radio controls to play/pause ▶️⏸️ the anime radio stream and adjust volume 🔉 with the slider."
+      title: "🖼️ Backgrounds",
+      body: "Generate custom backgrounds 🎨 from prompts or the current chat context in Settings → Background Image 🖼️. Manage your collection in the **Background Library** 📚, use the fullscreen viewer 🖥️, and choose how the image fits your screen (Contain, Cover, etc.)."
     },
     {
-      title: "🖥️ Display & Controls",
-      body: "Toggle the clock ⏰ and navigation controls 🎮. Use the buttons to move ↕️↔️ / zoom 🔍 the model. You can also drag the model 🖱️ and use mouse wheel to zoom 🌀."
+      title: "📻 Audio & Radio",
+      body: "Listen to an anime radio stream 🎶 while you chat. Controls are in Settings → Audio Settings 🎧. Volume is saved automatically 💾. Click the play button ▶️ to start the music!"
     },
     {
-      title: "⚙️ Opacity & Preferences",
-      body: "Adjust chatbox 🪟 and message bubble 💬 opacities to your taste 🎨. Choose whether to always show Settings on load ✨ and whether to include time ⏱️ / battery 🔋 in AI context for more context-aware replies 🧠."
+      title: "🎙️ Voice Input (STT)",
+      body: "Click the Microphone 🎤 icon in the chatbox to talk instead of typing. It uses your browser's speech recognition ✍️. Make sure to allow microphone permissions in your browser 🔐."
+    },
+    {
+      title: "🌐 Languages & UI",
+      body: "Set the AI's response language 🗣️ and optionally show **Transliteration** 🔤 (Romaji/Romanization) for Japanese or Korean. You can also enable **UI Translation** 🈯 to have the AI translate the entire app interface for you!"
+    },
+    {
+      title: "⚙️ Preferences & Context",
+      body: "In Preferences ⚙️, you can choose to include the current **Time** ⏱️ and **Battery** 🔋 level in the AI's context so it can make comments about your day or device status 🧠. You can also adjust chatbox and bubble opacities 🎨."
+    },
+    {
+      title: "🔌 Offline Mode",
+      body: "If the AI connection fails or you're offline, the app switches to a **Local Fallback Engine** 🔌. It uses basic heuristics to keep the conversation going until you're back online 🌐. You can also force Offline Mode in Debug Settings."
     },
     {
       title: "🐞 Debug Panel",
-      body: "Enable Debug Panel 🧰 to see logs 📋, useful for troubleshooting 🛠️. Logs appear on the left ◀️. Clear Log 🧹 removes them."
+      body: "Troubleshoot issues with the **Debug Panel** 🧰. See real-time logs 📋 for AI calls, model loading, and system events. You can even see the full context 📄 being sent to the AI to understand how it thinks."
     },
     {
       title: "🖱️ Drag & Resize",
-      body: "Drag the Chat window by its header 🪟 and resize from its edges ↔️↕️. Positions and sizes are saved automatically 💾 so your layout stays how you like it 👍."
+      body: "The Chat window is fully flexible! Drag it by the header 🪟 and resize from the edges ↔️↕️. Your layout is saved 💾 so it stays consistent between visits."
     },
     {
-      title: "💡 Tips",
-      body: "If audio doesn't play 🔇, interact with the page (click 🖱️ or tap 👆) to allow audio. If a model fails to load ⚠️, try another model 🎭 or your own URL 🔗. You can always reset chat 🗑️ or tweak settings ⚙️ if something feels off."
+      title: "💡 Pro Tips",
+      body: "• Click/Tap the character to interact 🖱️\n• Use mouse wheel to zoom 🌀\n• Drag the character to reposition 📍\n• Enable 'Always show Settings' 🪄 if you tweak often\n• Check the **Links** 🔗 section for more from Waifu AI!"
     }
   ];
 
   let idx = 0;
 
-  const overlay = document.getElementById("tutorialOverlay");
-  const titleEl = document.getElementById("tutorialTitle");
-  const bodyEl = document.getElementById("tutorialBody");
-  const prevBtn = document.getElementById("tutorialPrevBtn");
-  const nextBtn = document.getElementById("tutorialNextBtn");
-  const closeBtn = document.getElementById("tutorialCloseBtn");
-  const launchBtn = document.getElementById("launchTutorialBtn");
+  const bodyEl = document.getElementById("settingsTutorialContent");
 
   // Cache for the translated second half
   let cachedSecondHalf = null;
 
   async function render() {
+    if (!bodyEl) return;
     const langCode = window.currentInterfaceLanguage || "en-US";
-
-    // Title is localized elsewhere via ui_strings/ui_translator
-    titleEl.textContent = "App Guide";
 
     // Translate steps if language is not English
     let displaySteps = steps;
     if (langCode !== "en-US") {
-      // Use loading state if translating
-      bodyEl.innerHTML = '<div style="text-align:center; padding: 40px; color: #aaa;">Translating guide... ⏳</div>';
+      // Show short-lived loading indicator if it's the first render for this lang
+      if (window.lastTutorialLang !== langCode) {
+        bodyEl.innerHTML = '<div style="text-align:center; padding: 20px; color: #aaa; font-size: 13px;">Translating guide... ⏳</div>';
+      }
       displaySteps = await translateTutorialSteps(steps, langCode);
     }
 
@@ -92,68 +98,11 @@
       .map(step => `<div class="tutorial-step-card"><h4>${step.title}</h4><p>${step.body}</p></div>`)
       .join("");
 
-    bodyEl.innerHTML = stepsHtml + `<div style="margin-top: 40px; opacity: 0.8; font-size: 0.95em;">${secondHalf}</div>`;
-
-    // Single-page style: hide prev/next buttons
-    if (prevBtn) prevBtn.style.display = "none";
-    if (nextBtn) nextBtn.style.display = "none";
-  }
-
-  async function open() {
-    overlay.classList.add("visible");
-    overlay.setAttribute("aria-hidden", "false");
-    await render();
-    overlay.classList.add("visible");
-    overlay.setAttribute("aria-hidden", "false");
-    bodyEl.scrollTop = 0;
-    if (closeBtn) closeBtn.focus();
-  }
-
-  function close() {
-    overlay.classList.remove("visible");
-    overlay.setAttribute("aria-hidden", "true");
-  }
-
-  // Legacy step navigation (kept for compatibility, but hidden in UI)
-  if (prevBtn) {
-    prevBtn.addEventListener("click", () => {
-      if (idx > 0) {
-        idx -= 1;
-        render();
-      }
-    });
-  }
-
-  if (nextBtn) {
-    nextBtn.addEventListener("click", () => {
-      if (idx < steps.length - 1) {
-        idx += 1;
-        render();
-      } else {
-        close();
-      }
-    });
-  }
-
-  if (closeBtn) {
-    closeBtn.addEventListener("click", close);
-  }
-
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) close();
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (overlay.classList.contains("visible") && e.key === "Escape") {
-      close();
-    }
-  });
-
-  if (launchBtn) {
-    launchBtn.addEventListener("click", open);
+    bodyEl.innerHTML = stepsHtml + `<div class="tutorial-details-section">${secondHalf}</div>`;
   }
 
   // Expose for programmatic access
-  window.showTutorial = open;
+  window.renderTutorial = render;
   window.rerenderTutorial = render;
+  window.TUTORIAL_STEPS = steps;
 })();

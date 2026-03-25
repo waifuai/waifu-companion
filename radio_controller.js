@@ -19,16 +19,14 @@ if (radioToggleBtn) {
     radioToggleBtn.addEventListener('click', () => {
         // Assumes radioPlayer is accessible
         if (radioPlayer.paused) {
-            // Ensure audio context is started on user interaction if using Tone.js for this
-            // (Though this specific audio element doesn't use Tone directly)
-            // For standard audio element, play() call is sufficient and requires user gesture.
+            if (typeof trackEvent === 'function') trackEvent('radio_toggle', { action: 'play' });
             radioPlayer.play().catch(error => {
                 debugLog(`Error attempting to play radio: ${error}`, 'error');
                 console.error("Radio playback error:", error);
-                // Optionally show a user-friendly error message
                 addMessage("Sorry, I couldn't start the radio stream. Your browser might require another click or interaction.", false);
             });
         } else {
+            if (typeof trackEvent === 'function') trackEvent('radio_toggle', { action: 'pause' });
             radioPlayer.pause();
         }
     });
@@ -44,7 +42,9 @@ if (radioVolumeSlider) {
     radioVolumeSlider.addEventListener('input', (e) => {
         // Assumes radioPlayer is accessible
         if (radioPlayer) {
-            radioPlayer.volume = parseFloat(e.target.value);
+            const val = parseFloat(e.target.value);
+            radioPlayer.volume = val;
+            if (typeof trackEvent === 'function') trackEvent('radio_volume_changed', { value: val });
             debugLog(`Radio volume set to: ${radioPlayer.volume.toFixed(2)}`, 'info');
         }
     });

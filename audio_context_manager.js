@@ -1,6 +1,7 @@
 // --- Global AudioContext and Analyser for TTS ---
 let ttsAudioContext = null;
 let ttsAnalyser = null;
+let ttsGainNode = null;
 
 function getTTSAudioContext() {
     if (!ttsAudioContext || ttsAudioContext.state === 'closed') {
@@ -32,12 +33,34 @@ function getTTSAnalyser() {
         }
         ttsAnalyser = context.createAnalyser();
         ttsAnalyser.fftSize = 1024; 
-        ttsAnalyser.connect(context.destination); // Connect new analyser to destination
-        debugLog("TTS: Analyser (re)created and connected to destination.", "info");
+        // Create or reuse a gain node for global TTS volume control
+        if (!ttsGainNode || ttsGainNode.context !== context) {
+            ttsGainNode = context.createGain();
+            ttsGainNode.gain.value = typeof window.ttsVolume === 'number' ? window.ttsVolume : 1.0;
+            ttsGainNode.connect(context.destination);
+        }
+        ttsAnalyser.connect(ttsGainNode);
+        debugLog("TTS: Analyser (re)created and connected to gain node.", "info");
     }
     return ttsAnalyser;
+}
+
+function getTTSGainNode() {
+    const context = getTTSAudioContext();
+    if (!ttsGainNode || ttsGainNode.context !== context) {
+        ttsGainNode = context.createGain();
+        ttsGainNode.gain.value = typeof window.ttsVolume === 'number' ? window.ttsVolume : 1.0;
+        ttsGainNode.connect(context.destination);
+        if (ttsAnalyser) {
+            try { ttsAnalyser.disconnect(); } catch(e) {}
+            ttsAnalyser.connect(ttsGainNode);
+        }
+        debugLog("TTS: Gain node (re)created.", "info");
+    }
+    return ttsGainNode;
 }
 
 // Export functions to window for global access
 window.getTTSAudioContext = getTTSAudioContext;
 window.getTTSAnalyser = getTTSAnalyser;
+window.getTTSGainNode = getTTSGainNode;

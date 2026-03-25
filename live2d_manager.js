@@ -30,6 +30,10 @@ async function loadModel(modelUrl) {
         debugLog(`Could not find model name for URL: ${modelUrl}, using fallback "Character"`, 'warn');
     }
 
+    if (typeof trackEvent === 'function') {
+        trackEvent('model_changed', { model_name: currentModelName });
+    }
+
     model.__modelUrl = modelUrl;
 
     // Model Setup

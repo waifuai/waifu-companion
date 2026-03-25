@@ -4,6 +4,10 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   messageDiv.id = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   messageDiv.className = `message ${isUser ? "user-message" : "model-message"}`;
   
+  // Stagger entry for multiple messages if needed
+  const existingMessages = chatHistory.querySelectorAll('.message').length;
+  messageDiv.style.animationDelay = `${Math.min(existingMessages * 0.05, 0.5)}s`;
+  
   // Actions Container
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'message-actions';
@@ -16,6 +20,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   playBtn.onclick = () => {
     if (typeof window.playTTS === 'function') {
       const textToPlay = isUser ? originalText : Array.from(originalSpan.querySelectorAll('.sentence-chunk')).map(s => s.textContent).join(' ');
+      if (typeof trackEvent === 'function') trackEvent('tts_action', { action: 'play', source: 'message' });
       window.playTTS(textToPlay, languageCode, messageDiv.id);
     }
   };
@@ -27,6 +32,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   pauseBtn.title = 'Stop TTS';
   pauseBtn.onclick = () => {
     if (typeof window.stopTTS === 'function') {
+      if (typeof trackEvent === 'function') trackEvent('tts_action', { action: 'stop', source: 'message' });
       window.stopTTS();
     }
   };
@@ -38,6 +44,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   copyBtn.title = 'Copy Text';
   copyBtn.onclick = () => {
     navigator.clipboard.writeText(originalText).then(() => {
+      if (typeof trackEvent === 'function') trackEvent('message_copied');
       const oldHtml = copyBtn.innerHTML;
       copyBtn.innerHTML = '✅';
       setTimeout(() => copyBtn.innerHTML = oldHtml, 2000);
@@ -51,6 +58,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   deleteBtn.title = 'Delete message';
   deleteBtn.onclick = () => {
     if (typeof window.deleteMessage === 'function') {
+      if (typeof trackEvent === 'function') trackEvent('message_deleted');
       window.deleteMessage(messageDiv, originalText, isUser);
     }
   };
@@ -187,3 +195,179 @@ function populateModelSelector() {
     modelSelector.appendChild(listItem);
   });
 }
+
+/**
+ * Create a streaming message element for real-time updates
+ * Similar to addMessage but without all the extra elements (TTS buttons, etc.)
+ * Added after streaming completes
+ * 
+ * @param {string} languageCode - Language code for styling
+ * @returns {object} - Object with messageDiv, textContainer for updating
+ */
+function createStreamingMessage(languageCode = 'en-US') {
+  const messageDiv = document.createElement("div");
+  messageDiv.id = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  messageDiv.className = `message model-message streaming-message`;
+  
+  // Stagger entry animation
+  const existingMessages = chatHistory.querySelectorAll('.message').length;
+  messageDiv.style.animationDelay = `${Math.min(existingMessages * 0.05, 0.5)}s`;
+  
+  // Actions Container
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'message-actions';
+  
+  // Placeholder buttons (will be populated after streaming completes)
+  const playBtn = document.createElement('button');
+  playBtn.className = 'message-action-btn tts-play';
+  playBtn.innerHTML = '🔊';
+  playBtn.title = 'Play TTS';
+  playBtn.style.opacity = '0.3'; // Dimmed until message is complete
+  
+  const pauseBtn = document.createElement('button');
+  pauseBtn.className = 'message-action-btn tts-pause';
+  pauseBtn.innerHTML = '⏹';
+  pauseBtn.title = 'Stop TTS';
+  pauseBtn.style.opacity = '0.3';
+  
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'message-action-btn copy-msg';
+  copyBtn.innerHTML = '📋';
+  copyBtn.title = 'Copy Text';
+  copyBtn.style.opacity = '0.3';
+  
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'message-action-btn delete-msg';
+  deleteBtn.innerHTML = '🗑️';
+  deleteBtn.title = 'Delete message';
+  deleteBtn.style.opacity = '0.3';
+  
+  actionsDiv.appendChild(playBtn);
+  actionsDiv.appendChild(pauseBtn);
+  actionsDiv.appendChild(copyBtn);
+  actionsDiv.appendChild(deleteBtn);
+  messageDiv.appendChild(actionsDiv);
+  
+  // Text container for streaming content
+  const textContainer = document.createElement('span');
+  textContainer.className = 'message-original-text streaming-text';
+  textContainer.textContent = ''; // Start empty, fill as chunks arrive
+  messageDiv.appendChild(textContainer);
+  
+  // Add language-specific class
+  messageDiv.classList.add(`lang-${languageCode.split('-')[0]}`);
+  
+  // Add to chat
+  chatHistory.appendChild(messageDiv);
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+  
+  return {
+    messageDiv: messageDiv,
+    textContainer: textContainer,
+    actionsDiv: actionsDiv,
+    playBtn: playBtn,
+    pauseBtn: pauseBtn,
+    copyBtn: copyBtn,
+    deleteBtn: deleteBtn
+  };
+}
+
+/**
+ * Update a streaming message with new text chunk
+ * 
+ * @param {object} streamObj - Object returned by createStreamingMessage
+ * @param {string} text - New text to display
+ */
+function updateStreamingMessage(streamObj, text) {
+  if (!streamObj || !streamObj.textContainer) return;
+  
+  streamObj.textContainer.textContent = text;
+  
+  // Auto-scroll to bottom
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+/**
+ * Finalize a streaming message after streaming completes
+ * Enables action buttons and sets up TTS functionality
+ * 
+ * @param {object} streamObj - Object returned by createStreamingMessage
+ * @param {string} originalText - The complete text content
+ * @param {string} languageCode - Language code for TTS
+ * @param {string} transliterationText - Optional transliteration
+ * @param {string} translationText - Optional translation
+ */
+function finalizeStreamingMessage(streamObj, originalText, languageCode = 'en-US', transliterationText = null, translationText = null) {
+  if (!streamObj || !streamObj.messageDiv) return;
+  
+  const { messageDiv, textContainer, actionsDiv, playBtn, pauseBtn, copyBtn, deleteBtn } = streamObj;
+  
+  // Remove streaming class
+  messageDiv.classList.remove('streaming-message');
+  messageDiv.classList.add('model-message');
+  
+  // Enable action buttons
+  playBtn.style.opacity = '1';
+  pauseBtn.style.opacity = '1';
+  copyBtn.style.opacity = '1';
+  deleteBtn.style.opacity = '1';
+  
+  // Set up TTS button
+  playBtn.onclick = () => {
+    if (typeof window.playTTS === 'function') {
+      if (typeof trackEvent === 'function') trackEvent('tts_action', { action: 'play', source: 'message' });
+      window.playTTS(originalText, languageCode, messageDiv.id);
+    }
+  };
+  
+  // Set up stop TTS button
+  pauseBtn.onclick = () => {
+    if (typeof window.stopTTS === 'function') {
+      if (typeof trackEvent === 'function') trackEvent('tts_action', { action: 'stop', source: 'message' });
+      window.stopTTS();
+    }
+  };
+  
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(originalText).then(() => {
+      if (typeof trackEvent === 'function') trackEvent('message_copied');
+      const oldHtml = copyBtn.innerHTML;
+      copyBtn.innerHTML = '✅';
+      setTimeout(() => copyBtn.innerHTML = oldHtml, 2000);
+    });
+  };
+  
+  // Set up delete button
+  deleteBtn.onclick = () => {
+    if (typeof window.deleteMessage === 'function') {
+      if (typeof trackEvent === 'function') trackEvent('message_deleted');
+      window.deleteMessage(messageDiv, originalText, false);
+    }
+  };
+  
+  // Add transliteration if provided
+  if (transliterationText) {
+    const transliterationSpan = document.createElement('span');
+    transliterationSpan.className = 'message-transliteration-text';
+    transliterationSpan.textContent = `(${transliterationText})`;
+    messageDiv.appendChild(transliterationSpan);
+  }
+  
+  // Add translation if provided
+  if (translationText && originalText.trim() !== translationText.trim()) {
+    const translationSpan = document.createElement('span');
+    translationSpan.className = 'message-translation-text';
+    translationSpan.textContent = `(EN: ${translationText})`;
+    messageDiv.appendChild(translationSpan);
+  }
+  
+  // Scroll to bottom
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+  
+  return messageDiv.id;
+}
+
+// Export for use in other modules
+window.createStreamingMessage = createStreamingMessage;
+window.updateStreamingMessage = updateStreamingMessage;
+window.finalizeStreamingMessage = finalizeStreamingMessage;

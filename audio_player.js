@@ -48,7 +48,8 @@ async function playCachedAudioBuffer(audioBuffer, text) {
       };
       updateMouth(); 
     } else {
-      audioBufferSource.connect(audioContext.destination);
+      const gain = typeof getTTSGainNode === 'function' ? getTTSGainNode() : audioContext.destination;
+      audioBufferSource.connect(gain);
     }
     
     await new Promise((resolve, reject) => {
@@ -100,6 +101,85 @@ async function playCachedAudioBuffer(audioBuffer, text) {
   }
 }
 
+// Browser SpeechSynthesis provider - uses built-in browser TTS
+// Plays audio directly through speakers (cannot capture as AudioBuffer)
+async function browserSpeechSynthesisPlay(textChunk, voiceId) {
+  if (!window.speechSynthesis) {
+    debugLog('TTS: Browser SpeechSynthesis not available', 'error');
+    return null;
+  }
+
+  // Ensure voices are loaded
+  let availableVoices = speechSynthesis.getVoices();
+  if (availableVoices.length === 0) {
+    debugLog('TTS: Waiting for browser voices to load...', 'info');
+    await new Promise((resolve) => {
+      const wait = () => {
+        availableVoices = speechSynthesis.getVoices();
+        if (availableVoices.length > 0) {
+          resolve();
+        } else {
+          setTimeout(wait, 100);
+        }
+      };
+      wait();
+      // Safety timeout
+      setTimeout(resolve, 3000);
+    });
+  }
+
+  debugLog(`TTS: Using browser SpeechSynthesis for: "${textChunk.substring(0, 50)}..."`, 'info');
+
+  return new Promise((resolve) => {
+    const utterance = new SpeechSynthesisUtterance(textChunk);
+
+    // Determine language and gender from voice config
+    const voiceConfig = voices.find(v => v.id === voiceId);
+    const targetLang = voiceConfig ? (voiceConfig.language || 'en-US') : 'en-US';
+    const targetGender = voiceConfig ? (voiceConfig.gender || 'female') : 'female';
+    utterance.lang = targetLang;
+
+    // Refresh voices after potential wait
+    availableVoices = speechSynthesis.getVoices();
+    const baseLang = targetLang.split('-')[0];
+    
+    // Filter voices matching the language
+    const langVoices = availableVoices.filter(v => v.lang.startsWith(baseLang));
+    
+    if (langVoices.length > 0) {
+      // Try to find a voice matching the requested gender by checking name keywords
+      const femaleKeywords = ['female', 'woman', 'girl', 'zira', 'hazel', 'susan', 'samantha', 'karen', 'moira', 'tessa', 'fiona', 'kate', 'victoria', 'princess', 'alice'];
+      const maleKeywords = ['male', 'man', 'boy', 'david', 'mark', 'james', 'daniel', 'thomas', 'george', 'alex', 'fred', 'ralph'];
+      
+      const keywords = targetGender === 'female' ? femaleKeywords : maleKeywords;
+      const genderMatch = langVoices.find(v => 
+        keywords.some(kw => v.name.toLowerCase().includes(kw))
+      );
+      
+      utterance.voice = genderMatch || langVoices[0];
+      debugLog(`TTS: Selected browser voice: "${utterance.voice.name}" (lang: ${utterance.voice.lang})`, 'info');
+    } else if (availableVoices.length > 0) {
+      // No language match, just use first available
+      utterance.voice = availableVoices[0];
+      debugLog(`TTS: No lang match, using default browser voice: "${utterance.voice.name}"`, 'warn');
+    }
+
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => {
+      debugLog('TTS: Browser SpeechSynthesis playback finished', 'info');
+      resolve('__SPEECH_SYNTHESIS_PLAYED__');
+    };
+    utterance.onerror = (e) => {
+      debugLog(`TTS: Browser SpeechSynthesis error: ${e.error}`, 'error');
+      resolve(null);
+    };
+
+    speechSynthesis.speak(utterance);
+  });
+}
+
 async function fetchTTSBuffer(textChunk, voiceId) {
   if (!textChunk.trim()) return null;
 
@@ -107,19 +187,61 @@ async function fetchTTSBuffer(textChunk, voiceId) {
   const provider = voiceConfig ? voiceConfig.provider : 'websim';
   const audioContext = getTTSAudioContext();
 
-  if (provider === 'websim') {
-    const result = await websim.textToSpeech({ text: textChunk, voice: voiceId });
-    if (!result.url) throw new Error('Websim TTS no URL returned');
-    const response = await fetch(result.url);
-    if (!response.ok) {
-      const err = new Error(`Websim TTS fetch error! status: ${response.status}`);
-      err.status = response.status;
-      throw err;
+  let primaryFailed = false;
+
+  // 1. Try Primary Voice if Enabled
+  if (window.enablePrimaryVoice !== false) {
+    try {
+      if (provider === 'browser') {
+        return await browserSpeechSynthesisPlay(textChunk, voiceId);
+      }
+
+      // Use the WebSim TTS SDK
+      debugLog(`TTS: Attempting Primary TTS for voice: ${voiceId}`, 'info');
+      if (typeof websim === 'undefined' || typeof websim.textToSpeech !== 'function') {
+        throw new Error('websim.textToSpeech SDK not available');
+      }
+      const result = await websim.textToSpeech({ text: textChunk, voice: voiceId });
+      if (!result || !result.url) throw new Error('websim.textToSpeech returned no URL');
+      const response = await fetch(result.url);
+      if (!response.ok) throw new Error(`HTTP error fetching TTS audio! status: ${response.status}`);
+      const arrayBuffer = await response.arrayBuffer();
+      return await audioContext.decodeAudioData(arrayBuffer);
+    } catch (err) {
+      debugLog(`TTS: Primary API failed or rate limit: ${err.message}.`, 'warn');
+      primaryFailed = true;
     }
-    const arrayBuffer = await response.arrayBuffer();
-    return await audioContext.decodeAudioData(arrayBuffer);
+  } else {
+    debugLog(`TTS: Primary voice disabled.`, 'info');
+    primaryFailed = true;
   }
-  throw new Error(`Unsupported provider: ${provider}`);
+
+  // 2. Try Kokoro if primary failed or was disabled
+  if (primaryFailed) {
+    if (window.enableKokoro && window.isKokoroReady && typeof window.generateKokoroAudioBuffer === 'function') {
+      try {
+        debugLog(`TTS: Local Kokoro taking over for: "${textChunk.substring(0, 50)}..."`, 'info');
+        const kokoroBuffer = await window.generateKokoroAudioBuffer(textChunk, window.selectedKokoroVoiceId || "af_heart");
+        if (kokoroBuffer) return kokoroBuffer;
+      } catch (kokoroErr) {
+        debugLog(`TTS: Local Kokoro generation failed: ${kokoroErr.message}`, 'error');
+      }
+    } else if (window.enableKokoro && !window.isKokoroReady) {
+      debugLog("TTS: Local Kokoro is still preloading in the background. Skipping to browser TTS safety net.", "info");
+    }
+
+    // 3. Fallback if Kokoro failed, wasn't ready, or was disabled
+    if (window.enableFallbackVoice === false) {
+      debugLog(`TTS: Fallback voice disabled. Skipping playback.`, 'warn');
+      return null;
+    }
+
+    debugLog(`TTS: Falling back to browser SpeechSynthesis...`, 'info');
+    const fallbackId = window.ttsFallbackVoiceId || 'browser-female';
+    return await browserSpeechSynthesisPlay(textChunk, fallbackId);
+  }
+  
+  return null;
 }
 window.fetchTTSBuffer = fetchTTSBuffer;
 
@@ -142,6 +264,17 @@ async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloadedBuff
         
         if (!audioBuffer) {
             audioBuffer = await fetchTTSBuffer(textChunk, voiceId);
+        }
+
+        // If browser SpeechSynthesis was used as fallback, it already played directly
+        if (audioBuffer === '__SPEECH_SYNTHESIS_PLAYED__') {
+            debugLog(`TTS: Chunk played via browser SpeechSynthesis, skipping AudioBuffer playback`, 'info');
+            return;
+        }
+
+        if (!audioBuffer) {
+            debugLog(`TTS: fetchTTSBuffer returned null, skipping chunk: "${textChunk.substring(0,30)}..."`, 'warn');
+            return;
         }
 
         source = audioContext.createBufferSource();

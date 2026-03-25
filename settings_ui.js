@@ -3,17 +3,172 @@
 function toggleSettings() {
   // Assumes settingsPanel is accessible
   const willShow = !settingsPanel.classList.contains("visible");
+  
+  if (willShow && typeof trackEvent === 'function') {
+    trackEvent('settings_opened');
+  }
+
   setSettingsPanelVisible(willShow);
 }
 
 function setSettingsPanelVisible(visible) {
   settingsPanel.classList.toggle("visible", visible);
+  // Reset to main menu when opening/closing
+  if (visible) {
+    closeSubmenu();
+    // Clear search on open
+    const searchInput = document.getElementById('settingsSearch');
+    if (searchInput) {
+      searchInput.value = '';
+      filterSettings('');
+    }
+  }
   try {
     localStorage.setItem('settingsPanelLastOpen', visible.toString());
   } catch (e) {
     debugLog(`Could not persist settingsPanelLastOpen: ${e}`, 'warn');
   }
 }
+
+window.toggleSettings = toggleSettings;
+
+function openSubmenu(submenuId) {
+  if (typeof trackEvent === 'function') trackEvent('settings_submenu_opened', { submenu_id: submenuId });
+  const mainMenu = document.getElementById('settingsMainMenu');
+  const submenus = document.querySelectorAll('.settings-submenu');
+  
+  // Prevent opening submenus while searching
+  if (settingsPanel.classList.contains('searching')) return;
+
+  if (mainMenu) mainMenu.style.display = 'none';
+  submenus.forEach(s => s.classList.remove('active'));
+  
+  const target = document.getElementById(submenuId);
+  if (target) {
+    target.classList.add('active');
+    settingsPanel.scrollTop = 0;
+    
+    // Ensure data-category-name is set for search labeling
+    const title = target.querySelector('h3')?.textContent || 'General';
+    target.setAttribute('data-category-name', title.replace(/[^\w\s]/g, '').trim());
+
+    // Auto-render tutorial content when opening the help submenu
+    if (submenuId === 'group-help' && typeof window.renderTutorial === 'function') {
+      window.renderTutorial();
+    }
+  }
+}
+
+function closeSubmenu() {
+  const mainMenu = document.getElementById('settingsMainMenu');
+  const submenus = document.querySelectorAll('.settings-submenu');
+  
+  if (mainMenu) mainMenu.style.display = 'flex';
+  submenus.forEach(s => s.classList.remove('active'));
+}
+
+window.openSubmenu = openSubmenu;
+window.closeSubmenu = closeSubmenu;
+
+function filterSettings(query) {
+  const mainMenu = document.getElementById('settingsMainMenu');
+  const searchResults = document.getElementById('settingsSearchResults');
+  const normalizedQuery = query.toLowerCase().trim();
+  const submenus = document.querySelectorAll('.settings-submenu');
+  
+  if (!normalizedQuery) {
+    // Reset to normal menu view
+    settingsPanel.classList.remove('searching');
+    if (mainMenu) mainMenu.style.display = 'flex';
+    if (searchResults) {
+      searchResults.style.display = 'none';
+      searchResults.innerHTML = '';
+    }
+    // Restore all items in their original submenus
+    submenus.forEach(submenu => {
+      submenu.querySelectorAll('.settings-item').forEach(item => item.style.display = 'block');
+    });
+    return;
+  }
+
+  // Active search state
+  settingsPanel.classList.add('searching');
+  closeSubmenu(); // Always go back to main panel to show flattened results
+  if (mainMenu) mainMenu.style.display = 'none';
+  if (searchResults) {
+    searchResults.style.display = 'block';
+    searchResults.innerHTML = '';
+  }
+
+  let totalMatches = 0;
+
+  submenus.forEach(submenu => {
+    const categoryTitle = submenu.querySelector('h3')?.textContent || 'General';
+    const settingsItems = submenu.querySelectorAll('.settings-item');
+    let categoryHasMatch = false;
+
+    settingsItems.forEach(item => {
+      const itemText = item.textContent.toLowerCase();
+      // Also check if the category title matches, showing all items in it
+      const categoryMatch = categoryTitle.toLowerCase().includes(normalizedQuery);
+      const isItemMatch = itemText.includes(normalizedQuery) || categoryMatch;
+
+      if (isItemMatch) {
+        if (!categoryHasMatch) {
+          const header = document.createElement('div');
+          header.className = 'search-result-category';
+          header.textContent = categoryTitle;
+          searchResults.appendChild(header);
+          categoryHasMatch = true;
+        }
+        
+        // Instead of cloning (which breaks IDs/listeners), we use a placeholder 
+        // to move the element temporarily or just display them where they are.
+        // Actually, the CSS-only approach with some JS help is safer.
+        // We'll mark the original items as matches.
+        item.classList.add('search-match');
+        totalMatches++;
+        
+        // Create a visual copy or move the element? 
+        // Moving is best for events but breaks submenu structure.
+        // We will just force show the submenus in CSS and hide non-matches.
+      } else {
+        item.classList.remove('search-match');
+      }
+    });
+  });
+
+  if (totalMatches === 0 && searchResults) {
+    searchResults.innerHTML = '<div class="no-results" data-ui-key="noResultsFound">No matching settings found.</div>';
+  } else if (searchResults) {
+    searchResults.innerHTML = ''; // Clear the "header" logic if we use the CSS-only approach
+  }
+}
+
+// Initialize search listener
+document.addEventListener('DOMContentLoaded', () => {
+  // Pre-set category names for search flattening
+  document.querySelectorAll('.settings-submenu').forEach(submenu => {
+    const title = submenu.querySelector('h3')?.textContent || 'General';
+    submenu.setAttribute('data-category-name', title.trim());
+  });
+
+  const searchInput = document.getElementById('settingsSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      filterSettings(e.target.value);
+    });
+    
+    // Clear search on escape key if focused
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        searchInput.value = '';
+        filterSettings('');
+        searchInput.blur();
+      }
+    });
+  }
+});
 
 function populateModelSelector() {
   // Use the container inside the settings panel instead of the separate one
@@ -299,6 +454,59 @@ function populateVoiceSelector() {
 
   voiceSelector.value = selectedVoiceId;
   debugLog(`Voice selector populated. Language: ${selectedLanguageCode}, Selected voice: ${selectedVoiceId}`, 'info');
+  
+  // Populate fallback selector as well
+  populateFallbackVoiceSelector();
+  // Populate Kokoro selector as well
+  populateKokoroVoiceSelector();
+}
+
+function populateKokoroVoiceSelector() {
+  const kokoroSelector = document.getElementById('kokoroVoiceSelector');
+  if (!kokoroSelector || !voices) return;
+
+  kokoroSelector.innerHTML = '';
+  
+  const kokoroVoices = voices.filter(v => v.provider === 'kokoro');
+  
+  kokoroVoices.forEach(voice => {
+    const option = document.createElement('option');
+    option.value = voice.id;
+    option.textContent = voice.name;
+    kokoroSelector.appendChild(option);
+  });
+
+  kokoroSelector.value = window.selectedKokoroVoiceId || 'af_heart';
+  
+  debugLog(`Kokoro voice selector populated. Selected: ${kokoroSelector.value}`, 'info');
+}
+
+function populateFallbackVoiceSelector() {
+  const fallbackSelector = document.getElementById('ttsFallbackVoiceSelector');
+  if (!fallbackSelector || !voices) return;
+
+  fallbackSelector.innerHTML = '';
+  
+  // Only show browser provider voices for fallback
+  const browserVoices = voices.filter(v => v.provider === 'browser');
+  
+  browserVoices.forEach(voice => {
+    const option = document.createElement('option');
+    option.value = voice.id;
+    option.textContent = voice.name;
+    fallbackSelector.appendChild(option);
+  });
+
+  // Set initial value from global state
+  if (window.ttsFallbackVoiceId) {
+    fallbackSelector.value = window.ttsFallbackVoiceId;
+  } else {
+    // Default to female if not set
+    fallbackSelector.value = 'browser-female';
+    window.ttsFallbackVoiceId = 'browser-female';
+  }
+  
+  debugLog(`Fallback voice selector populated. Selected: ${fallbackSelector.value}`, 'info');
 }
 
 

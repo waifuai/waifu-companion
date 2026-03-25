@@ -16,3 +16,10 @@ function formatSeconds(seconds) {
 
   return result.trim();
 }
+
+function trackEvent(eventName, params = {}) {
+  if (typeof gtag === 'function') {
+    gtag('event', eventName, params);
+  }
+}
+window.trackEvent = trackEvent;
