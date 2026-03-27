@@ -260,6 +260,7 @@ window.addEventListener('load', async () => { // Make async to await model load
     document.getElementById('enableTikTokVoiceCheckbox').checked = window.enablePrimaryVoice;
     document.getElementById('enableTikTokVoiceCheckbox').addEventListener('change', (e) => {
         window.enablePrimaryVoice = e.target.checked;
+        window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice;
         localStorage.setItem('enablePrimaryVoice', window.enablePrimaryVoice.toString());
         if (typeof trackEvent === 'function') {
           trackEvent('voice_enabled_toggle', { type: 'tiktok', enabled: window.enablePrimaryVoice });
@@ -272,6 +273,7 @@ window.addEventListener('load', async () => { // Make async to await model load
     document.getElementById('enableFallbackVoiceCheckbox').checked = window.enableFallbackVoice;
     document.getElementById('enableFallbackVoiceCheckbox').addEventListener('change', (e) => {
         window.enableFallbackVoice = e.target.checked;
+        window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice;
         localStorage.setItem('enableFallbackVoice', window.enableFallbackVoice.toString());
         if (typeof trackEvent === 'function') {
           trackEvent('voice_enabled_toggle', { type: 'fallback', enabled: window.enableFallbackVoice });
@@ -282,8 +284,8 @@ window.addEventListener('load', async () => { // Make async to await model load
 
   // The main voiceControls container usually depends on at least one being active, 
   // but many apps just keep it visible if 'Enable Voice' was once there.
-  // We'll keep it simple for now and just set global enableVoice for tts_queue compatibility
-  window.enableVoice = true; // Use individual flags in audio_player
+  // Derive global enableVoice from individual provider flags
+  window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
   debugLog(`Voice (TTS) enabled states initialized. Primary: ${window.enablePrimaryVoice}, Fallback: ${window.enableFallbackVoice}`, 'info');
 
   // --- Initialize Opacity Settings ---
@@ -468,6 +470,8 @@ window.addEventListener('load', async () => { // Make async to await model load
   if (savedEnableKokoro !== null) {
       window.enableKokoro = savedEnableKokoro === 'true';
   }
+  // Re-derive global enableVoice now that Kokoro flag is loaded
+  window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
   if (enableKokoroVoiceCheckbox) {
       enableKokoroVoiceCheckbox.checked = window.enableKokoro;
       enableKokoroVoiceCheckbox.addEventListener('change', window.handleEnableKokoroVoiceChange);

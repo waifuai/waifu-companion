@@ -99,6 +99,7 @@ function handleTTSVolumeChange(event) {
 
 function handleEnableVoiceChange(event) {
     enableVoice = event.target.checked;
+    window.enableVoice = enableVoice;
     localStorage.setItem('enableVoice', enableVoice.toString());
     debugLog(`Enable voice changed to: ${enableVoice}`, 'info');
     
@@ -1215,6 +1216,7 @@ window.handleTTSFallbackVoiceChange = handleTTSFallbackVoiceChange;
 function handleEnableKokoroVoiceChange(event) {
     const value = event.target.checked;
     window.enableKokoro = value;
+    window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
     try {
         localStorage.setItem('enableKokoro', value.toString());
         debugLog(`Enable Kokoro (Local) changed to: ${value}`, 'info');
