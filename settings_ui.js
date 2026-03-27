@@ -395,9 +395,8 @@ function populateVoiceSelector() {
   availableVoices.forEach(voice => {
     const option = document.createElement('option');
     option.value = voice.id;
-    const providerLabel = voice.provider === 'tiktok' ? 'TikTok' : voice.provider === 'streamelements' ? 'StreamElements' : 'WebSim';
-    // Only show provider suffix if it's not the default WebSim provider
-    option.textContent = voice.provider === 'websim' ? voice.name : `${voice.name} (${providerLabel})`;
+    const providerLabel = voice.provider === 'tiktok' ? 'TikTok' : voice.provider === 'streamelements' ? 'StreamElements' : voice.provider === 'kokoro' ? 'Kokoro' : voice.provider === 'browser' ? 'Browser' : 'Unknown';
+    option.textContent = voice.provider === 'tiktok' ? voice.name : `${voice.name} (${providerLabel})`;
     voiceSelector.appendChild(option);
   });
 
@@ -413,11 +412,11 @@ function populateVoiceSelector() {
     // Determine which base language to look for
     const targetBaseLang = overrideLang || baseLangCode;
 
-    // Find female voice for the target language
+    // Find female voice for the target language (prefer TikTok)
     const femaleVoice = availableVoices.find(v =>
       v.language.split('-')[0] === targetBaseLang &&
       v.gender === 'female' &&
-      v.provider === 'websim'
+      v.provider === 'tiktok'
     );
 
     if (femaleVoice) {

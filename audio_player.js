@@ -183,9 +183,91 @@ async function browserSpeechSynthesisPlay(textChunk, voiceId) {
 async function fetchTTSBuffer(textChunk, voiceId) {
   if (!textChunk.trim()) return null;
 
+  debugLog(`TTS: === fetchTTSBuffer START ===`, 'info');
+  debugLog(`TTS: Input text: "${textChunk.substring(0, 100)}..."`, 'info');
+  debugLog(`TTS: Input voiceId: "${voiceId}"`, 'info');
+
   const voiceConfig = voices.find(v => v.id === voiceId);
-  const provider = voiceConfig ? voiceConfig.provider : 'websim';
+  const provider = voiceConfig ? voiceConfig.provider : 'tiktok';
+  debugLog(`TTS: Resolved provider: "${provider}" for voiceId: "${voiceId}"`, 'info');
+  debugLog(`TTS: Voice config found: ${voiceConfig ? JSON.stringify(voiceConfig) : 'NOT FOUND'}`, 'info');
+  
   const audioContext = getTTSAudioContext();
+  debugLog(`TTS: AudioContext state: ${audioContext.state}`, 'info');
+
+  const CORS_PROXY = 'https://corsproxy.io/?';
+  
+  async function fetchWithProxy(apiUrl, options) {
+    try {
+      const url = CORS_PROXY + encodeURIComponent(apiUrl);
+      debugLog(`TTS: Using proxy: ${CORS_PROXY}`, 'info');
+      const response = await fetch(url, options);
+      debugLog(`TTS: Proxy responded with status: ${response.status}`, 'info');
+      return response;
+    } catch (err) {
+      debugLog(`TTS: Proxy failed: ${err.name} - ${err.message}`, 'warn');
+      throw err;
+    }
+  }
+
+  if (provider === 'tiktok') {
+    const apiUrl = "https://ottsy.weilbyte.dev/api/generation";
+    debugLog(`TTS: === TikTok TTS Flow START ===`, 'info');
+    debugLog(`TTS: API URL: ${apiUrl}`, 'info');
+    
+    let response;
+    try {
+      const fetchOptions = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textChunk, voice: voiceId })
+      };
+      debugLog(`TTS: Request options: method=${fetchOptions.method}, body=${JSON.stringify(fetchOptions.body).substring(0, 100)}...`, 'info');
+      response = await fetchWithProxy(apiUrl, fetchOptions);
+    } catch (fetchErr) {
+      debugLog(`TTS: Proxy failed: ${fetchErr.message}`, 'error');
+      return null;
+    }
+    
+    debugLog(`TTS: Response status: ${response.status}`, 'info');
+    debugLog(`TTS: Response headers: ${JSON.stringify([...response.headers.entries()].reduce((acc, [k,v]) => {acc[k]=v; return acc;}, {}))}`, 'info');
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      const err = new Error(`TikTok TTS error ${response.status}: ${errorText.slice(0, 200)}`);
+      err.status = response.status;
+      debugLog(`TTS: TikTok TTS error response: ${errorText.slice(0, 200)}`, 'error');
+      return null;
+    }
+    
+    const json = await response.json();
+    debugLog(`TTS: TikTok TTS response JSON: ${JSON.stringify(json).substring(0, 200)}`, 'info');
+    if (json.success === false) {
+      debugLog(`TTS: TikTok API returned error: ${json.error || 'Unknown error'}`, 'warn');
+      return null;
+    }
+    
+    const audioData = json.data || json.audio || json;
+    if (!audioData) {
+      debugLog(`TTS: TikTok TTS returned no audio data`, 'error');
+      return null;
+    }
+    
+    let audioBuffer;
+    try {
+      const binaryString = atob(audioData);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      audioBuffer = await audioContext.decodeAudioData(bytes.buffer);
+      debugLog(`TTS: TikTok TTS audio decoded successfully, duration: ${audioBuffer.duration.toFixed(2)}s`, 'info');
+      return audioBuffer;
+    } catch (decodeErr) {
+      debugLog(`TTS: TikTok TTS audio decode failed: ${decodeErr.message}`, 'error');
+      return null;
+    }
+  }
 
   let primaryFailed = false;
 
@@ -196,17 +278,16 @@ async function fetchTTSBuffer(textChunk, voiceId) {
         return await browserSpeechSynthesisPlay(textChunk, voiceId);
       }
 
-      // Use the WebSim TTS SDK
+      // Use the TikTok TTS API
       debugLog(`TTS: Attempting Primary TTS for voice: ${voiceId}`, 'info');
-      if (typeof websim === 'undefined' || typeof websim.textToSpeech !== 'function') {
-        throw new Error('websim.textToSpeech SDK not available');
+      
+      // Already handled above for tiktok, handle browser here
+      if (provider === 'tiktok') {
+        // This should have been handled above, but just in case
+        throw new Error('TikTok TTS should have been handled above');
       }
-      const result = await websim.textToSpeech({ text: textChunk, voice: voiceId });
-      if (!result || !result.url) throw new Error('websim.textToSpeech returned no URL');
-      const response = await fetch(result.url);
-      if (!response.ok) throw new Error(`HTTP error fetching TTS audio! status: ${response.status}`);
-      const arrayBuffer = await response.arrayBuffer();
-      return await audioContext.decodeAudioData(arrayBuffer);
+      
+      primaryFailed = true;
     } catch (err) {
       debugLog(`TTS: Primary API failed or rate limit: ${err.message}.`, 'warn');
       primaryFailed = true;

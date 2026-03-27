@@ -10,8 +10,8 @@
       body: "Type your message ⌨️ and press Enter ↩️. The AI processes your input and responds with text, emotion, and gestures 🎭. Your conversation history is saved locally 💾. Use Reset Chat 🗑️ to clear it and start fresh."
     },
     {
-      title: "🤖 OpenRouter (LLM)",
-      body: "By default, the app uses built-in WebSim AI. For more power, enable **OpenRouter** 🚀 in Settings → LLM / OpenRouter. Provide your API key 🔑 and a model name (e.g., `openrouter/free` or `arcee-ai/trinity-large-preview:free`). OpenRouter supports **Streaming** ⚡ for real-time replies!"
+      title: "🤖 LLM Provider",
+      body: "Configure your AI model in Settings → LLM Provider. You can use **OpenRouter** or **Groq** - both support free models. Provide your API key 🔑 and a model name. They support **Streaming** ⚡ for real-time replies!"
     },
     {
       title: "🧠 Persona & Memory",
@@ -23,7 +23,7 @@
     },
     {
       title: "🔊 Voice (TTS)",
-      body: "Enable Voice 🔈 to hear the AI. You can choose a different voice 🎙️ for each response language. WebSim voices are high-quality and available for many languages 🌎. Adjust volume 🔉 and chunk limits in Voice Settings."
+      body: "Enable Voice 🔈 to hear the AI. You can choose a different voice 🎙️ for each response language. TikTok TTS offers high-quality voices for many languages 🌎. Adjust volume 🔉 and chunk limits in Voice Settings."
     },
     {
       title: "🖼️ Backgrounds",

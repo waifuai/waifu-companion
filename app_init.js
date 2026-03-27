@@ -172,14 +172,14 @@ window.addEventListener('load', async () => { // Make async to await model load
   // If no voice is saved, or if the saved voice is invalid, set a new default.
   if (!savedVoiceId || !isSelectedVoiceValid) {
       const baseLangCode = selectedLanguageCode.split('-')[0];
-      const langFemaleVoice = availableVoices.find(v => v.language.startsWith(baseLangCode) && v.gender === 'female' && v.provider === 'websim');
+      const langFemaleVoice = availableVoices.find(v => v.language.startsWith(baseLangCode) && v.gender === 'female' && v.provider === 'tiktok');
       const langConfig = languages.find(l => l.code === selectedLanguageCode);
       const defaultForLang = langConfig ? langConfig.defaultVoiceId : null;
 
-      // Priority: 1. Female voice of current language, 2. defaultVoiceId from config (if valid), 3. First available WebSim voice
+      // Priority: 1. Female voice of current language (TikTok), 2. defaultVoiceId from config (if valid), 3. First available TikTok voice
       if (langFemaleVoice) { selectedVoiceId = langFemaleVoice.id; }
       else if (defaultForLang && availableVoices.some(v => v.id === defaultForLang)) { selectedVoiceId = defaultForLang; }
-      else { selectedVoiceId = availableVoices.find(v => v.provider === 'websim')?.id || 'none'; }
+      else { selectedVoiceId = availableVoices.find(v => v.provider === 'tiktok')?.id || 'none'; }
 
       try {
           localStorage.setItem('selectedVoiceId', selectedVoiceId);
@@ -257,15 +257,15 @@ window.addEventListener('load', async () => { // Make async to await model load
   window.enableFallbackVoice = storedFallback !== null ? (storedFallback === 'true') : 
                                (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
 
-  if (document.getElementById('enablePrimaryVoiceCheckbox')) {
-    document.getElementById('enablePrimaryVoiceCheckbox').checked = window.enablePrimaryVoice;
-    document.getElementById('enablePrimaryVoiceCheckbox').addEventListener('change', (e) => {
+  if (document.getElementById('enableTikTokVoiceCheckbox')) {
+    document.getElementById('enableTikTokVoiceCheckbox').checked = window.enablePrimaryVoice;
+    document.getElementById('enableTikTokVoiceCheckbox').addEventListener('change', (e) => {
         window.enablePrimaryVoice = e.target.checked;
         localStorage.setItem('enablePrimaryVoice', window.enablePrimaryVoice.toString());
         if (typeof trackEvent === 'function') {
-          trackEvent('voice_enabled_toggle', { type: 'primary', enabled: window.enablePrimaryVoice });
+          trackEvent('voice_enabled_toggle', { type: 'tiktok', enabled: window.enablePrimaryVoice });
         }
-        debugLog(`Primary voice enabled: ${window.enablePrimaryVoice}`, 'info');
+        debugLog(`TikTok voice enabled: ${window.enablePrimaryVoice}`, 'info');
     });
   }
   
@@ -733,6 +733,50 @@ window.addEventListener('load', async () => { // Make async to await model load
     }
     openRouterFallbackModel2Input.addEventListener('change', handleOpenRouterFallbackModel2Change);
     openRouterFallbackModel2Input.addEventListener('blur', handleOpenRouterFallbackModel2Change);
+  }
+
+  const useGroqCheckbox = document.getElementById('useGroqCheckbox');
+  const groqApiKeyInput = document.getElementById('groqApiKeyInput');
+  const groqModelInput = document.getElementById('groqModelInput');
+
+  if (useGroqCheckbox) {
+    try {
+      const storedUseGroq = localStorage.getItem('useGroq') === 'true';
+      window.useGroq = storedUseGroq;
+      useGroqCheckbox.checked = storedUseGroq;
+    } catch(e) {
+      debugLog(`Error reading useGroq: ${e}`, 'warn');
+      window.useGroq = false;
+      useGroqCheckbox.checked = false;
+    }
+    useGroqCheckbox.addEventListener('change', handleUseGroqChange);
+  }
+
+  if (groqApiKeyInput) {
+    try {
+      const storedGroqKey = localStorage.getItem('groqApiKey') || '';
+      window.groqApiKey = storedGroqKey;
+      groqApiKeyInput.value = storedGroqKey;
+    } catch(e) {
+      debugLog(`Error reading groqApiKey: ${e}`, 'warn');
+      window.groqApiKey = '';
+      groqApiKeyInput.value = '';
+    }
+    groqApiKeyInput.addEventListener('change', handleGroqApiKeyChange);
+    groqApiKeyInput.addEventListener('blur', handleGroqApiKeyChange);
+  }
+
+  if (groqModelInput) {
+    try {
+      window.groqModel = localStorage.getItem('groqModel') || 'llama-3.3-70b-versatile';
+      groqModelInput.value = window.groqModel;
+    } catch(e) {
+      debugLog(`Error reading groqModel: ${e}`, 'warn');
+      window.groqModel = 'llama-3.3-70b-versatile';
+      groqModelInput.value = window.groqModel;
+    }
+    groqModelInput.addEventListener('change', handleGroqModelChange);
+    groqModelInput.addEventListener('blur', handleGroqModelChange);
   }
 
   if (forceOfflineCheckbox) {

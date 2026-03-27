@@ -2,6 +2,7 @@
   <head>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7CVZRFZKN1"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date());  gtag('config', 'G-7CVZRFZKN1'); gtag('config', 'G-MJCT26J1BK'); </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
@@ -30,7 +31,7 @@
           <span class="icon">🌐</span> <span data-ui-key="languageSettingsTitle">Language Settings</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" onclick="openSubmenu('group-openrouter')">
-          <span class="icon">🤖</span> <span data-ui-key="llmSettingsTitle">LLM / OpenRouter</span> <span class="chevron">›</span>
+          <span class="icon">🤖</span> <span data-ui-key="llmSettingsTitle">LLM Provider</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" onclick="openSubmenu('group-persona')">
           <span class="icon">🧠</span> <span data-ui-key="personaSettingsTitle">Persona System Prompt</span> <span class="chevron">›</span>
@@ -107,11 +108,11 @@
       <div id="group-openrouter" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" onclick="closeSubmenu()">‹</button>
-          <h3 data-ui-key="llmSettingsTitle">🤖 LLM / OpenRouter</h3>
+          <h3 data-ui-key="llmSettingsTitle">🤖 LLM Provider</h3>
         </div>
         <div class="settings-item">
           <label data-ui-key="useOpenRouterLabel">
-            <input type="checkbox" id="useOpenRouterCheckbox" /> Use OpenRouter instead of built-in WebSim LLM
+            <input type="checkbox" id="useOpenRouterCheckbox" /> Use OpenRouter
           </label>
           <div class="value-display" data-ui-desc="useOpenRouterDesc">
             When enabled, chat, translation, and summarization will call OpenRouter using your API key and model name.
@@ -143,6 +144,28 @@
           <input id="openRouterFallbackModel2Input" class="settings-select" placeholder="arcee-ai/trinity-large-preview:free" />
           <div class="value-display" data-ui-desc="openRouterFallbackModel2Desc">
             Second fallback model. Used if the primary and first fallback models fail.
+          </div>
+        </div>
+        <div class="settings-item">
+          <label data-ui-key="useGroqLabel">
+            <input type="checkbox" id="useGroqCheckbox" /> Use Groq
+          </label>
+          <div class="value-display" data-ui-desc="useGroqDesc">
+            When enabled, chat, translation, and summarization will call Groq using your API key and model name.
+          </div>
+        </div>
+        <div class="settings-item">
+          <label for="groqApiKeyInput" data-ui-key="groqApiKeyLabel">🔑 Groq API Key</label>
+          <input id="groqApiKeyInput" class="settings-select" type="password" placeholder="gsk_..." autocomplete="off" />
+          <div class="value-display" data-ui-desc="groqApiKeyDesc">
+            Get your free API key from console.groq.com. Stored locally in your browser.
+          </div>
+        </div>
+        <div class="settings-item">
+          <label for="groqModelInput" data-ui-key="groqModelLabel">🧬 Groq Model Name</label>
+          <input id="groqModelInput" class="settings-select" placeholder="llama-3.3-70b-versatile, mixtral-8x7b-32768" />
+          <div class="value-display" data-ui-desc="groqModelDesc">
+            Examples: llama-3.3-70b-versatile, llama-3.1-70b-versatile, mixtral-8x7b-32768, etc.
           </div>
         </div>
       </div>
@@ -295,9 +318,12 @@
           <h3 data-ui-key="voiceSettingsTitle">🔊 Voice Settings</h3>
         </div>
         <div class="settings-item">
-          <label data-ui-key="enablePrimaryVoiceLabel">
-            <input type="checkbox" id="enablePrimaryVoiceCheckbox" /> 🔈 Enable Primary Voice (WebSim)
+          <label data-ui-key="enableTikTokVoiceLabel">
+            <input type="checkbox" id="enableTikTokVoiceCheckbox" /> 🔈 Enable TikTok TTS
           </label>
+          <div class="value-display" data-ui-desc="enableTikTokVoiceDesc">
+            Primary voice synthesis using TikTok's free TTS API.
+          </div>
         </div>
         <div class="settings-item">
           <label data-ui-key="enableKokoroVoiceLabel">
@@ -650,10 +676,6 @@
               <span class="link-icon">💸</span>
               <span class="link-name">Donate (PayPal)</span>
             </a>
-            <a class="link-item" href="https://websim.com/@thewaifuai" target="_blank" rel="noopener">
-              <span class="link-icon">🌐</span>
-              <span class="link-name">Websim</span>
-            </a>
             <a class="link-item" href="https://cash.app/$thewaifuai" target="_blank" rel="noopener">
               <span class="link-icon">💵</span>
               <span class="link-name">Cash App</span>
@@ -768,6 +790,8 @@
     <script src="ui_strings.js"></script>
     <script src="ui_translator.js"></script>
     <script src="global_state.js"></script>
+    <script src="openrouter.js"></script>
+    <script src="groq.js"></script>
     <!-- Language data has been refactored into smaller pieces -->
     <script src="languages_full_data.js"></script>
     <script src="language_data_manager.js"></script>

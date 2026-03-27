@@ -54,6 +54,9 @@ window.openRouterApiKeyInput = document.getElementById('openRouterApiKeyInput');
 window.openRouterModelInput = document.getElementById('openRouterModelInput');
 window.openRouterFallbackModel1Input = document.getElementById('openRouterFallbackModel1Input');
 window.openRouterFallbackModel2Input = document.getElementById('openRouterFallbackModel2Input');
+window.useGroqCheckbox = document.getElementById('useGroqCheckbox');
+window.groqApiKeyInput = document.getElementById('groqApiKeyInput');
+window.groqModelInput = document.getElementById('groqModelInput');
 
 
 // Global State Variables
@@ -103,6 +106,9 @@ window.openRouterApiKey = '';
 window.openRouterModel = 'stepfun/step-3.5-flash:free';
 window.openRouterFallbackModel1 = 'nvidia/nemotron-3-super-120b-a12b:free';
 window.openRouterFallbackModel2 = 'arcee-ai/trinity-large-preview:free';
+window.useGroq = false;
+window.groqApiKey = '';
+window.groqModel = 'llama-3.3-70b-versatile';
 window.disableAutoOfflineCheckbox = document.getElementById('disableAutoOfflineCheckbox');
 window.useJsonForEmotionCheckbox = document.getElementById('useJsonForEmotionCheckbox');
 window.useJsonForEmotion = false;

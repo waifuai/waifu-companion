@@ -356,6 +356,41 @@ function handleOpenRouterFallbackModel2Change(event) {
     }
 }
 
+function handleUseGroqChange(event) {
+    const val = event.target.checked;
+    window.useGroq = val;
+    try {
+        localStorage.setItem('useGroq', val.toString());
+        if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_groq: val });
+        debugLog(`Use Groq set to: ${val}`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist useGroq: ${e}`, 'error');
+    }
+}
+
+function handleGroqApiKeyChange(event) {
+    const value = event.target.value.trim();
+    window.groqApiKey = value;
+    try {
+        localStorage.setItem('groqApiKey', value);
+        debugLog(`Groq API key updated (length=${value.length}).`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist groqApiKey: ${e}`, 'error');
+    }
+}
+
+function handleGroqModelChange(event) {
+    const val = event.target.value.trim();
+    window.groqModel = val;
+    try {
+        localStorage.setItem('groqModel', val);
+        if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val });
+        debugLog(`Groq model set to: ${val || '(empty)'}`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist groqModel: ${e}`, 'error');
+    }
+}
+
 function handleForceOfflineChange(event) {
     const val = event.target.checked;
     window.forceOfflineMode = val;
@@ -903,43 +938,29 @@ async function handleGenerateBackground() {
     debugLog('BG: Empty prompt.','warn'); 
     return; 
   }
-  try {
-    const result = await websim.imageGen({ prompt, width: window.innerWidth, height: window.innerHeight });
-    if (result?.url) { 
-      applyBackgroundImage(result.url); 
-      saveToBgLibrary(result.url, prompt); 
-      renderBackgroundLibrary(); 
-      debugLog('BG generated.','info'); 
-
-      if (typeof trackEvent === 'function') {
-        trackEvent('background_changed', { type: 'ai_generated' });
-      }
-    }
-  } catch(e){ 
-    debugLog('BG gen error: '+e,'error'); 
-  } 
+  debugLog('BG: Image generation requires a separate image generation service. Please use a custom URL or select from library.','warn');
+  alert('Image generation is not available. Please use a custom URL or select from the library.');
 }
 
 async function handleGenerateBackgroundFromContext() {
   try {
     const history = (window.conversationContext||[]).slice(-10).map(m=>`${m.role}: ${m.content}`).join('\n') || 'A calm friendly chat.';
-    const completion = await (window.callLLM || ((msgs, opts) => websim.chat.completions.create({ messages: msgs, json: opts?.json }))) (
-      [
+    
+    if (!window.OpenRouterAPI || !window.OpenRouterAPI.isConfigured()) {
+      debugLog('BG: OpenRouter not configured for prompt generation', 'warn');
+      return;
+    }
+    
+    const completion = await window.OpenRouterAPI.createCompletion({
+      messages: [
         {role:"system",content:'Respond with JSON only, schema: {"prompt": string}. Create a concise scenic environment prompt that matches the conversation\'s mood and topic. Avoid people; describe environment, lighting, mood, style.'},
         {role:"user",content:history}
       ],
-      { json: true }
-    );
+      json: true
+    });
     const prompt = JSON.parse(completion.content).prompt || 'atmospheric environment, soft light, no people';
-    const result = await websim.imageGen({ prompt, width: window.innerWidth, height: window.innerHeight });
-    if (result?.url) { 
-      applyBackgroundImage(result.url); 
-      saveToBgLibrary(result.url, prompt); 
-      renderBackgroundLibrary?.(); 
-      if (typeof trackEvent === 'function') {
-        trackEvent('background_changed', { type: 'context_generated' });
-      }
-    }
+    debugLog(`BG: Generated prompt from context: "${prompt}"`, 'info');
+    alert(`Generated prompt: ${prompt}\n\nImage generation requires a separate service. Please use a custom URL or select from the library.`);
   } catch(e){ debugLog('BG context gen error: '+e,'error'); }
 }
 

@@ -5,11 +5,18 @@ window.translationCache = {}; // Cache for translated UI strings
 async function translateInterfaceText(text, targetLang) {
   if (targetLang === 'en-US' || !text) return text;
 
+  if (!window.OpenRouterAPI || !window.OpenRouterAPI.isConfigured()) {
+    debugLog('UI translation requires OpenRouter API', 'warn');
+    return text;
+  }
+
   try {
-    const completion = await (window.callLLM || (msgs => websim.chat.completions.create({ messages: msgs }))) ([
-      { role: "system", content: `Translate the following text to ${languages.find(l => l.code === targetLang)?.englishName || targetLang}. Respond ONLY with the translated text, nothing else.` },
-      { role: "user", content: text }
-    ]);
+    const completion = await window.OpenRouterAPI.createCompletion({
+      messages: [
+        { role: "system", content: `Translate the following text to ${languages.find(l => l.code === targetLang)?.englishName || targetLang}. Respond ONLY with the translated text, nothing else.` },
+        { role: "user", content: text }
+      ]
+    });
     return completion.content.trim();
   } catch(e) {
     debugLog(`UI translation failed: ${e}`, 'warn');
@@ -20,16 +27,21 @@ async function translateInterfaceText(text, targetLang) {
 async function translateTutorialSteps(steps, targetLang) {
   if (targetLang === 'en-US' || !steps || steps.length === 0) return steps;
 
+  if (!window.OpenRouterAPI || !window.OpenRouterAPI.isConfigured()) {
+    debugLog('Tutorial translation requires OpenRouter API', 'warn');
+    return steps;
+  }
+
   try {
     const stepsText = steps.map(s => `TITLE: ${s.title}\nBODY: ${s.body}`).join('\n---\n');
 
-    const completion = await (window.callLLM || ((msgs, opts) => websim.chat.completions.create({ messages: msgs, json: opts?.json }))) (
-      [
+    const completion = await window.OpenRouterAPI.createCompletion({
+      messages: [
         { role: "system", content: `Translate the following tutorial steps to ${languages.find(l => l.code === targetLang)?.englishName || targetLang}. Keep the emoji and format structure exactly the same. Format your response as JSON array with objects containing "title" and "body" properties.` },
         { role: "user", content: stepsText }
       ],
-      { json: true }
-    );
+      json: true
+    });
 
     const translated = JSON.parse(completion.content);
     return Array.isArray(translated) ? translated : steps;
@@ -51,6 +63,11 @@ async function getUIStringsForLanguage(langCode) {
     return window.translationCache[langCode];
   }
 
+  if (!window.OpenRouterAPI || !window.OpenRouterAPI.isConfigured()) {
+    debugLog('UI strings translation requires OpenRouter API', 'warn');
+    return window.UI_STRINGS['en-US'] || {};
+  }
+
   // Get English strings as base
   const englishStrings = window.UI_STRINGS['en-US'];
   if (!englishStrings) {
@@ -68,13 +85,15 @@ async function getUIStringsForLanguage(langCode) {
     // Batch translate strings for efficiency
     const stringPairs = stringsArray.map(([key, value]) => `${key}|${value}`).join('\n');
 
-    const completion = await (window.callLLM || (msgs => websim.chat.completions.create({ messages: msgs }))) ([
-      {
-        role: "system",
-        content: `Translate the following UI strings to ${languages.find(l => l.code === langCode)?.englishName || langCode}. Format: key|value on each line. Respond with the same format (key|translated_value), one per line. Preserve all keys exactly as they are. Do not translate keys, only values.`
-      },
-      { role: "user", content: stringPairs }
-    ]);
+    const completion = await window.OpenRouterAPI.createCompletion({
+      messages: [
+        {
+          role: "system",
+          content: `Translate the following UI strings to ${languages.find(l => l.code === langCode)?.englishName || langCode}. Format: key|value on each line. Respond with the same format (key|translated_value), one per line. Preserve all keys exactly as they are. Do not translate keys, only values.`
+        },
+        { role: "user", content: stringPairs }
+      ]
+    });
 
     // Parse the response
     const lines = completion.content.trim().split('\n');
@@ -256,7 +275,7 @@ window.loadCachedTranslations = loadCachedTranslations;
 // Function to translate the tutorial's second half content
 async function translateTutorialSecondHalf(targetLang) {
   const englishContent = `<h4>🤖🚀 LLM & OpenRouter Settings</h4>
-<p>By default, this app uses the built-in WebSim AI. For a more tailored experience, you can enable <b>OpenRouter</b> in Settings → LLM / OpenRouter. OpenRouter allows you to use world-class models like GPT-4, Claude 3.5, or various free models. You'll need an API key from <a href="https://openrouter.ai/" target="_blank">openrouter.ai</a>. One of the biggest advantages of OpenRouter is <b>Streaming</b> ⚡, which allows the AI to respond character-by-character in real-time, making the interaction feel much more alive.</p>
+<p>Configure your AI model in <b>Settings → LLM Provider</b>. You can use <b>OpenRouter</b> or <b>Groq</b> - both support free models. You'll need an API key from <a href="https://openrouter.ai/" target="_blank">openrouter.ai</a> or <a href="https://console.groq.com/" target="_blank">console.groq.com</a>. Both support <b>Streaming</b> ⚡ for real-time character-by-character responses.</p>
 
 <h4>🧠🧵 Persona, Memory & Summarization</h4>
 <p>Your AI isn't just a generic bot; you can define its <b>Core Identity</b> and <b>Custom Personality</b> in Persona Settings. Whether you want a helpful assistant or a specific character archetype, the AI will adapt its tone and behavior. To handle long conversations, the app uses a <b>Memory System</b>. As older messages are pushed out of immediate memory to save performance, the AI automatically generates a <b>Conversation Summary</b> 📝. This summary is fed back into the AI's context, ensuring it never truly "forgets" important events or your name.</p>
@@ -265,7 +284,7 @@ async function translateTutorialSecondHalf(targetLang) {
 <p>The Live2D models aren't just static images. They feature <b>Automatic Gaze</b> 👁️ (following your interactions), breathing animations, and physics-based hair/clothing movement. When chatting, the AI can trigger specific <b>Emotions</b> (Happy, Sad, Surprised, Thoughtful, Excited) and <b>Gestures</b> (like nodding or tilting its head) based on the sentiment of its reply. You can also add your own models by providing a URL to a <code>.model3.json</code> file.</p>
 
 <h4>🔊🎤 TTS & Voice Interaction</h4>
-<p>Text-to-Speech (TTS) is powered by WebSim, offering a variety of natural-sounding voices across many languages. You can select a unique voice for each language you use. For input, use the <b>Microphone</b> 🎤 icon to speak directly to your character. This uses your browser's native Speech-To-Text capabilities. Note: For the best experience, use a Chromium-based browser and ensure you've granted microphone permissions.</p>
+<p>Text-to-Speech (TTS) is powered by TikTok's free TTS API, offering a variety of natural-sounding voices across many languages. You can select a unique voice for each language you use. For input, use the <b>Microphone</b> 🎤 icon to speak directly to your character. This uses your browser's native Speech-To-Text capabilities. Note: For the best experience, use a Chromium-based browser and ensure you've granted microphone permissions.</p>
 
 <h4>🔌🔋 Context & Offline Fallback</h4>
 <p>The AI can be made "aware" of your environment. By enabling <b>Time</b> and <b>Battery</b> context, the AI will know if it's late at night or if your device is running low on power, leading to more natural observations. If you lose your internet connection, the <b>Local Fallback Engine</b> 🔌 takes over, using smart heuristics to provide relevant (though less "intelligent") replies until the connection is restored.</p>
@@ -277,15 +296,22 @@ async function translateTutorialSecondHalf(targetLang) {
     return englishContent;
   }
 
+  if (!window.OpenRouterAPI || !window.OpenRouterAPI.isConfigured()) {
+    debugLog('Tutorial translation requires OpenRouter API', 'warn');
+    return englishContent;
+  }
+
   try {
     const targetLanguageName = (window.languages?.find(l => l.code === targetLang)?.englishName || targetLang);
-    const completion = await (window.callLLM || (msgs => websim.chat.completions.create({ messages: msgs }))) ([
-      { 
-        role: "system", 
-        content: `Translate the following HTML tutorial content (keeping all HTML tags and emojis intact) to ${targetLanguageName}. Preserve the structure and all formatting. Respond ONLY with the translated HTML.` 
-      },
-      { role: "user", content: englishContent }
-    ]);
+    const completion = await window.OpenRouterAPI.createCompletion({
+      messages: [ 
+        { 
+          role: "system", 
+          content: `Translate the following HTML tutorial content (keeping all HTML tags and emojis intact) to ${targetLanguageName}. Preserve the structure and all formatting. Respond ONLY with the translated HTML.` 
+        },
+        { role: "user", content: englishContent }
+      ]
+    });
     
     debugLog(`Tutorial second half translated to ${targetLanguageName}`, 'info');
     return completion.content;
