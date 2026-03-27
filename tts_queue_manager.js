@@ -112,7 +112,13 @@ async function processNextTTSInQueue() {
         nextChunkPromise = null; // Discard any in-flight preload on error
         const isRateLimit = err.status === 429 || (err.message && err.message.includes('429'));
         const errorType = isRateLimit ? 'Rate Limit (429)' : 'Error';
-        debugLog(`TTS: ${errorType} at sentence ${i}: ${err.message}`, 'error');
+        debugError('TTS chunk playback failed', err, {
+          chunkIndex: i,
+          totalChunks: chunks.length,
+          isRateLimit: isRateLimit,
+          voiceId: voiceId,
+          textPreview: chunkText.substring(0, 50)
+        });
         
         // Show retry button on the UI to allow manual resumption
         // We pass the first sentence index of the current chunk as the restart point
@@ -140,7 +146,7 @@ async function processNextTTSInQueue() {
     if (messageId) highlightSentence(messageId, null);
     
   } catch (e) {
-    debugLog('TTS Queue Error: ' + e, 'error');
+    debugError('TTS Queue fatal error', e, { queueRemaining: ttsQueue.length, messageId: messageId });
   }
 
   isCurrentlySpeaking = false;
@@ -173,7 +179,7 @@ function stopTTS() {
     try {
       window.currentAudio.stop();
     } catch (e) {
-      debugLog("TTS: Error stopping current audio source: " + e, "warn");
+      debugLog("TTS: Error stopping current audio source: " + e.message, "warn", true);
     }
     window.currentAudio = null;
   }

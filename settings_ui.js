@@ -26,7 +26,7 @@ function setSettingsPanelVisible(visible) {
   try {
     localStorage.setItem('settingsPanelLastOpen', visible.toString());
   } catch (e) {
-    debugLog(`Could not persist settingsPanelLastOpen: ${e}`, 'warn');
+    debugLog(`Could not persist settingsPanelLastOpen: ${e.message}`, 'warn');
   }
 }
 
@@ -175,7 +175,7 @@ function populateModelSelector() {
   const container = document.getElementById('modelSelectorContainer');
 
   if (!container || !availableModels) {
-    console.error("Model selector container or available models list not found.");
+    debugLog('Model selector container or available models list not found.', 'error');
     return;
   }
 
@@ -229,13 +229,12 @@ function populateModelSelector() {
         loadModel(selectedUrl)
           .then(() => localStorage.setItem('selectedModelUrl', selectedUrl))
           .catch(error => {
-            console.error("Failed to load selected Live2D model:", error);
-            debugLog(`ERROR: Failed to load selected Live2D model: ${error}`, 'error');
+            debugError('Failed to load selected Live2D model', error, { url: selectedUrl });
             addMessage(`Sorry, I couldn't load that model (${error.message}).`, false);
             // Optionally revert display?
           });
       } else {
-        console.error("loadModel function not found.");
+        debugLog('loadModel function not found.', 'error');
       }
 
       // Close the dropdown
@@ -307,8 +306,8 @@ function renderCustomModelsList() {
     if (nameEl) nameEl.textContent = model.name || 'Custom Model';
     if (typeof loadModel === 'function') {
       loadModel(url)
-        .then(() => { try { localStorage.setItem('selectedModelUrl', url); } catch (_) { } })
-        .catch(err => debugLog('Failed to load custom model from dropdown: ' + err, 'error'));
+        .then(() => { try { localStorage.setItem('selectedModelUrl', url); } catch (e) { debugLog(`Settings: persist selectedModelUrl failed: ${e.message}`, 'warn', true); } })
+        .catch(err => debugError('Failed to load custom model from dropdown', err, { url: url }));
     }
     updateCustomModelInfo(url);
   };
@@ -318,7 +317,7 @@ function renderCustomModelsList() {
 function updateCustomModelInfo(url) {
   const wrap = document.getElementById('customModelInfo'); if (!wrap) return;
   if (!url) { wrap.innerHTML = ''; return; }
-  let userModels = []; try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch (_) { }
+  let userModels = []; try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch (e) { debugLog(`Settings: userModels parse error: ${e.message}`, 'warn', true); }
   const m = userModels.find(x => x.url === url); if (!m) { wrap.innerHTML = ''; return; }
   const img = m.image || 'https://via.placeholder.com/64?text=L2D';
   wrap.innerHTML = `<div class="custom-model-info"><img src="${img}" alt="${m.name || 'Custom Model'}"><div class="meta"><div class="name">${m.name || 'Custom Model'}</div><a class="url" href="${m.url}" target="_blank" rel="noopener">${m.url}</a></div><button class="remove-btn" data-url="${m.url}">Remove</button></div>`;
@@ -560,7 +559,7 @@ function applyBackgroundFit(mode) {
       bgLayer.style.backgroundSize = 'cover';
       bgLayer.style.backgroundPosition = 'center center';
   }
-  try { localStorage.setItem('bgFitMode', m || 'cover'); } catch (_) { }
+  try { localStorage.setItem('bgFitMode', m || 'cover'); } catch (e) { debugLog(`Settings: persist bgFitMode failed: ${e.message}`, 'warn', true); }
   setActiveBgFitButton(m || 'cover');
 }
 

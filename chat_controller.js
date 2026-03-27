@@ -24,8 +24,9 @@ function deleteMessage(messageElement, content, isUser) {
     try {
       localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
       debugLog(`Message deleted from context: "${content.substring(0, 30)}..."`, 'info');
+      debugState('Conversation', 'message_deleted', { role: role, remainingContext: conversationContext.length });
     } catch (e) {
-      debugLog('Failed to update localStorage after message deletion', 'error');
+      debugError('Failed to update localStorage after message deletion', e, { key: 'conversationContext' });
     }
   } else {
     debugLog('Message removed from UI, but not found in conversationContext (may have been a system/sample message).', 'info');
@@ -72,9 +73,10 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     trackEvent('chat_message_sent');
   }
 
+  debugState('ChatController', 'processing_start', { isProcessing: isProcessing, isAIResponding: isAIResponding });
   isProcessing = true;
   isAIResponding = true;
-  
+
   // If ambient triggered, we already cleared the input (no-op)
   // but if called from somewhere else, we ensure it's logged correctly.
   debugLog(`Processing ${isAmbient ? 'ambient' : 'new'} message: "${message}"`, 'info');
@@ -107,13 +109,16 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
           if (summaryEl) summaryEl.value = newSummary;
 
           // Remove the summarized messages from context
+          const beforeSummarizeTrim = conversationContext.length;
           conversationContext.splice(0, trigger);
           localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
+          debugState('Conversation', 'summarize_trimmed', { before: beforeSummarizeTrim, after: conversationContext.length, removed: trigger });
 
           // Reset counter
           window.messageCountSinceLastSummary = 0;
           localStorage.setItem('messageCountSinceLastSummary', '0');
           debugLog('Conversation summarized and memory compressed.', 'info');
+          debugState('Conversation', 'summarized', { messagesRemoved: trigger, remainingContext: conversationContext.length });
           updateSummaryMarker();
         });
       }
@@ -123,6 +128,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       }
       localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
       debugLog('Saved user message to conversation context', 'info');
+      debugState('Conversation', 'user_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
       updateSummaryMarker();
     }
 
@@ -138,7 +144,8 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       }
       messageId = addMessage(originalReply, false, null, transliterationText, selectedLanguageCode);
     } else {
-      window.isWaitingForAIResponse = true; // Set waiting flag before LLM call
+      window.isWaitingForAIResponse = true;
+      debugState('ChatController', 'waiting_for_ai', { isWaiting: true });
       
       if (useStreaming) {
         // ── STREAMING PATH (OpenRouter) ──
@@ -189,7 +196,8 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
         messageId = addMessage(originalReply, false, null, transliterationText, selectedLanguageCode);
       }
       
-      window.isWaitingForAIResponse = false; // Reset waiting flag after LLM response
+      window.isWaitingForAIResponse = false;
+      debugState('ChatController', 'ai_responded', { isWaiting: false });
     }
 
     // Apply settings updates if requested by AI and allowed by user
@@ -207,11 +215,16 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       id: messageId
     });
     // Trim again after assistant reply to respect memory size
+    const contextBeforeTrim = conversationContext.length;
     while (conversationContext.length > maxMemorySize) {
       conversationContext.shift();
     }
+    if (contextBeforeTrim !== conversationContext.length) {
+      debugState('Conversation', 'context_trimmed', { before: contextBeforeTrim, after: conversationContext.length, maxMemory: maxMemorySize });
+    }
     localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
     debugLog('Saved AI response to conversation context and trimmed.', 'info');
+    debugState('Conversation', 'assistant_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
     updateSummaryMarker();
 
     // Trigger preloading for next queued message if available
@@ -271,7 +284,12 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       try {
         playTTS(originalReply, selectedLanguageCode, messageId, 0, ttsPreloadBuffer);
       } catch (e) {
-        debugLog(`TTS call failed (playTTS threw): ${e}`, 'error');
+        debugError('TTS call failed (playTTS threw)', e, {
+          messageId: messageId,
+          language: selectedLanguageCode,
+          voiceId: voiceId,
+          replyLen: originalReply?.length
+        });
         onAIResponseFullyFinished(); // Fallback if TTS fails immediately
       }
     } else {
@@ -291,7 +309,13 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     }
 
   } catch (err) {
-    debugLog(`Message processing failed: ${err}`, 'error');
+    debugError('Message processing failed', err, {
+      messagePreview: message.substring(0, 80),
+      isAmbient: isAmbient,
+      hadCachedResponse: !!cachedResponse,
+      contextSize: conversationContext?.length,
+      queueSize: userMessageQueue?.length
+    });
     window.isWaitingForAIResponse = false;
     addMessage("Sorry, something went wrong while processing your message.", false);
     showTypingIndicator(false);
@@ -301,6 +325,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
 
 function onAIResponseFullyFinished() {
   debugLog('AI response and TTS fully finished.', 'info');
+  debugState('ChatController', 'processing_end', { isProcessing: isProcessing, isAIResponding: isAIResponding, queueRemaining: userMessageQueue.length });
   isProcessing = false;
   isAIResponding = false;
   window.isWaitingForAIResponse = false;
@@ -354,7 +379,11 @@ async function preloadNextQueuedMessage() {
       debugLog(`Preload for "${nextMsg}" discarded because queue changed.`, 'warn');
     }
   } catch (e) {
-    debugLog(`Failed to preload queued message: ${e}`, 'error');
+    debugError('Failed to preload queued message', e, {
+      messagePreview: nextMsg.substring(0, 80),
+      queueSize: userMessageQueue.length,
+      language: selectedLanguageCode
+    });
   } finally {
     window.isPreloadingQueuedMessage = false;
   }

@@ -11,9 +11,6 @@ async function getAIResponse(userMessage, targetLanguageCode = 'en-US', options 
 
   debugLog(`Getting AI response (non-streaming), targeting language: ${targetLanguageCode}`, 'info');
 
-  // Debug: Log LLM provider settings
-  debugLog(`LLM Provider Debug (non-streaming): useGroq=${window.useGroq}, groqApiKey=${window.groqApiKey ? 'set' : 'empty'}, groqModel=${window.groqModel}`, 'info');
-
   try {
     if (window.forceOfflineMode) {
       debugLog('AI completions are disabled (Force Offline Mode). Using Local Fallback Engine.', 'warn');
@@ -55,8 +52,7 @@ async function getAIResponse(userMessage, targetLanguageCode = 'en-US', options 
           debugLog(`Battery info added: ${batteryString}`, 'info');
         }
       } catch (err) {
-        console.warn("Battery API not supported or failed:", err);
-        debugLog("Could not retrieve battery info.", "warn");
+        debugError('[AI] Battery API failed (non-streaming)', err);
       }
     }
 
@@ -171,8 +167,7 @@ interface Response {
     }
 
     let raw = completion.content || '';
-    console.log('[AI Interface] Raw response length:', raw.length);
-    console.log('[AI Interface] Raw response preview:', raw.substring(0, 300));
+    debugLog(`[AI] Raw response length: ${raw.length}, preview: "${raw.substring(0, 200)}"`, 'info', true);
 
     raw = raw.trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
 
@@ -189,8 +184,10 @@ interface Response {
         }
       }
     } catch (parseError) {
-      console.warn('[AI Interface] JSON parse failed, treating as plain text response');
-      debugLog('AI returned plain text instead of JSON, converting to structured format', 'warn');
+      debugError('AI returned plain text instead of JSON', parseError, {
+        responsePreview: raw.substring(0, 200),
+        responseLength: raw.length
+      });
 
       let emotion = 'neutral';
       const lowerRaw = raw.toLowerCase();
@@ -226,7 +223,13 @@ interface Response {
     return data;
 
   } catch (error) {
-    debugLog(`AI response failed: ${error}`, 'error');
+    debugError('AI response (non-streaming) failed', error, {
+      messagePreview: userMessage.substring(0, 80),
+      useGroq: !!useGroq,
+      useOpenRouter: !!useOpenRouter,
+      offlineMode: !!window.forceOfflineMode,
+      fallbackAvailable: !!window.LocalFallbackEngine
+    });
 
     if (window.LocalFallbackEngine) {
       debugLog('Switching to Local Heuristic Fallback Engine due to AI failure or blank response.', 'warn');
@@ -256,6 +259,13 @@ async function getTranslatedText(text, targetLangCode, sourceLangCode = 'auto') 
   const sourceLanguage = sourceLangCode === 'auto' ? 'the automatically detected language' : (languages.find(l => l.code === sourceLangCode)?.englishName || sourceLangCode);
 
   try {
+    const provider = useGroq ? 'groq' : 'openrouter';
+    const model = useGroq ? window.groqModel : window.OpenRouterAPI.getModel();
+    const translateStartTime = Date.now();
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_translate_started', { provider: provider, model: model, target_language: targetLangCode });
+    }
+    
     let completion;
     if (useGroq) {
       completion = await window.GroqAPI.createCompletion({
@@ -272,10 +282,23 @@ async function getTranslatedText(text, targetLangCode, sourceLangCode = 'auto') 
         ]
       });
     }
+    const translateTime = Date.now() - translateStartTime;
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_translate_completed', { provider: provider, model: model, response_time_ms: translateTime });
+    }
     debugLog(`Translation successful: "${completion.content.substring(0, 50)}..."`, 'info');
     return completion.content;
   } catch (error) {
-    debugLog(`Translation to ${targetLangCode} failed: ${error}`, 'error');
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_translate_completed', { success: false, error: error.message });
+    }
+    debugError(`Translation to ${targetLangCode} failed`, error, {
+      provider: useGroq ? 'groq' : 'openrouter',
+      model: useGroq ? window.groqModel : (window.OpenRouterAPI?.getModel() || 'unknown'),
+      targetLang: targetLangCode,
+      sourceLang: sourceLangCode,
+      textLen: text?.length
+    });
     return null;
   }
 }
@@ -292,6 +315,13 @@ async function summarizeConversation(oldMessages, existingSummary) {
   }
 
   try {
+    const provider = useGroq ? 'groq' : 'openrouter';
+    const model = useGroq ? window.groqModel : window.OpenRouterAPI.getModel();
+    const summarizeStartTime = Date.now();
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_summarize_started', { provider: provider, model: model, message_count: oldMessages.length });
+    }
+
     const lengthPref = window.summaryLengthPreference || 'concise';
     let lengthInstruction = "Create a single, concise, and cohesive summary";
 
@@ -326,9 +356,22 @@ ${lengthInstruction} that combines the previous summary and these new messages. 
       });
     }
 
+    const summarizeTime = Date.now() - summarizeStartTime;
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_summarize_completed', { provider: provider, model: model, response_time_ms: summarizeTime });
+    }
+
     return completion.content.trim();
   } catch (error) {
-    debugLog(`Summarization failed: ${error}`, 'error');
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_summarize_completed', { success: false, error: error.message });
+    }
+    debugError('Summarization failed', error, {
+      provider: useGroq ? 'groq' : 'openrouter',
+      model: useGroq ? window.groqModel : (window.OpenRouterAPI?.getModel() || 'unknown'),
+      messageCount: oldMessages.length,
+      hasExistingSummary: !!existingSummary
+    });
     return existingSummary;
   }
 }
@@ -356,6 +399,13 @@ async function getTransliteration(text, langCode) {
   }
 
   try {
+    const provider = useGroq ? 'groq' : 'openrouter';
+    const model = useGroq ? window.groqModel : window.OpenRouterAPI.getModel();
+    const translitStartTime = Date.now();
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_transliteration_started', { provider: provider, model: model, language: langCode });
+    }
+
     let completion;
     if (useGroq) {
       completion = await window.GroqAPI.createCompletion({
@@ -372,10 +422,24 @@ async function getTransliteration(text, langCode) {
         ]
       });
     }
+
+    const translitTime = Date.now() - translitStartTime;
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_transliteration_completed', { provider: provider, model: model, response_time_ms: translitTime });
+    }
+
     debugLog(`Transliteration successful: "${completion.content.substring(0, 50)}..."`, 'info');
     return completion.content;
   } catch (error) {
-    debugLog(`Transliteration for ${langCode} failed: ${error}`, 'error');
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_transliteration_completed', { success: false, error: error.message });
+    }
+    debugError(`Transliteration for ${langCode} failed`, error, {
+      provider: useGroq ? 'groq' : 'openrouter',
+      model: useGroq ? window.groqModel : (window.OpenRouterAPI?.getModel() || 'unknown'),
+      langCode: langCode,
+      textLen: text?.length
+    });
     return null;
   }
 }
@@ -386,10 +450,6 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
   const onChunk = options.onChunk;
   const onComplete = options.onComplete;
 
-  // Debug: Log LLM provider settings
-  debugLog(`LLM Provider Debug: useGroq=${window.useGroq}, groqApiKey=${window.groqApiKey ? 'set' : 'empty'}, groqModel=${window.groqModel}`, 'info');
-  debugLog(`LLM Provider Debug: OpenRouter configured=${window.OpenRouterAPI?.isConfigured()}`, 'info');
-
   try {
     if (window.forceOfflineMode) {
       debugLog('AI completions are disabled (Force Offline Mode). Using Local Fallback Engine.', 'warn');
@@ -398,8 +458,6 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
 
     const useGroq = window.useGroq && window.groqApiKey && window.groqModel;
     const useOpenRouter = window.OpenRouterAPI && window.OpenRouterAPI.isConfigured();
-
-    debugLog(`LLM Decision: useGroq=${useGroq}, useOpenRouter=${useOpenRouter}`, 'info');
 
     if (!useGroq && !useOpenRouter) {
       debugLog('No LLM provider configured. Using Local Fallback Engine.', 'warn');
@@ -425,7 +483,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
           contextInfo.push(batteryString);
         }
       } catch (err) {
-        console.warn("Battery API not supported or failed:", err);
+        debugError('[AI] Battery API failed (streaming)', err);
       }
     }
 
@@ -516,6 +574,13 @@ interface Response {
     // Sanitize messages to remove extra properties that some providers don't support
     const sanitizeMessages = (msgs) => msgs.map(m => ({ role: m.role, content: m.content }));
 
+    const streamRequestStartTime = Date.now();
+    const streamProvider = useGroq ? 'groq' : 'openrouter';
+    const streamModel = useGroq ? window.groqModel : window.OpenRouterAPI?.getModel();
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_request_started', { provider: streamProvider, model: streamModel, is_streaming: true });
+    }
+
     // Use the LLM provider settings already determined earlier in the function
     let stream, response;
     if (useGroq) {
@@ -536,6 +601,11 @@ interface Response {
       response = result.response;
     } else {
       throw new Error('No LLM provider configured');
+    }
+
+    const streamStartTime = Date.now() - streamRequestStartTime;
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_stream_started', { provider: streamProvider, model: streamModel, time_to_first_chunk_ms: streamStartTime });
     }
 
     const reader = stream.getReader();
@@ -602,7 +672,7 @@ interface Response {
             }
           }
         } catch (e) {
-          console.warn('[AI Interface Stream] Error parsing chunk:', e);
+          debugLog(`[AI Stream] Error parsing SSE chunk: ${e.name} - ${e.message}`, 'warn', true);
         }
       }
     }
@@ -625,11 +695,17 @@ interface Response {
             }
           }
         } catch (e) {
+          debugLog(`[AI Stream] Error parsing final SSE buffer: ${e.name} - ${e.message}`, 'warn', true);
         }
       }
     }
 
     debugLog('Streaming complete, parsing full response', 'info');
+
+    const totalStreamTime = Date.now() - streamRequestStartTime;
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_stream_completed', { provider: streamProvider, model: streamModel, total_time_ms: totalStreamTime, chunks_received: fullContent.length });
+    }
 
     let data;
     try {
@@ -646,7 +722,11 @@ interface Response {
         }
       }
     } catch (parseError) {
-      console.warn('[AI Interface Stream] JSON parse failed on full content:', parseError);
+      debugError('[AI Stream] JSON parse failed on full content', parseError, {
+        contentLength: fullContent.length,
+        contentPreview: fullContent.substring(0, 200),
+        hadReplyText: !!replyText
+      });
       data = {
         reply: replyText || fullContent,
         emotion: 'neutral'
@@ -672,7 +752,17 @@ interface Response {
     return data;
 
   } catch (error) {
-    debugLog(`AI streaming response failed: ${error}`, 'error');
+    debugError('AI streaming response failed', error, {
+      provider: streamProvider,
+      model: streamModel,
+      messagePreview: userMessage.substring(0, 80),
+      offlineMode: !!window.forceOfflineMode,
+      fallbackAvailable: !!window.LocalFallbackEngine
+    });
+
+    if (typeof trackEvent === 'function') {
+      trackEvent('llm_stream_completed', { provider: streamProvider, model: streamModel, success: false, error: error.message });
+    }
 
     if (window.LocalFallbackEngine) {
       debugLog('Switching to Local Heuristic Fallback Engine due to AI failure.', 'warn');

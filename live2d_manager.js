@@ -52,7 +52,7 @@ async function loadModel(modelUrl) {
         model.position.set(saved.x, saved.y);
         debugLog(`Restored model position to (${saved.x.toFixed(0)}, ${saved.y.toFixed(0)})`, 'info');
       }
-    } catch(e){ debugLog('Failed to restore model position: '+e,'warn'); }
+    } catch(e){ debugError('Failed to restore model position', e, { url: modelUrl }); }
 
     // Restore saved zoom if available
     window.currentModelUrl = modelUrl;
@@ -62,7 +62,7 @@ async function loadModel(modelUrl) {
         model.scale.set(savedScale);
         debugLog(`Restored model zoom to scale ${savedScale.toFixed(2)}`, 'info');
       }
-    } catch(e){ debugLog('Failed to restore model zoom: '+e,'warn'); }
+    } catch(e){ debugError('Failed to restore model zoom', e, { url: modelUrl }); }
 
     app.stage.addChild(model);
 
@@ -93,7 +93,7 @@ async function loadModel(modelUrl) {
     }
 
   } catch (err) {
-    debugLog(`Failed to load model from ${modelUrl}: ${err}`, 'error');
+    debugError('Failed to load model', err, { url: modelUrl });
     currentModelName = ""; 
     throw err;
   }
@@ -103,14 +103,14 @@ async function loadModel(modelUrl) {
 function clearAllModels() {
   try {
     const models = app.stage.children.filter(c => c && c.__modelUrl);
-    models.forEach(m => { app.stage.removeChild(m); try { m.destroy({ children:true, texture:true, baseTexture:true }); } catch(_) {} });
+    models.forEach(m => { app.stage.removeChild(m); try { m.destroy({ children:true, texture:true, baseTexture:true }); } catch(e) { debugLog(`Model destroy warning for ${m.__modelUrl}: ${e.message}`, 'warn', true); } });
     if (typeof destroyParticleSystem === 'function') destroyParticleSystem();
     if (typeof stopAnimationLoop === 'function') stopAnimationLoop();
     window.__animLoopStarted = false;
     currentModel = null; currentModelName = ""; currentModelUrl = null;
     debugLog(`Cleared ${models.length} model(s) from stage.`, 'info');
   } catch (e) {
-    debugLog('ClearAllModels error: ' + e, 'error');
+    debugError('clearAllModels failed', e);
   }
 }
 window.clearAllModels = clearAllModels;

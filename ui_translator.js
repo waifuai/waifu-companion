@@ -19,7 +19,7 @@ async function translateInterfaceText(text, targetLang) {
     });
     return completion.content.trim();
   } catch(e) {
-    debugLog(`UI translation failed: ${e}`, 'warn');
+    debugError('UI translation failed', e, { targetLang: targetLang, textLen: text?.length });
     return text;
   }
 }
@@ -46,7 +46,7 @@ async function translateTutorialSteps(steps, targetLang) {
     const translated = JSON.parse(completion.content);
     return Array.isArray(translated) ? translated : steps;
   } catch(e) {
-    debugLog(`Tutorial translation failed: ${e}`, 'warn');
+    debugError('Tutorial translation failed', e, { targetLang: targetLang, stepsCount: steps?.length });
     return steps;
   }
 }
@@ -111,13 +111,13 @@ async function getUIStringsForLanguage(langCode) {
     try {
       localStorage.setItem(`uiStrings_${langCode}`, JSON.stringify(translatedStrings));
     } catch(e) {
-      debugLog(`Could not cache UI strings to localStorage: ${e}`, 'warn');
+      debugError('Could not cache UI strings to localStorage', e, { key: `uiStrings_${langCode}` });
     }
 
     debugLog(`Successfully translated UI strings to ${langCode}`, 'info');
     return translatedStrings;
   } catch(e) {
-    debugLog(`Failed to translate UI strings to ${langCode}: ${e}`, 'error');
+    debugError(`Failed to translate UI strings to ${langCode}`, e, { langCode: langCode, stringCount: stringsArray?.length });
     return englishStrings; // Fallback to English
   }
 }
@@ -134,7 +134,7 @@ function loadCachedTranslations() {
       debugLog(`Loaded cached UI translations for ${langCode}`, 'info');
     }
   } catch(e) {
-    debugLog(`Could not load cached translations: ${e}`, 'warn');
+    debugError('Could not load cached translations', e, { langCode: langCode });
   }
 }
 
@@ -143,7 +143,7 @@ async function applyInterfaceLanguage(langCode) {
 
   try {
     localStorage.setItem('interfaceLanguage', langCode);
-  } catch(e) { /* ignore */ }
+  } catch(e) { debugLog(`Failed to persist interfaceLanguage: ${e.message}`, 'warn', true); }
 
   // Get UI strings (predefined or AI-translated)
   const uiStrings = await getUIStringsForLanguage(langCode);
@@ -254,7 +254,7 @@ async function applyInterfaceLanguage(langCode) {
       window.userPersonaPrompt = personaArea.value;
     }
   } catch (e) {
-    debugLog(`Failed to translate persona prompt values: ${e}`, 'warn');
+    debugError('Failed to translate persona prompt values', e, { langCode: window.currentInterfaceLanguage });
   }
 
   // 5. Re-render tutorial ONLY if it's currently open
@@ -316,7 +316,7 @@ async function translateTutorialSecondHalf(targetLang) {
     debugLog(`Tutorial second half translated to ${targetLanguageName}`, 'info');
     return completion.content;
   } catch(e) {
-    debugLog(`Failed to translate tutorial second half: ${e}`, 'error');
+    debugError('Failed to translate tutorial second half', e, { targetLang: targetLang });
     return englishContent; // Fallback to English
   }
 }

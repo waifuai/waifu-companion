@@ -6,7 +6,7 @@ function handleAlwaysShowSettingsChange(event) {
     localStorage.setItem('settingsAlwaysShowOnLoad', value.toString());
     debugLog(`Always show Settings on load changed to: ${value}`, 'info');
   } catch (e) {
-    debugLog(`Failed to persist settingsAlwaysShowOnLoad: ${e}`, 'error');
+    debugLog(`Failed to persist settingsAlwaysShowOnLoad: ${e.message}`, 'error');
   }
 }
 
@@ -18,7 +18,7 @@ function updateMemorySize(value) {
 
   try {
     localStorage.setItem('maxMemorySize', maxMemorySize.toString());
-  } catch(e) {}
+  } catch(e) { debugLog(`Failed to persist maxMemorySize: ${e.message}`, 'warn', true); }
 
   // Trim conversation context if needed
   while (conversationContext.length > maxMemorySize) {
@@ -71,7 +71,7 @@ function handleTTSChunkLimitChange(event) {
         localStorage.setItem('ttsChunkLimit', value.toString());
         debugLog(`TTS chunk limit changed to: ${value}`, 'info');
     } catch (e) {
-        debugLog(`Could not persist ttsChunkLimit: ${e}`, 'warn');
+        debugLog(`Could not persist ttsChunkLimit: ${e.message}`, 'warn');
     }
 }
 
@@ -85,7 +85,7 @@ function handleTTSVolumeChange(event) {
         localStorage.setItem('ttsVolume', clamped.toString());
         debugLog(`TTS volume changed to: ${clamped.toFixed(2)}`, 'info');
     } catch (e) {
-        debugLog(`Could not persist ttsVolume: ${e}`, 'warn');
+        debugLog(`Could not persist ttsVolume: ${e.message}`, 'warn');
     }
     try {
         if (typeof getTTSGainNode === 'function') {
@@ -93,7 +93,7 @@ function handleTTSVolumeChange(event) {
             gain.gain.value = clamped;
         }
     } catch (e) {
-        debugLog(`Failed to apply TTS volume to gain node: ${e}`, 'warn');
+        debugLog(`Failed to apply TTS volume to gain node: ${e.message}`, 'warn');
     }
 }
 
@@ -142,7 +142,7 @@ function handleChatboxOpacityChange(event) {
         localStorage.setItem('chatboxOpacity', val);
         if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'chatbox_opacity', value: val });
     } catch (e) {
-        debugLog(`Could not persist chatboxOpacity: ${e}`, 'warn');
+        debugLog(`Could not persist chatboxOpacity: ${e.message}`, 'warn');
     }
 }
 
@@ -155,7 +155,7 @@ function handleMessageOpacityChange(event) {
         localStorage.setItem('messageOpacity', val);
         if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'message_opacity', value: val });
     } catch (e) {
-        debugLog(`Could not persist messageOpacity: ${e}`, 'warn');
+        debugLog(`Could not persist messageOpacity: ${e.message}`, 'warn');
     }
 }
 
@@ -168,7 +168,7 @@ function handleBgOpacityChange(event) {
         localStorage.setItem('bgImageOpacity', val);
         if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'bg_opacity', value: val });
     } catch (e) {
-        debugLog(`Could not persist bgImageOpacity: ${e}`, 'warn');
+        debugLog(`Could not persist bgImageOpacity: ${e.message}`, 'warn');
     }
 }
 
@@ -193,7 +193,7 @@ function handleIncludeBatteryChange(event) {
 function handleMultipleModelsToggle(event){
   const enabled = !!event.target.checked;
   window.allowMultipleModels = enabled;
-  try { localStorage.setItem('allowMultipleModels', enabled ? 'true' : 'false'); } catch(_) {}
+  try { localStorage.setItem('allowMultipleModels', enabled ? 'true' : 'false'); } catch(_) { debugLog(`Failed to persist allowMultipleModels: ${_.message}`, 'warn', true); }
   debugLog(`Allow multiple models set to: ${enabled}`, 'info');
 }
 
@@ -204,7 +204,7 @@ function handleShowVerboseLogsChange(event) {
     localStorage.setItem('showVerboseLogs', value.toString());
     debugLog(`Show Verbose Logs changed to: ${value}`, 'info');
   } catch (e) {
-    debugLog(`Failed to persist showVerboseLogs: ${e}`, 'error');
+    debugLog(`Failed to persist showVerboseLogs: ${e.message}`, 'error');
   }
 }
 
@@ -215,7 +215,7 @@ function handleShowAIDebugLogsChange(event) {
     localStorage.setItem('showAIDebugLogs', value.toString());
     debugLog(`Show AI Debug Logs changed to: ${value}`, 'info');
   } catch (e) {
-    debugLog(`Failed to persist showAIDebugLogs: ${e}`, 'error');
+    debugLog(`Failed to persist showAIDebugLogs: ${e.message}`, 'error');
   }
 }
 
@@ -226,7 +226,7 @@ function handleShowTTSDebugLogsChange(event) {
     localStorage.setItem('showTTSDebugLogs', value.toString());
     debugLog(`Show TTS Debug Logs changed to: ${value}`, 'info');
   } catch (e) {
-    debugLog(`Failed to persist showTTSDebugLogs: ${e}`, 'error');
+    debugLog(`Failed to persist showTTSDebugLogs: ${e.message}`, 'error');
   }
 }
 
@@ -248,7 +248,7 @@ function handleTranslateUIChange(event) {
             }
         }
     } catch (e) {
-        debugLog(`Failed to persist translateUI: ${e}`, 'error');
+        debugLog(`Failed to persist translateUI: ${e.message}`, 'error');
     }
 }
 
@@ -259,7 +259,7 @@ function handleShowChatContextLogsChange(event) {
         localStorage.setItem('showChatContextLogs', value.toString());
         debugLog(`Show Chat Context in Debug changed to: ${value}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist showChatContextLogs: ${e}`, 'error');
+        debugLog(`Failed to persist showChatContextLogs: ${e.message}`, 'error');
     }
 }
 
@@ -271,7 +271,7 @@ function handleAllowAIModSettingsChange(event) {
         if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'allow_ai_mod_settings', value: val });
         debugLog(`Allow AI to modify settings changed to: ${val}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist allowAIModSettings: ${e}`, 'error');
+        debugLog(`Failed to persist allowAIModSettings: ${e.message}`, 'error');
     }
 }
 
@@ -282,7 +282,7 @@ function handleUseJsonForEmotionChange(event) {
         localStorage.setItem('useJsonForEmotion', value.toString());
         debugLog(`Use JSON For Emotion changed to: ${value}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist useJsonForEmotion: ${e}`, 'error');
+        debugLog(`Failed to persist useJsonForEmotion: ${e.message}`, 'error');
     }
 }
 
@@ -307,7 +307,7 @@ function handleUseOpenRouterChange(event) {
         if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openrouter: val });
         debugLog(`Use OpenRouter set to: ${val}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist useOpenRouter: ${e}`, 'error');
+        debugLog(`Failed to persist useOpenRouter: ${e.message}`, 'error');
     }
 }
 
@@ -318,7 +318,7 @@ function handleOpenRouterApiKeyChange(event) {
         localStorage.setItem('openRouterApiKey', value);
         debugLog(`OpenRouter API key updated (length=${value.length}).`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist openRouterApiKey: ${e}`, 'error');
+        debugLog(`Failed to persist openRouterApiKey: ${e.message}`, 'error');
     }
 }
 
@@ -330,7 +330,7 @@ function handleOpenRouterModelChange(event) {
         if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val });
         debugLog(`OpenRouter model set to: ${val || '(empty)'}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist openRouterModel: ${e}`, 'error');
+        debugLog(`Failed to persist openRouterModel: ${e.message}`, 'error');
     }
 }
 
@@ -341,7 +341,7 @@ function handleOpenRouterFallbackModel1Change(event) {
         localStorage.setItem('openRouterFallbackModel1', value);
         debugLog(`OpenRouter fallback model 1 set to: ${value || '(empty)'}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist openRouterFallbackModel1: ${e}`, 'error');
+        debugLog(`Failed to persist openRouterFallbackModel1: ${e.message}`, 'error');
     }
 }
 
@@ -352,7 +352,7 @@ function handleOpenRouterFallbackModel2Change(event) {
         localStorage.setItem('openRouterFallbackModel2', value);
         debugLog(`OpenRouter fallback model 2 set to: ${value || '(empty)'}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist openRouterFallbackModel2: ${e}`, 'error');
+        debugLog(`Failed to persist openRouterFallbackModel2: ${e.message}`, 'error');
     }
 }
 
@@ -364,7 +364,7 @@ function handleUseGroqChange(event) {
         if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_groq: val });
         debugLog(`Use Groq set to: ${val}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist useGroq: ${e}`, 'error');
+        debugLog(`Failed to persist useGroq: ${e.message}`, 'error');
     }
 }
 
@@ -375,7 +375,7 @@ function handleGroqApiKeyChange(event) {
         localStorage.setItem('groqApiKey', value);
         debugLog(`Groq API key updated (length=${value.length}).`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist groqApiKey: ${e}`, 'error');
+        debugLog(`Failed to persist groqApiKey: ${e.message}`, 'error');
     }
 }
 
@@ -387,7 +387,7 @@ function handleGroqModelChange(event) {
         if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val });
         debugLog(`Groq model set to: ${val || '(empty)'}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist groqModel: ${e}`, 'error');
+        debugLog(`Failed to persist groqModel: ${e.message}`, 'error');
     }
 }
 
@@ -399,7 +399,7 @@ function handleForceOfflineChange(event) {
         if (typeof trackEvent === 'function') trackEvent('offline_mode_toggled', { offline: val });
         debugLog(`Force Offline Mode set to: ${val}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist forceOfflineMode: ${e}`, 'error');
+        debugLog(`Failed to persist forceOfflineMode: ${e.message}`, 'error');
     }
     
     if (val) {
@@ -448,7 +448,7 @@ function startOfflineCountdown() {
             if (chatContainer) chatContainer.classList.remove('offline-mode');
             if (statusInd) statusInd.textContent = 'ONLINE';
             
-            try { localStorage.setItem('forceOfflineMode', 'false'); } catch(e) {}
+            try { localStorage.setItem('forceOfflineMode', 'false'); } catch(e) { debugLog(`Failed to reset forceOfflineMode: ${e.message}`, 'warn', true); }
             debugLog('Offline mode duration expired. Returning to Online mode.', 'info');
         } else {
             updateUI(remaining);
@@ -468,7 +468,7 @@ function handleOfflineDurationChange(event) {
         const logVal = value > 3600 ? 'Permanent' : value + 's';
         debugLog(`Offline mode duration updated to: ${logVal}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist offlineModeDuration: ${e}`, 'error');
+        debugLog(`Failed to persist offlineModeDuration: ${e.message}`, 'error');
     }
 }
 
@@ -495,7 +495,7 @@ function handleGoOnlineClick() {
     try {
         localStorage.setItem('forceOfflineMode', 'false');
     } catch (e) {
-        debugLog(`Failed to persist forceOfflineMode when going online: ${e}`, 'error');
+        debugLog(`Failed to persist forceOfflineMode when going online: ${e.message}`, 'error');
     }
 
     // Update chat UI back to ONLINE
@@ -541,7 +541,7 @@ function handleSavePersona() {
       setTimeout(() => { btn.textContent = originalText; }, 2000);
     }
   } catch(e) {
-    debugLog(`Failed to save persona prompt: ${e}`, 'error');
+    debugLog(`Failed to save persona prompt: ${e.message}`, 'error');
   }
 }
 
@@ -597,7 +597,7 @@ async function handleManualSummarize() {
     if (window.updateSummaryMarker) window.updateSummaryMarker();
     if (btn) btn.textContent = '✅ Summary Updated!';
   } catch (e) {
-    debugLog(`Manual summarization failed: ${e}`, 'error');
+    debugLog(`Manual summarization failed: ${e.message}`, 'error');
     if (btn) btn.textContent = '❌ Failed';
   } finally {
     setTimeout(() => { if(btn) btn.textContent = oldText; }, 2000);
@@ -648,7 +648,7 @@ function handleResetPersona() {
       setTimeout(() => { btn.textContent = originalText; }, 2000);
     }
   } catch(e) {
-    debugLog(`Failed to reset persona prompt: ${e}`, 'error');
+    debugLog(`Failed to reset persona prompt: ${e.message}`, 'error');
   }
 }
 
@@ -661,7 +661,7 @@ function handleSummaryTriggerCountChange(event) {
         localStorage.setItem('summaryTriggerCount', val.toString());
         if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_trigger_count', value: val });
         debugLog(`Summary trigger count changed to ${val}`, 'info');
-    } catch(e) {}
+    } catch(e) { debugLog(`Failed to persist summaryTriggerCount: ${e.message}`, 'warn', true); }
 }
 
 function handleSummaryLengthPreferenceChange(event) {
@@ -671,7 +671,7 @@ function handleSummaryLengthPreferenceChange(event) {
         localStorage.setItem('summaryLengthPreference', val);
         if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_length_preference', value: val });
         debugLog(`Summary length preference changed to ${val}`, 'info');
-    } catch(e) {}
+    } catch(e) { debugLog(`Failed to persist summaryLengthPreference: ${e.message}`, 'warn', true); }
 }
 
 function handleAddCustomModel() {
@@ -689,7 +689,7 @@ function handleAddCustomModel() {
         name = m[1].replace(/[_-]+/g, ' ').trim();
         debugLog(`Custom model: Inferred name from URL filename -> "${name}"`, 'info');
       }
-    } catch(_) {}
+    } catch(e) { debugLog(`Custom model: URL parse failed: ${e.message}`, 'warn', true); }
     if (!name) {
       name = (typeof dayjs !== 'undefined') ? dayjs().format('YYYY-MM-DD HH:mm:ss') : new Date().toISOString();
       debugLog(`Custom model: No name provided, using timestamp "${name}"`, 'info');
@@ -698,7 +698,7 @@ function handleAddCustomModel() {
   if (!/\.model3\.json(\?|$)/i.test(url)) { debugLog('Custom model URL must end with .model3.json', 'warn'); return; }
 
   let userModels = [];
-  try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch(e) { userModels = []; }
+  try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch(e) { userModels = []; debugLog(`Custom model: userModels parse error: ${e.message}`, 'warn', true); }
   if (availableModels.some(m => m.url === url) || userModels.some(m => m.url === url)) {
     debugLog('Custom model already exists (same URL).', 'warn'); return;
   }
@@ -716,14 +716,14 @@ function handleAddCustomModel() {
   debugLog(`Added custom model: ${name}`, 'info');
 
   if (typeof loadModel === 'function') {
-    loadModel(url).catch(err=>debugLog('Failed to load newly added model: '+err, 'error'));
+    loadModel(url).catch(err=>debugError('Failed to load newly added model', err, { url: url }));
   }
 
   if (typeof renderCustomModelsList === 'function') renderCustomModelsList();
   if (customModelNameInput) customModelNameInput.value = '';
   if (customModelUrlInput) customModelUrlInput.value = '';
   if (customModelImageInput) customModelImageInput.value = '';
-  try { document.getElementById('customModelsDropdown').value = url; } catch(_){}
+  try { document.getElementById('customModelsDropdown').value = url; } catch(e) { debugLog(`Custom model: dropdown sync failed: ${e.message}`, 'warn', true); }
   if (typeof updateCustomModelInfo === 'function') updateCustomModelInfo(url);
 }
 
@@ -731,7 +731,7 @@ function handleAddCustomModel() {
 function handleRemoveCustomModel(url) {
   if (!url) return;
   let userModels = [];
-  try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch(e) { userModels = []; }
+  try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch(e) { userModels = []; debugLog(`Custom model: userModels parse error: ${e.message}`, 'warn', true); }
   const beforeLen = userModels.length;
   userModels = userModels.filter(m => m.url !== url);
   localStorage.setItem('userModels', JSON.stringify(userModels));
@@ -746,7 +746,7 @@ function handleRemoveCustomModel(url) {
   if (selectedUrl === url) {
     localStorage.setItem('selectedModelUrl', defaultModelUrl);
     if (typeof loadModel === 'function') {
-      loadModel(defaultModelUrl).catch(err=>debugLog('Failed to load default after removal: '+err, 'error'));
+      loadModel(defaultModelUrl).catch(err=>debugError('Failed to load default after removal', err, { url: defaultModelUrl }));
     }
   }
   if (typeof populateModelSelector === 'function') populateModelSelector();
@@ -758,7 +758,7 @@ function handleRemoveCustomModel(url) {
 window.handleRemoveCustomModel = handleRemoveCustomModel;
 
 function handleClearAllCustomModels() {
-  let userModels = []; try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch(_) {}
+  let userModels = []; try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch(e) { debugLog(`Custom model: userModels parse error: ${e.message}`, 'warn', true); }
   if (!Array.isArray(userModels) || userModels.length === 0) { debugLog('No custom models to clear.', 'info'); return; }
   const removedUrls = new Set(userModels.map(m => m.url));
   localStorage.setItem('userModels', '[]');
@@ -800,7 +800,7 @@ async function handleResetLanguages() {
       .filter(k => k.startsWith('uiStrings_'))
       .forEach(k => localStorage.removeItem(k));
   } catch(e) {
-    debugLog('Failed to clear UI translation cache during language reset: ' + e, 'warn');
+    debugError('Failed to clear UI translation cache during language reset', e);
   }
 
   // Re-apply interface language back to English
@@ -878,7 +878,7 @@ async function handleResetLanguages() {
       }
     }
   } catch(e) {
-    debugLog('Failed to reset Preferences pane texts during language reset: ' + e, 'warn');
+    debugError('Failed to reset Preferences pane texts during language reset', e);
   }
 
   // Reset voice back to English default
@@ -899,7 +899,7 @@ function applyBackgroundImage(url) {
   try { 
     localStorage.setItem('currentBackgroundUrl', url); 
   } catch(e){ 
-    debugLog('BG save fail: '+e,'warn'); 
+    debugError('BG save failed', e); 
   }
 }
 
@@ -909,7 +909,7 @@ function saveToBgLibrary(url, prompt) {
     list.unshift({ url, prompt: prompt||'', ts: Date.now() });
     localStorage.setItem('bgLibrary', JSON.stringify(list.slice(0,60)));
   } catch(e){ 
-    debugLog('BG library save fail: '+e,'warn'); 
+    debugError('BG library save failed', e); 
   }
 }
 
@@ -917,7 +917,7 @@ function renderBackgroundLibrary() {
   const el = document.getElementById('bgLibrary'); 
   if (!el) return;
   let list=[]; 
-  try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(_){}
+  try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(e){ debugLog(`BG: library parse error: ${e.message}`, 'warn', true); }
   el.innerHTML = list.map((i,idx)=>`<img src="${i.url}" title="${(i.prompt||'').replace(/"/g,'')}" data-url="${i.url}" data-idx="${idx}" class="${(window.bgSelected?.has(i.url)?'selected':'')}">`).join('') || '<div style="color:#aaa;font-size:13px;">No generated backgrounds yet.</div>';
   el.querySelectorAll('img').forEach(img=>img.addEventListener('click',()=>{
     if (window.bgSelectionMode){ toggleSelectBg(img.dataset.url); img.classList.toggle('selected'); updateBgSelectionButtons(); }
@@ -961,7 +961,7 @@ async function handleGenerateBackgroundFromContext() {
     const prompt = JSON.parse(completion.content).prompt || 'atmospheric environment, soft light, no people';
     debugLog(`BG: Generated prompt from context: "${prompt}"`, 'info');
     alert(`Generated prompt: ${prompt}\n\nImage generation requires a separate service. Please use a custom URL or select from the library.`);
-  } catch(e){ debugLog('BG context gen error: '+e,'error'); }
+  } catch(e){ debugError('BG context generation failed', e); }
 }
 
 function handleApplyBackgroundFromUrl() {
@@ -978,13 +978,13 @@ function handleApplyBackgroundFromUrl() {
       trackEvent('background_changed', { type: 'custom_url' });
     }
   }
-  catch(e){ debugLog('BG URL error: '+e,'error'); }
+  catch(e){ debugError('BG URL apply failed', e); }
 }
 
 function handleClearBackground(){
   const bgLayer = document.getElementById('bgLayer');
   if (bgLayer) bgLayer.style.backgroundImage = '';
-  try { localStorage.removeItem('currentBackgroundUrl'); } catch(e){}
+  try { localStorage.removeItem('currentBackgroundUrl'); } catch(e) { debugLog(`BG: Failed to remove from storage: ${e.message}`, 'warn', true); }
   debugLog('Background cleared and removed from storage.', 'info');
 
   if (typeof trackEvent === 'function') {
@@ -1003,13 +1003,13 @@ function updateBgSelectionButtons(){
 function toggleBgSelectionMode(){ bgSelectionMode=!bgSelectionMode; if (!bgSelectionMode) bgSelected.clear(); updateBgSelectionButtons(); renderBackgroundLibrary(); }
 function deleteSelectedFromLibrary(){
   if (bgSelected.size===0) return;
-  let list=[]; try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(_){}
+  let list=[]; try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(e){ debugLog(`BG: library parse error: ${e.message}`, 'warn', true); }
   list = list.filter(i=>!bgSelected.has(i.url)); localStorage.setItem('bgLibrary', JSON.stringify(list));
   bgSelected.clear(); renderBackgroundLibrary(); updateBgSelectionButtons(); debugLog('BG: Deleted selected items','info');
 }
 function clearBackgroundLibrary(){ localStorage.setItem('bgLibrary','[]'); bgSelected.clear(); renderBackgroundLibrary(); updateBgSelectionButtons(); debugLog('BG: Library cleared','info'); }
 function openBgViewerAt(index){
-  let list=[]; try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(_){}
+  let list=[]; try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(e){ debugLog(`BG: library parse error: ${e.message}`, 'warn', true); }
   if (!list.length) return;
   bgViewerIndex = Math.max(0, Math.min(index, list.length-1));
   const overlay = document.getElementById('bgViewerOverlay');
@@ -1020,7 +1020,7 @@ function openBgViewerAt(index){
 }
 function closeBgViewer(){ const o=document.getElementById('bgViewerOverlay'); o.classList.remove('visible'); o.setAttribute('aria-hidden','true'); }
 function stepBgViewer(dir){
-  let list=[]; try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(_){}
+  let list=[]; try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(e){ debugLog(`BG: library parse error: ${e.message}`, 'warn', true); }
   if (!list.length) return; bgViewerIndex = (bgViewerIndex + dir + list.length) % list.length;
   document.getElementById('bgViewerImage').src = list[bgViewerIndex].url;
   document.getElementById('bgViewerCounter').textContent = `${bgViewerIndex+1} / ${list.length}`;
@@ -1168,7 +1168,7 @@ function handleIncludeTutorialInContextChange(event) {
         localStorage.setItem('includeTutorialInContext', value.toString());
         debugLog(`Include Tutorial in Context changed to: ${value}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist includeTutorialInContext: ${e}`, 'error');
+        debugLog(`Failed to persist includeTutorialInContext: ${e.message}`, 'error');
     }
 }
 
@@ -1179,7 +1179,7 @@ function handleDisableAutoOfflineChange(event) {
         localStorage.setItem('disableAutoOfflineMode', value.toString());
         debugLog(`Disable automatic Offline Mode changed to: ${value}`, 'info');
     } catch (e) {
-        debugLog(`Failed to persist disableAutoOfflineMode: ${e}`, 'error');
+        debugLog(`Failed to persist disableAutoOfflineMode: ${e.message}`, 'error');
     }
 }
 
@@ -1207,7 +1207,7 @@ function handleTTSFallbackVoiceChange(event) {
         localStorage.setItem('ttsFallbackVoiceId', value);
         debugLog(`TTS fallback voice changed to: ${value}`, 'info');
     } catch (e) {
-        debugLog(`Could not persist ttsFallbackVoiceId: ${e}`, 'warn');
+        debugLog(`Could not persist ttsFallbackVoiceId: ${e.message}`, 'warn');
     }
 }
 window.handleTTSFallbackVoiceChange = handleTTSFallbackVoiceChange;
@@ -1219,7 +1219,7 @@ function handleEnableKokoroVoiceChange(event) {
         localStorage.setItem('enableKokoro', value.toString());
         debugLog(`Enable Kokoro (Local) changed to: ${value}`, 'info');
     } catch (e) {
-        debugLog(`Could not persist enableKokoro: ${e}`, 'warn');
+        debugLog(`Could not persist enableKokoro: ${e.message}`, 'warn');
     }
 }
 window.handleEnableKokoroVoiceChange = handleEnableKokoroVoiceChange;
@@ -1231,7 +1231,7 @@ function handleKokoroVoiceChange(event) {
         localStorage.setItem('selectedKokoroVoiceId', value);
         debugLog(`Kokoro voice changed to: ${value}`, 'info');
     } catch (e) {
-        debugLog(`Could not persist selectedKokoroVoiceId: ${e}`, 'warn');
+        debugLog(`Could not persist selectedKokoroVoiceId: ${e.message}`, 'warn');
     }
 }
 window.handleKokoroVoiceChange = handleKokoroVoiceChange;
@@ -1241,7 +1241,7 @@ window.handleKokoroVoiceChange = handleKokoroVoiceChange;
 function handleEnableUserMessageQueueChange(event) {
   const enabled = !!event.target.checked;
   window.isUserMessageQueueEnabled = enabled;
-  try { localStorage.setItem('isUserMessageQueueEnabled', enabled ? 'true' : 'false'); } catch(_) {}
+  try { localStorage.setItem('isUserMessageQueueEnabled', enabled ? 'true' : 'false'); } catch(_) { debugLog(`Failed to persist isUserMessageQueueEnabled: ${_.message}`, 'warn', true); }
   debugLog(`User Message Queue set to: ${enabled}`, 'info');
 
   // Show/Hide queue status in chat
@@ -1254,7 +1254,7 @@ function handleEnableUserMessageQueueChange(event) {
 function handleEnableAmbientQueueChange(event) {
   const enabled = !!event.target.checked;
   window.isAmbientQueueEnabled = enabled;
-  try { localStorage.setItem('isAmbientQueueEnabled', enabled ? 'true' : 'false'); } catch(_) {}
+  try { localStorage.setItem('isAmbientQueueEnabled', enabled ? 'true' : 'false'); } catch(_) { debugLog(`Failed to persist isAmbientQueueEnabled: ${_.message}`, 'warn', true); }
   debugLog(`Ambient Mode set to: ${enabled}`, 'info');
 
   if (!enabled && window.ambientTimer) {
@@ -1270,7 +1270,7 @@ function handleAmbientDelayChange(event) {
   window.ambientDelay = value;
   const valEl = document.getElementById('ambientDelayValue');
   if (valEl) valEl.textContent = value + 's';
-  try { localStorage.setItem('ambientDelay', value.toString()); } catch(_) {}
+  try { localStorage.setItem('ambientDelay', value.toString()); } catch(_) { debugLog(`Failed to persist ambientDelay: ${_.message}`, 'warn', true); }
   debugLog(`Ambient Delay set to: ${value}s`, 'info');
   
   if (window.isAmbientQueueEnabled && !window.isAIResponding) {
@@ -1359,7 +1359,7 @@ async function preloadNextAmbientMessage() {
       }
     }
   } catch (e) {
-    debugLog(`Ambient pre-load failed: ${e}`, 'warn');
+    debugLog(`Ambient pre-load failed: ${e.message}`, 'warn');
     window.ambientPreloadBuffer = null;
   } finally {
     window.isAmbientPreloading = false;
@@ -1408,14 +1408,14 @@ async function preloadAmbientTTS(text) {
 function handleAmbientPromptChange(event) {
   const val = event.target.value;
   window.ambientPrompt = val;
-  try { localStorage.setItem('ambientPrompt', val); } catch(_) {}
+  try { localStorage.setItem('ambientPrompt', val); } catch(_) { debugLog(`Failed to persist ambientPrompt: ${_.message}`, 'warn', true); }
   debugLog('Ambient prompt updated.', 'info');
 }
 
 function handleEnableAmbientPreloadChange(event) {
   const enabled = !!event.target.checked;
   window.isAmbientPreloadEnabled = enabled;
-  try { localStorage.setItem('isAmbientPreloadEnabled', enabled ? 'true' : 'false'); } catch(_) {}
+  try { localStorage.setItem('isAmbientPreloadEnabled', enabled ? 'true' : 'false'); } catch(_) { debugLog(`Failed to persist isAmbientPreloadEnabled: ${_.message}`, 'warn', true); }
   debugLog(`Ambient Preload set to: ${enabled}`, 'info');
   if (!enabled) window.ambientPreloadBuffer = null;
 }

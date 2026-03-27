@@ -13,7 +13,11 @@ window.preloadKokoroInBackground = async function () {
 
     if (window.enableKokoro === false || isLowRAM || isSlowNetwork) {
         let reason = isLowRAM ? "Low RAM" : (isSlowNetwork ? "Slow Network" : "Opted out");
-        console.log(`[Voice Engine] Kokoro TTS disabled safely (${reason}). Falling back to standard browser TTS.`);
+        if (typeof debugLog === 'function') {
+            debugLog(`[Voice Engine] Kokoro TTS disabled (${reason}). Falling back to standard browser TTS.`, 'info');
+        } else {
+            console.log(`[Voice Engine] Kokoro TTS disabled safely (${reason}). Falling back to standard browser TTS.`);
+        }
         window.isKokoroReady = false;
         return;
     }
@@ -42,7 +46,13 @@ window.preloadKokoroInBackground = async function () {
             console.log(`[Voice Engine] Kokoro ready! (Device: ${targetDevice}, Type: ${targetDtype})`);
         }
     } catch (err) {
-        if (typeof debugLog === 'function') {
+        if (typeof debugError === 'function') {
+            debugError('[Voice Engine] Background preload failed', err, {
+                model: 'onnx-community/Kokoro-82M-v1.0-ONNX',
+                device: targetDevice,
+                dtype: targetDtype
+            });
+        } else if (typeof debugLog === 'function') {
             debugLog(`[Voice Engine] Background preload failed: ${err.message}`, 'error');
         } else {
             console.error("[Voice Engine] Background preload failed:", err);
@@ -79,7 +89,9 @@ window.generateKokoroAudioBuffer = async function (text, voice = "af_heart") {
 
         return buffer;
     } catch (err) {
-        if (typeof debugLog === 'function') {
+        if (typeof debugError === 'function') {
+            debugError('[Voice Engine] Kokoro generation failed', err, { voice: voice, textLen: text?.length });
+        } else if (typeof debugLog === 'function') {
             debugLog(`[Voice Engine] Kokoro generation failed: ${err.message}`, 'error');
         } else {
             console.error("[Voice Engine] Kokoro generation failed:", err);

@@ -21,8 +21,7 @@ if (radioToggleBtn) {
         if (radioPlayer.paused) {
             if (typeof trackEvent === 'function') trackEvent('radio_toggle', { action: 'play' });
             radioPlayer.play().catch(error => {
-                debugLog(`Error attempting to play radio: ${error}`, 'error');
-                console.error("Radio playback error:", error);
+                debugError('Radio playback failed', error);
                 addMessage("Sorry, I couldn't start the radio stream. Your browser might require another click or interaction.", false);
             });
         } else {

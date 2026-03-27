@@ -48,12 +48,12 @@ function saveModelPosition(url, x, y){
     const map = JSON.parse(localStorage.getItem('modelPositions')||'{}');
     map[url] = { x, y };
     localStorage.setItem('modelPositions', JSON.stringify(map));
-  } catch(e){ debugLog('Save model position failed: '+e,'warn'); }
+  } catch(e){ debugError('Save model position failed', e, { url: url }); }
 }
 
 function loadModelSavedPosition(url){
   try { return (JSON.parse(localStorage.getItem('modelPositions')||'{}'))[url] || null; }
-  catch(e){ return null; }
+  catch(e){ debugLog(`Load model position: parse error for ${url}: ${e.message}`, 'warn', true); return null; }
 }
 
 function resetCurrentModelPosition(){
@@ -67,7 +67,7 @@ function resetCurrentModelPosition(){
     const z = JSON.parse(localStorage.getItem('modelZooms')||'{}');
     if (window.currentModelUrl && z[window.currentModelUrl]) { delete z[window.currentModelUrl]; }
     localStorage.setItem('modelZooms', JSON.stringify(z));
-  } catch(e){ debugLog('Reset model position persist failed: '+e,'warn'); }
+  } catch(e){ debugError('Reset model position persist failed', e); }
 }
 
 function setupZooming(model) {
@@ -94,12 +94,12 @@ function saveModelZoom(url, scale){
     const map = JSON.parse(localStorage.getItem('modelZooms')||'{}');
     map[url] = { scale };
     localStorage.setItem('modelZooms', JSON.stringify(map));
-  } catch(e){ debugLog('Save model zoom failed: '+e,'warn'); }
+  } catch(e){ debugError('Save model zoom failed', e, { url: url }); }
 }
 
 function loadModelSavedZoom(url){
   try { return (JSON.parse(localStorage.getItem('modelZooms')||'{}'))[url]?.scale || null; }
-  catch(e){ return null; }
+  catch(e){ debugLog(`Load model zoom: parse error for ${url}: ${e.message}`, 'warn', true); return null; }
 }
 
 // Export functions

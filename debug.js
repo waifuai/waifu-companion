@@ -14,35 +14,85 @@ function debugLog(message, type = 'log', isVerbose = false) {
     message,
     type
   };
-  
+
   // Assumes debugHistory is accessible (defined in config.js or passed as argument)
-  debugHistory.push(logEntry); 
-  
+  debugHistory.push(logEntry);
+
   // Assumes isDebugging and debugLogElement are accessible
   if (isDebugging) {
     const logElement = document.createElement('div');
     logElement.className = `debug-log ${type}`;
     logElement.textContent = `[${timestamp}] ${message}`;
-    debugLogElement.appendChild(logElement); // Assumes debugLogElement is defined
-    
+    debugLogElement.appendChild(logElement);
+
     // Assumes autoScrollCheckbox is defined
-    if (autoScrollCheckbox.checked) { 
+    if (autoScrollCheckbox.checked) {
       logElement.scrollIntoView();
     }
   }
 }
 
+function debugError(message, error, context = {}) {
+  const parts = [message];
+
+  if (error) {
+    if (error.name) parts.push(`Type=${error.name}`);
+    if (error.message) parts.push(`Msg="${error.message}"`);
+    if (error.stack) parts.push(`Stack="${error.stack.split('\n').slice(0, 3).join(' | ')}"`);
+    if (error.status) parts.push(`HTTP=${error.status}`);
+    if (error.code) parts.push(`Code=${error.code}`);
+  }
+
+  const ctxKeys = Object.keys(context);
+  if (ctxKeys.length > 0) {
+    parts.push(`Context={${ctxKeys.map(k => `${k}=${JSON.stringify(context[k])}`).join(', ')}}`);
+  }
+
+  debugLog(parts.join(' | '), 'error');
+}
+
+function debugNet(action, details = {}) {
+  const parts = [`[Net] ${action}`];
+  if (details.provider) parts.push(`Provider=${details.provider}`);
+  if (details.url) parts.push(`URL=${details.url}`);
+  if (details.method) parts.push(`Method=${details.method}`);
+  if (details.status != null) parts.push(`Status=${details.status}`);
+  if (details.statusText) parts.push(`StatusText="${details.statusText}"`);
+  if (details.duration != null) parts.push(`Duration=${details.duration}ms`);
+  if (details.model) parts.push(`Model=${details.model}`);
+  if (details.messageCount != null) parts.push(`Msgs=${details.messageCount}`);
+  if (details.promptTokens != null) parts.push(`PromptTokens=${details.promptTokens}`);
+  if (details.completionTokens != null) parts.push(`CompletionTokens=${details.completionTokens}`);
+  if (details.totalTokens != null) parts.push(`TotalTokens=${details.totalTokens}`);
+  if (details.responseSize != null) parts.push(`ResponseSize=${details.responseSize}B`);
+  if (details.errorType) parts.push(`ErrorType=${details.errorType}`);
+  if (details.errorMsg) parts.push(`ErrorMsg="${details.errorMsg}"`);
+  if (details.voice) parts.push(`Voice=${details.voice}`);
+  if (details.textLen != null) parts.push(`TextLen=${details.textLen}`);
+  debugLog(parts.join(' | '), details.errorType ? 'error' : 'info');
+}
+
+function debugState(component, change, details = {}) {
+  const parts = [`[State] ${component}`];
+  parts.push(`Change=${change}`);
+  if (details.before != null) parts.push(`Before=${JSON.stringify(details.before)}`);
+  if (details.after != null) parts.push(`After=${JSON.stringify(details.after)}`);
+  if (details.count != null) parts.push(`Count=${details.count}`);
+  if (details.key) parts.push(`Key=${details.key}`);
+  debugLog(parts.join(' | '), 'info');
+}
+
 function toggleDebugger() {
   // Assumes isDebugging, debugPanel, enableDebuggerCheckbox are accessible
-  isDebugging = !isDebugging; 
-  debugPanel.classList.toggle('visible'); 
-  enableDebuggerCheckbox.checked = isDebugging; 
+  isDebugging = !isDebugging;
+  debugPanel.classList.toggle('visible');
+  enableDebuggerCheckbox.checked = isDebugging;
 
   try {
     localStorage.setItem('debugPanelVisible', isDebugging.toString());
     if (typeof trackEvent === 'function') trackEvent('debug_panel_toggled', { visible: isDebugging });
   } catch (e) {
-    debugLog(`Failed to persist debugPanelVisible: ${e}`, 'error');
+    debugLog(`Failed to persist debugPanelVisible: ${e.message}`, 'error');
   }
 }
 
@@ -64,7 +114,7 @@ function copyDebugLog() {
 
 function clearDebugLog() {
   // Assumes debugHistory and debugLogElement are accessible
-  debugHistory = []; 
-  debugLogElement.innerHTML = ''; 
+  debugHistory = [];
+  debugLogElement.innerHTML = '';
   if (typeof trackEvent === 'function') trackEvent('debug_log_cleared');
 }

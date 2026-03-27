@@ -27,8 +27,7 @@ window.addEventListener('load', async () => { // Make async to await model load
        debugLog('No conversation context found in localStorage', 'info');
     }
   } catch (error) {
-    console.error('Error loading conversation context from localStorage:', error);
-    debugLog(`Error loading conversation context: ${error}`, 'error');
+    debugError('Error loading conversation context from localStorage', error);
     conversationContext = []; 
     localStorage.removeItem('conversationContext'); 
   }
@@ -82,7 +81,7 @@ window.addEventListener('load', async () => { // Make async to await model load
   try {
     alwaysShowSettings = localStorage.getItem('settingsAlwaysShowOnLoad') === 'true';
   } catch (e) {
-    debugLog(`Error reading settingsAlwaysShowOnLoad: ${e}`, 'warn');
+    debugLog(`Error reading settingsAlwaysShowOnLoad: ${e.message}`, 'warn');
   }
   if (alwaysShowSettingsCheckbox) {
     alwaysShowSettingsCheckbox.checked = alwaysShowSettings;
@@ -104,7 +103,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       initialSettingsVisible = (lastOpen === 'true');
     }
   } catch (e) {
-    debugLog(`Error reading settingsPanelLastOpen: ${e}`, 'warn');
+    debugLog(`Error reading settingsPanelLastOpen: ${e.message}`, 'warn');
     initialSettingsVisible = false;
   }
   setSettingsPanelVisible(initialSettingsVisible);
@@ -146,7 +145,7 @@ window.addEventListener('load', async () => { // Make async to await model load
     }
     debugLog(`Interface language initialized to: ${savedInterfaceLanguage}`, 'info');
   } catch(e) {
-    debugLog(`Error initializing interface language: ${e}`, 'warn');
+    debugLog(`Error initializing interface language: ${e.message}`, 'warn');
   }
 
   populateLanguageSelector(); 
@@ -185,7 +184,7 @@ window.addEventListener('load', async () => { // Make async to await model load
           localStorage.setItem('selectedVoiceId', selectedVoiceId);
           debugLog(`Initialized/Reset voice to default: ${selectedVoiceId}`, 'info');
       } catch(e) {
-          debugLog(`Could not persist new default voice ID: ${e}`, 'warn');
+          debugLog(`Could not persist new default voice ID: ${e.message}`, 'warn');
       }
   } else {
       debugLog(`Loaded valid voice ID from storage: ${selectedVoiceId}`, 'info');
@@ -336,8 +335,7 @@ window.addEventListener('load', async () => { // Make async to await model load
   try {
       await loadModel(initialModelUrl);
   } catch (error) {
-      console.error("Failed to load initial Live2D model:", error);
-      debugLog(`FATAL: Failed to load initial Live2D model: ${error}`, 'error');
+      debugError('FATAL: Failed to load initial Live2D model', error, { url: initialModelUrl });
       addMessage(`Sorry, I couldn't load the initial character model (${error.message}).`, false);
   }
 
@@ -372,7 +370,7 @@ window.addEventListener('load', async () => { // Make async to await model load
   try {
     const bg = localStorage.getItem('currentBackgroundUrl'); if (bg) applyBackgroundImage(bg);
     const fit = localStorage.getItem('bgFitMode') || 'cover-center'; applyBackgroundFit?.(fit);
-  } catch(e){ debugLog('BG load fail: '+e,'warn'); }
+  } catch(e){ debugError('BG load failed', e); }
   renderBackgroundLibrary?.();
 
   // Bind BG library actions
@@ -413,7 +411,7 @@ window.addEventListener('load', async () => { // Make async to await model load
   try {
     const storedMulti = localStorage.getItem('allowMultipleModels');
     allowMultipleModels = storedMulti === 'true' ? true : false;
-  } catch(_) { allowMultipleModels = false; }
+  } catch(e) { debugLog(`Failed to read allowMultipleModels: ${e.message}`, 'warn', true); allowMultipleModels = false; }
   if (multipleModelsCheckbox) {
     multipleModelsCheckbox.checked = !!allowMultipleModels;
     multipleModelsCheckbox.addEventListener('change', handleMultipleModelsToggle);
@@ -582,7 +580,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       gain.gain.value = window.ttsVolume;
     }
   } catch (e) {
-    debugLog(`Could not apply initial TTS volume to gain node: ${e}`, 'warn');
+    debugLog(`Could not apply initial TTS volume to gain node: ${e.message}`, 'warn');
   }
   if (ttsVolumeSlider) {
     ttsVolumeSlider.addEventListener('input', handleTTSVolumeChange);
@@ -654,7 +652,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       window.useOpenRouter = storedUseOR;
       useOpenRouterCheckbox.checked = storedUseOR;
     } catch(e) {
-      debugLog(`Error reading useOpenRouter: ${e}`, 'warn');
+      debugLog(`Error reading useOpenRouter: ${e.message}`, 'warn');
       window.useOpenRouter = false;
       useOpenRouterCheckbox.checked = false;
     }
@@ -666,7 +664,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       window.openRouterApiKey = localStorage.getItem('openRouterApiKey') || '';
       openRouterApiKeyInput.value = window.openRouterApiKey;
     } catch(e) {
-      debugLog(`Error reading openRouterApiKey: ${e}`, 'warn');
+      debugLog(`Error reading openRouterApiKey: ${e.message}`, 'warn');
       window.openRouterApiKey = '';
     }
     openRouterApiKeyInput.addEventListener('change', handleOpenRouterApiKeyChange);
@@ -678,7 +676,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       window.openRouterModel = localStorage.getItem('openRouterModel') || 'stepfun/step-3.5-flash:free';
       openRouterModelInput.value = window.openRouterModel;
     } catch(e) {
-      debugLog(`Error reading openRouterModel: ${e}`, 'warn');
+      debugLog(`Error reading openRouterModel: ${e.message}`, 'warn');
       window.openRouterModel = '';
     }
     openRouterModelInput.addEventListener('change', handleOpenRouterModelChange);
@@ -691,7 +689,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       window.openRouterFallbackModels = localStorage.getItem('openRouterFallbackModels') || '';
       openRouterFallbackModelsInput.value = window.openRouterFallbackModels;
     } catch(e) {
-      debugLog(`Error reading openRouterFallbackModels: ${e}`, 'warn');
+      debugLog(`Error reading openRouterFallbackModels: ${e.message}`, 'warn');
       window.openRouterFallbackModels = '';
     }
     openRouterFallbackModelsInput.addEventListener('change', handleOpenRouterFallbackModelsChange);
@@ -715,7 +713,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       window.openRouterFallbackModel1 = localStorage.getItem('openRouterFallbackModel1') || 'nvidia/nemotron-3-super-120b-a12b:free';
       openRouterFallbackModel1Input.value = window.openRouterFallbackModel1;
     } catch(e) {
-      debugLog(`Error reading openRouterFallbackModel1: ${e}`, 'warn');
+      debugLog(`Error reading openRouterFallbackModel1: ${e.message}`, 'warn');
       window.openRouterFallbackModel1 = '';
     }
     openRouterFallbackModel1Input.addEventListener('change', handleOpenRouterFallbackModel1Change);
@@ -728,7 +726,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       window.openRouterFallbackModel2 = localStorage.getItem('openRouterFallbackModel2') || 'arcee-ai/trinity-large-preview:free';
       openRouterFallbackModel2Input.value = window.openRouterFallbackModel2;
     } catch(e) {
-      debugLog(`Error reading openRouterFallbackModel2: ${e}`, 'warn');
+      debugLog(`Error reading openRouterFallbackModel2: ${e.message}`, 'warn');
       window.openRouterFallbackModel2 = '';
     }
     openRouterFallbackModel2Input.addEventListener('change', handleOpenRouterFallbackModel2Change);
@@ -745,7 +743,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       window.useGroq = storedUseGroq;
       useGroqCheckbox.checked = storedUseGroq;
     } catch(e) {
-      debugLog(`Error reading useGroq: ${e}`, 'warn');
+      debugLog(`Error reading useGroq: ${e.message}`, 'warn');
       window.useGroq = false;
       useGroqCheckbox.checked = false;
     }
@@ -758,7 +756,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       window.groqApiKey = storedGroqKey;
       groqApiKeyInput.value = storedGroqKey;
     } catch(e) {
-      debugLog(`Error reading groqApiKey: ${e}`, 'warn');
+      debugLog(`Error reading groqApiKey: ${e.message}`, 'warn');
       window.groqApiKey = '';
       groqApiKeyInput.value = '';
     }
@@ -771,7 +769,7 @@ window.addEventListener('load', async () => { // Make async to await model load
       window.groqModel = localStorage.getItem('groqModel') || 'llama-3.3-70b-versatile';
       groqModelInput.value = window.groqModel;
     } catch(e) {
-      debugLog(`Error reading groqModel: ${e}`, 'warn');
+      debugLog(`Error reading groqModel: ${e.message}`, 'warn');
       window.groqModel = 'llama-3.3-70b-versatile';
       groqModelInput.value = window.groqModel;
     }
@@ -876,7 +874,7 @@ function makeElementDraggable(el, handle, storageKey) {
       if (width) el.style.width = width;
       if (height) el.style.height = height;
     }
-  } catch(e) {}
+  } catch(e) { debugLog(`Failed to restore element state for ${storageKey}: ${e.message}`, 'warn', true); }
 
   const saveState = () => {
     try {
@@ -886,7 +884,7 @@ function makeElementDraggable(el, handle, storageKey) {
         width: el.style.width,
         height: el.style.height
       }));
-    } catch (e) {}
+    } catch (e) { debugLog(`Failed to persist element state ${storageKey}: ${e.message}`, 'warn', true); }
   };
 
   const dragStart = (e) => {
@@ -956,8 +954,8 @@ function setYouTubeSmallMode(enabled){
       const u=new URL(iframe.src);
       u.searchParams.set('controls', enabled?'1':'0');
       iframe.src = u.toString();
-    }catch(_){}
+    }catch(_){ debugLog(`Failed to update YouTube iframe URL: ${_.message}`, 'warn', true); }
   }
   if(!enabled){ c.style.removeProperty('left'); c.style.removeProperty('top'); c.style.removeProperty('width'); c.style.removeProperty('height'); }
-  try{ localStorage.setItem('youtubeSmallMode', enabled?'true':'false'); }catch(_){}
+  try{ localStorage.setItem('youtubeSmallMode', enabled?'true':'false'); }catch(_){ debugLog(`Failed to persist youtubeSmallMode: ${_.message}`, 'warn', true); }
 }

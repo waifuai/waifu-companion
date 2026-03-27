@@ -69,7 +69,7 @@ async function playCachedAudioBuffer(audioBuffer, text) {
             source.stop();
           }
         } catch(e) {
-          debugLog("TTS: Error stopping source on timeout: " + e, "warn");
+          debugLog("TTS: Error stopping source on timeout: " + e.message, "warn", true);
         }
         source.onended = null;
         reject(new Error(`TTS playback timeout for cached audio`));
@@ -225,7 +225,12 @@ async function fetchTTSBuffer(textChunk, voiceId) {
       debugLog(`TTS: Request options: method=${fetchOptions.method}, body=${JSON.stringify(fetchOptions.body).substring(0, 100)}...`, 'info');
       response = await fetchWithProxy(apiUrl, fetchOptions);
     } catch (fetchErr) {
-      debugLog(`TTS: Proxy failed: ${fetchErr.message}`, 'error');
+      debugError('TTS: Proxy fetch failed', fetchErr, {
+        provider: 'tiktok',
+        voiceId: voiceId,
+        textLen: textChunk.length,
+        apiUrl: apiUrl
+      });
       return null;
     }
     
@@ -264,7 +269,11 @@ async function fetchTTSBuffer(textChunk, voiceId) {
       debugLog(`TTS: TikTok TTS audio decoded successfully, duration: ${audioBuffer.duration.toFixed(2)}s`, 'info');
       return audioBuffer;
     } catch (decodeErr) {
-      debugLog(`TTS: TikTok TTS audio decode failed: ${decodeErr.message}`, 'error');
+      debugError('TTS: TikTok TTS audio decode failed', decodeErr, {
+        voiceId: voiceId,
+        textLen: textChunk.length,
+        audioDataLen: audioData?.length
+      });
       return null;
     }
   }
@@ -422,7 +431,7 @@ async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloadedBuff
                     source.stop();
                   }
                 } catch(e) {
-                  debugLog("TTS: Error stopping source on timeout: " + e, "warn");
+                  debugLog("TTS: Error stopping source on timeout: " + e.message, "warn", true);
                 }
                 source.onended = null; // Prevent late firing of onended
                 // currentAudio is cleared in finally
@@ -445,7 +454,12 @@ async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloadedBuff
         });
 
     } catch (err) {
-        debugLog(`TTS: Error playing chunk "${textChunk.substring(0,50)}...": ${err.message}`, 'error');
+        debugError('TTS: Error playing chunk', err, {
+          textPreview: textChunk.substring(0, 80),
+          voiceId: voiceId,
+          attempt: attempt,
+          textLen: textChunk.length
+        });
         // Check if error is due to text length and we haven't exhausted attempts
         // This specific check for "text too long" in err.message is a fallback, 
         // primary check is via API response status 500 earlier.

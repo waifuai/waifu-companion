@@ -20,7 +20,7 @@ function getTTSAudioContext() {
     if (ttsAudioContext.state === 'suspended') {
         ttsAudioContext.resume().then(() => {
             debugLog("TTS: AudioContext resumed.", "info");
-        }).catch(e => debugLog("TTS: Error resuming AudioContext: " + e, "error"));
+        }).catch(e => debugError('TTS: AudioContext resume failed', e));
     }
     return ttsAudioContext;
 }

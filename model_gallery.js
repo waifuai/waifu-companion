@@ -19,10 +19,10 @@
         const url = card.dataset.url;
         try {
           await loadModel(url);
-          try{ localStorage.setItem('selectedModelUrl', url); }catch(_){}
+          try{ localStorage.setItem('selectedModelUrl', url); }catch(e){ debugLog(`Gallery: persist selectedModelUrl failed: ${e.message}`, 'warn', true); }
           if (typeof populateModelSelector==='function') populateModelSelector();
         } catch(e){
-          debugLog('Model gallery load failed: '+e,'error');
+          debugError('Model gallery load failed', e, { url: url });
         } finally {
           closeModelGallery();
         }

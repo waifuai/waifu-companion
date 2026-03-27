@@ -40,7 +40,12 @@
       debugLog('STT: Recognition started.', 'info');
     };
     recognition.onerror = (e) => {
-      debugLog(`STT error: ${e.error}`, 'error');
+      debugError('STT error', e, {
+        errorCode: e.error,
+        errorMessage: e.message || 'N/A',
+        lang: recognition?.lang,
+        wasRecognizing: recognizing
+      });
     };
     recognition.onend = () => {
       recognizing = false;
@@ -87,7 +92,7 @@
           trackEvent('voice_input_used');
         }
       } catch (e) {
-        debugLog(`STT: Failed to start recognition: ${e}`, 'error');
+        debugError('STT failed to start recognition', e, { lang: recognition?.lang });
       }
     });
 

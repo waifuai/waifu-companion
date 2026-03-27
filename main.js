@@ -15,9 +15,6 @@
 
 // --- Radio Player Error Handling ---
 window.handleAudioError = function(element) {
-    debugLog('Radio player error: Could not load audio stream.', 'error');
-    console.error("Audio error:", element);
-    // Optionally display a message to the user within the UI
-    // e.g., addMessage("Error loading radio stream.", false);
+    debugError('Radio player error: Could not load audio stream', element);
 }
 // --- End Radio Player Error Handling ---
