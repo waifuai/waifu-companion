@@ -1,10 +1,61 @@
 <html>
   <head>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7CVZRFZKN1"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date());  gtag('config', 'G-7CVZRFZKN1'); gtag('config', 'G-MJCT26J1BK'); </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- Core Meta -->
     <meta charset="UTF-8">
-    <title>WaifuAI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- SEO -->
+    <title>WaifuAI – Free AI Companion with Live2D & Voice</title>
+    <meta name="description" content="Chat with your own AI waifu companion. Free and open-source — Live2D animations, local voice (Kokoro TTS), custom personas, and memory. No login required. 500+ users across 50 countries.">
+    <meta name="keywords" content="AI companion, waifu AI, free AI girlfriend, Live2D chatbot, open source AI waifu, AI waifu chat, character AI alternative, anime AI companion, kokoro TTS, OpenRouter AI">
+    <meta name="author" content="WaifuAI">
+    <link rel="canonical" href="https://waifuai.com/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://waifuai.com/">
+    <meta property="og:title" content="WaifuAI – Free AI Companion with Live2D & Voice">
+    <meta property="og:description" content="Open-source AI companion with Live2D animations, local TTS voice, memory, and custom personas. Free to use, no login needed.">
+    <meta property="og:image" content="https://waifuai.com/favicon.png">
+    <meta property="og:site_name" content="WaifuAI">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@thewaifuai">
+    <meta name="twitter:title" content="WaifuAI – Free AI Companion with Live2D & Voice">
+    <meta name="twitter:description" content="Open-source AI waifu companion. Live2D, voice, memory, custom personas. Free, no login.">
+    <meta name="twitter:image" content="https://waifuai.com/favicon.png">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "WaifuAI",
+      "url": "https://waifuai.com/",
+      "description": "Free open-source AI companion featuring Live2D animations, local Kokoro TTS voice synthesis, conversation memory, and fully customizable personas. Powered by OpenRouter LLMs.",
+      "applicationCategory": "EntertainmentApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "WaifuAI",
+        "url": "https://waifuai.com/"
+      }
+    }
+    </script>
+
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png">
+
+    <!-- Live2D & App Scripts (unchanged) -->
     <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@5.3.3/dist/pixi.min.js"></script>
@@ -13,6 +64,42 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
+    <noscript>
+      <div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">
+        <h1>WaifuAI – Free AI Companion</h1>
+        <p>
+          WaifuAI is a free, open-source AI companion web app featuring real-time
+          Live2D animated characters, local high-quality voice synthesis via Kokoro TTS,
+          conversation memory, and fully customizable AI personas. No account or login required.
+        </p>
+        <h2>Features</h2>
+        <ul>
+          <li>Live2D animated waifu characters with emotion expressions</li>
+          <li>Local voice synthesis using Kokoro TTS — runs in your browser</li>
+          <li>Powered by OpenRouter and Groq — supports 100+ LLMs including free models</li>
+          <li>Conversation memory and rolling chat summaries</li>
+          <li>Custom persona system prompts — build any character you want</li>
+          <li>Ambient mode — AI speaks unprompted during silence</li>
+          <li>Multi-language support across 50+ languages</li>
+          <li>Fully client-side — no backend, no data collection</li>
+          <li>500+ users across 51 countries</li>
+          <li>100% free and open-source (MIT-0 license)</li>
+        </ul>
+        <h2>What is an AI Companion?</h2>
+        <p>
+          An AI companion is a conversational AI that simulates a personal relationship —
+          offering emotional support, entertainment, and interactive roleplay. WaifuAI
+          is a free alternative to Character.AI, Replika, and similar platforms, with full
+          user control and no subscription required.
+        </p>
+        <h2>Links</h2>
+        <ul>
+          <li><a href="https://github.com/waifuai">GitHub (open source)</a></li>
+          <li><a href="https://waifuai.blogspot.com/">Blog</a></li>
+          <li><a href="https://waifuai.itch.io/waifu">itch.io</a></li>
+        </ul>
+      </div>
+    </noscript>
     <button class="settings-button">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="3"></circle>
@@ -121,7 +208,7 @@
         </div>
         <div class="settings-item">
           <label for="openRouterApiKeyInput" data-ui-key="openRouterApiKeyLabel">🔑 OpenRouter API Key</label>
-          <input id="openRouterApiKeyInput" class="settings-select" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+          <input id="openRouterApiKeyInput" class="settings-select" type="new-password" placeholder="sk-or-v1-..." autocomplete="off" />
           <div class="value-display" data-ui-desc="openRouterApiKeyDesc">
             This is stored locally in your browser only and sent directly to openrouter.ai over HTTPS.
           </div>
@@ -157,7 +244,7 @@
         </div>
         <div class="settings-item">
           <label for="groqApiKeyInput" data-ui-key="groqApiKeyLabel">🔑 Groq API Key</label>
-          <input id="groqApiKeyInput" class="settings-select" type="password" placeholder="gsk_..." autocomplete="off" />
+          <input id="groqApiKeyInput" class="settings-select" type="new-password" placeholder="gsk_..." autocomplete="off" />
           <div class="value-display" data-ui-desc="groqApiKeyDesc">
             Get your free API key from console.groq.com. Stored locally in your browser.
           </div>
