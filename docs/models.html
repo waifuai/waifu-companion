@@ -1,0 +1,120 @@
+<html>
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-MJCT26J1BK'); </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Models &amp; Visuals - WaifuAI Docs</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; }
+      h1 { border-bottom: 2px solid #e1e4e8; padding-bottom: 10px; }
+      h2 { border-bottom: 1px solid #e1e4e8; padding-bottom: 6px; margin-top: 30px; }
+      h3 { margin-top: 20px; }
+      ul { padding-left: 20px; }
+      li { margin-bottom: 6px; }
+      code { background: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+      a { color: #0366d6; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .nav { margin-bottom: 20px; }
+      strong { color: #24292e; }
+    </style>
+  </head>
+  <body>
+    <div class="nav"><a href="index.html">&larr; Back to Docs</a></div>
+    <h1>Models &amp; Visuals</h1>
+    <p>Waifu Companion renders Live2D Cubism character models with interactive features, particle effects, and a full gallery system.</p>
+
+    <h2>Model Gallery</h2>
+    <p>The model gallery provides a fullscreen overlay for browsing and selecting characters.</p>
+
+    <h3>Opening the Gallery</h3>
+    <ul>
+      <li>Click the gallery icon or access from Settings &gt; Model Settings</li>
+      <li>Browse the thumbnail grid showing all 50+ built-in models</li>
+      <li>Click a thumbnail to load that model</li>
+    </ul>
+
+    <h3>Built-in Models</h3>
+    <p>50+ models are included. Each model has a thumbnail image for gallery browsing.</p>
+
+    <h2>Custom Model Loading</h2>
+    <p>Load any Live2D Cubism model by providing a URL:</p>
+    <ol>
+      <li>Open Settings &gt; Model Settings</li>
+      <li>Enter a URL pointing to a <code>.model3.json</code> file</li>
+      <li>The model will load and render on the canvas</li>
+    </ol>
+
+    <h3>Requirements</h3>
+    <ul>
+      <li>The model must be compatible with Live2D Cubism SDK</li>
+      <li>The URL must be publicly accessible (no CORS restrictions)</li>
+      <li>The <code>.model3.json</code> file must reference valid texture and physics files</li>
+    </ul>
+
+    <h2>Model Controls</h2>
+
+    <h3>Positioning</h3>
+    <ul>
+      <li><strong>Drag</strong>: Click and drag the model to reposition it</li>
+      <li><strong>Zoom</strong>: Use the zoom controls to scale the model up/down</li>
+      <li><strong>Save Position</strong>: Model position is saved in localStorage and persists across sessions</li>
+      <li><strong>Window Resize</strong>: Models automatically adjust on window resize</li>
+    </ul>
+
+    <h3>Expressions &amp; Motions</h3>
+    <p>The AI's emotional state drives model animations:</p>
+    <ul>
+      <li><strong>happy</strong>: Bright expressions, upbeat motions</li>
+      <li><strong>sad</strong>: Melancholy expressions</li>
+      <li><strong>surprised</strong>: Wide-eyed reactions</li>
+      <li><strong>thoughtful</strong>: Contemplative poses</li>
+      <li><strong>excited</strong>: Energetic animations</li>
+      <li><strong>neutral</strong>: Default idle state</li>
+    </ul>
+    <p>Models support standard Cubism expression files (<code>f00</code>-<code>f04</code>) and motion groups.</p>
+
+    <h2>Multi-Model Support</h2>
+    <p>Enable multiple characters on screen simultaneously:</p>
+    <ol>
+      <li>Go to Settings &gt; Model Settings</li>
+      <li>Enable multi-model mode</li>
+      <li>Load additional models</li>
+    </ol>
+    <p>Characters can interact and appear together in conversations.</p>
+
+    <h2>Particle Effects</h2>
+    <p>Clicking or interacting with models triggers PIXI-based particle effects:</p>
+    <ul>
+      <li>Particles spawn at the interaction point</li>
+      <li>Visual feedback enhances the interactive feel</li>
+      <li>Effects are lightweight and GPU-accelerated</li>
+    </ul>
+
+    <h2>Animation System</h2>
+
+    <h3>Idle Animations</h3>
+    <ul>
+      <li><strong>Breathing</strong>: Subtle body movement simulating breathing</li>
+      <li><strong>Blinking</strong>: Periodic eye blinking with configurable timing</li>
+      <li><strong>Head Tracking</strong>: Model eyes/head can follow cursor position</li>
+    </ul>
+
+    <h3>Animation Loop</h3>
+    <p>The animation controller runs a continuous loop managing:</p>
+    <ul>
+      <li>Idle breathing and blinking cycles</li>
+      <li>Smooth transitions between expressions</li>
+      <li>Head and body angle interpolation</li>
+      <li>Eye tracking updates</li>
+    </ul>
+
+    <h2>Lip-Sync</h2>
+    <p>During TTS playback, the model's mouth animates in real-time:</p>
+    <ul>
+      <li>Audio frequency analysis drives <code>ParamMouthOpenY</code> and <code>ParamMouthForm</code></li>
+      <li>Vocal frequency range (10-100 Hz band) is analyzed</li>
+      <li>Smooth volume interpolation prevents jittery movement</li>
+      <li>Works with all TTS providers (TikTok, Kokoro, Browser)</li>
+    </ul>
+  </body>
+</html>

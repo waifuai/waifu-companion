@@ -1,0 +1,141 @@
+<html>
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-MJCT26J1BK'); </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Providers - WaifuAI Docs</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; }
+      h1 { border-bottom: 2px solid #e1e4e8; padding-bottom: 10px; }
+      h2 { border-bottom: 1px solid #e1e4e8; padding-bottom: 6px; margin-top: 30px; }
+      h3 { margin-top: 20px; }
+      ul, ol { padding-left: 20px; }
+      li { margin-bottom: 6px; }
+      code { background: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+      pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
+      pre code { background: none; padding: 0; }
+      table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+      th, td { border: 1px solid #e1e4e8; padding: 8px 12px; text-align: left; }
+      th { background: #f6f8fa; }
+      a { color: #0366d6; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .nav { margin-bottom: 20px; }
+      strong { color: #24292e; }
+    </style>
+  </head>
+  <body>
+    <div class="nav"><a href="index.html">&larr; Back to Docs</a></div>
+    <h1>LLM Providers</h1>
+    <p>Waifu Companion supports multiple LLM providers for AI chat, translation, and summarization. Providers are tried in priority order.</p>
+
+    <h2>Provider Priority</h2>
+    <ol>
+      <li><strong>Groq</strong> - If enabled and configured, Groq is used first</li>
+      <li><strong>OpenRouter</strong> - If Groq is not configured, OpenRouter is used</li>
+      <li><strong>Local Fallback Engine</strong> - If neither provider is available or both fail, a built-in heuristic engine provides basic responses</li>
+    </ol>
+    <p>Both Groq and OpenRouter support streaming responses for real-time text feedback.</p>
+
+    <h2>Groq</h2>
+    <p>Groq provides ultra-fast inference powered by LPU hardware. Default model: <code>llama-3.3-70b-versatile</code>.</p>
+
+    <h3>Setup</h3>
+    <ol>
+      <li>Open Settings (gear icon)</li>
+      <li>Navigate to <strong>LLM / OpenRouter</strong> in the AI &amp; Language category</li>
+      <li>Check <strong>Use Groq</strong></li>
+      <li>Enter your API key (starts with <code>gsk_</code>)</li>
+      <li>Set the model name</li>
+    </ol>
+
+    <h3>Configuration</h3>
+    <table>
+      <tr><th>Setting</th><th>Description</th></tr>
+      <tr><td>Use Groq</td><td>Enable/disable Groq as the active provider</td></tr>
+      <tr><td>API Key</td><td>Your Groq API key from <a href="https://console.groq.com/">console.groq.com</a></td></tr>
+      <tr><td>Model Name</td><td>The model to use (e.g., <code>llama-3.3-70b-versatile</code>, <code>mixtral-8x7b-32768</code>)</td></tr>
+    </table>
+
+    <h3>Free Tier</h3>
+    <p>Groq offers free API access with rate limits. Check <a href="https://console.groq.com/">console.groq.com</a> for current limits and available models.</p>
+
+    <h3>JSON Mode</h3>
+    <p>Groq supports <code>response_format: { type: 'json_object' }</code> for structured responses. This is used automatically for chat responses.</p>
+
+    <h2>OpenRouter</h2>
+    <p>OpenRouter provides access to a wide variety of LLM models from different providers through a single API.</p>
+
+    <h3>Setup</h3>
+    <ol>
+      <li>Open Settings (gear icon)</li>
+      <li>Navigate to <strong>LLM / OpenRouter</strong> in the AI &amp; Language category</li>
+      <li>Enter your API key (starts with <code>sk-or-v1-</code>)</li>
+      <li>Set the primary model name</li>
+    </ol>
+
+    <h3>Configuration</h3>
+    <table>
+      <tr><th>Setting</th><th>Description</th></tr>
+      <tr><td>API Key</td><td>Your OpenRouter API key from <a href="https://openrouter.ai/">openrouter.ai</a></td></tr>
+      <tr><td>Primary Model</td><td>Main model (e.g., <code>arcee-ai/trinity-large-preview:free</code>)</td></tr>
+      <tr><td>Fallback Model 1</td><td>Used if primary fails</td></tr>
+      <tr><td>Fallback Model 2</td><td>Used if both primary and fallback 1 fail</td></tr>
+    </table>
+
+    <h3>JSON Mode Compatibility</h3>
+    <p>Some models on OpenRouter don't support JSON response format. These are automatically detected and excluded:</p>
+    <ul>
+      <li><code>stepfun/step-3.5-flash:free</code></li>
+      <li><code>stepfun/step-1-flash</code></li>
+    </ul>
+
+    <h2>Local Fallback Engine</h2>
+    <p>When no LLM provider is configured or all providers fail, a built-in heuristic engine provides pattern-matching responses.</p>
+
+    <h3>Behavior</h3>
+    <ul>
+      <li>Matches greetings, emotions, identity questions, farewells, and more</li>
+      <li>Provides affectionate persona-driven responses</li>
+      <li>Always available, no API key needed</li>
+      <li>Responses are marked with <code>isFallback: true</code></li>
+    </ul>
+
+    <h3>Activation</h3>
+    <ul>
+      <li>Automatic: When API keys are missing or requests fail</li>
+      <li>Manual: Enable "Force Offline Mode" in Debug Settings</li>
+      <li>Timed: Configure automatic offline mode duration in settings</li>
+    </ul>
+
+    <h2>How It Works</h2>
+    <p>The AI system constructs a structured prompt containing:</p>
+    <ul>
+      <li><strong>Core persona</strong> (system prompt defining character identity)</li>
+      <li><strong>User persona</strong> (additional personality instructions)</li>
+      <li><strong>Conversation summary</strong> (compressed memory from earlier messages)</li>
+      <li><strong>Current settings</strong> (language, voice, memory size, etc.)</li>
+      <li><strong>Context info</strong> (time, battery, tutorial content, user-provided context)</li>
+      <li><strong>Conversation history</strong> (recent messages, configurable depth)</li>
+    </ul>
+    <p>The AI responds with a JSON object containing:</p>
+    <pre><code>{
+    "reply": "The character's response text",
+    "emotion": "happy",
+    "gesture": "head_tilt"
+}</code></pre>
+    <p>Emotions (<code>happy</code>, <code>sad</code>, <code>surprised</code>, <code>neutral</code>, <code>thoughtful</code>, <code>excited</code>) trigger Live2D model expressions and animations.</p>
+
+    <h2>Adding a New Provider</h2>
+    <p>Provider modules follow a consistent interface:</p>
+    <pre><code>const NewProviderAPI = {
+    isConfigured() { /* returns boolean */ },
+    async createCompletion({ messages, json }) {
+        /* returns { content: string } */
+    },
+    async createCompletionStream({ messages, json }) {
+        /* returns { stream: ReadableStream, response: Response } */
+    }
+};
+window.NewProviderAPI = NewProviderAPI;</code></pre>
+  </body>
+</html>

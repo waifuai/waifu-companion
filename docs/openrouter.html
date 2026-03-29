@@ -1,0 +1,112 @@
+<html>
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-MJCT26J1BK'); </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenRouter Integration - WaifuAI Docs</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; }
+      h1 { border-bottom: 2px solid #e1e4e8; padding-bottom: 10px; }
+      h2 { border-bottom: 1px solid #e1e4e8; padding-bottom: 6px; margin-top: 30px; }
+      h3 { margin-top: 20px; }
+      ul, ol { padding-left: 20px; }
+      li { margin-bottom: 6px; }
+      code { background: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+      pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
+      pre code { background: none; padding: 0; }
+      a { color: #0366d6; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .nav { margin-bottom: 20px; }
+      strong { color: #24292e; }
+    </style>
+  </head>
+  <body>
+    <div class="nav"><a href="index.html">&larr; Back to Docs</a></div>
+    <h1>OpenRouter Integration</h1>
+    <p>OpenRouter provides access to a wide variety of LLM models through a single API. It is one of two supported LLM providers (the other being <a href="providers.html">Groq</a>).</p>
+
+    <h2>Enabling OpenRouter</h2>
+    <ol>
+      <li>Open the Settings panel (click the gear icon)</li>
+      <li>Navigate to <strong>LLM / OpenRouter</strong> in the AI &amp; Language category</li>
+      <li>Enter your API key and model name</li>
+    </ol>
+    <p>OpenRouter is used automatically when:</p>
+    <ul>
+      <li>Groq is not enabled or not configured</li>
+      <li>An OpenRouter API key is set</li>
+    </ul>
+
+    <h2>Configuration Options</h2>
+
+    <h3>API Key</h3>
+    <ul>
+      <li>Input field for your OpenRouter API key (starts with <code>sk-or-v1-</code>)</li>
+      <li>Stored locally in your browser only</li>
+      <li>Sent directly to openrouter.ai over HTTPS</li>
+    </ul>
+
+    <h3>Model Selection</h3>
+    <p><strong>Primary Model</strong>: The main LLM model to use (default: <code>arcee-ai/trinity-large-preview:free</code>)</p>
+    <p><strong>Fallback Models</strong> (up to 2):</p>
+    <ul>
+      <li>First fallback: Used if primary model fails</li>
+      <li>Second fallback: Used if primary and first fallback both fail</li>
+    </ul>
+
+    <h3>Example Free Models</h3>
+    <p>Popular free models available on OpenRouter:</p>
+    <ul>
+      <li><code>arcee-ai/trinity-large-preview:free</code></li>
+      <li><code>stepfun/step-3.5-flash:free</code></li>
+      <li><code>openrouter/free</code></li>
+      <li><code>nvidia/nemotron-3-super-120b-a12b:free</code></li>
+    </ul>
+
+    <h2>Features</h2>
+
+    <h3>Streaming Mode</h3>
+    <p>Both streaming and non-streaming completions are supported. Streaming provides real-time character-by-character text feedback for a more natural conversation flow.</p>
+
+    <h3>JSON Mode</h3>
+    <p>The API requests structured JSON responses for chat. Some models don't support JSON response format and are automatically handled:</p>
+    <ul>
+      <li><code>stepfun/step-3.5-flash:free</code></li>
+      <li><code>stepfun/step-1-flash</code></li>
+    </ul>
+
+    <h3>Request Headers</h3>
+    <p>OpenRouter requests include standard headers for tracking:</p>
+    <ul>
+      <li><code>HTTP-Referer</code>: https://waifuai.com</li>
+      <li><code>X-OpenRouter-Title</code>: Waifu AI</li>
+      <li><code>X-Title</code>: Waifu AI</li>
+      <li><code>X-OpenRouter-Categories</code>: character-chat</li>
+    </ul>
+
+    <h3>Usage Tracking</h3>
+    <p>Response metadata is logged (when debug is enabled):</p>
+    <ul>
+      <li>Prompt tokens</li>
+      <li>Completion tokens</li>
+      <li>Total tokens</li>
+      <li>Request duration</li>
+    </ul>
+
+    <h2>API Wrapper</h2>
+    <p>The OpenRouter integration is implemented as a standalone module (<code>openrouter.js</code>) with a consistent interface:</p>
+    <pre><code>window.OpenRouterAPI.isConfigured()    // Returns true if API key is set
+window.OpenRouterAPI.createCompletion({ messages, json })
+window.OpenRouterAPI.createCompletionStream({ messages, json })</code></pre>
+
+    <h2>Troubleshooting</h2>
+    <ul>
+      <li><strong>API Key Error</strong>: Ensure your key is valid and has sufficient credits</li>
+      <li><strong>Model Not Found</strong>: Check the model name is correct (case-sensitive)</li>
+      <li><strong>Fallback Not Working</strong>: Ensure fallback models are properly configured in settings</li>
+      <li><strong>JSON Parse Errors</strong>: Some models may return plain text instead of JSON; the app handles this with emotion detection fallback</li>
+      <li><strong>Rate Limits</strong>: Free models have rate limits; try a different model or add credits</li>
+    </ul>
+    <p>See <a href="troubleshooting.html">troubleshooting.html</a> for general troubleshooting.</p>
+  </body>
+</html>

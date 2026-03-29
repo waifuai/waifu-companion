@@ -1,0 +1,87 @@
+<html>
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-MJCT26J1BK'); </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory & Context Settings - WaifuAI Docs</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; }
+      h1 { border-bottom: 2px solid #e1e4e8; padding-bottom: 10px; }
+      h2 { border-bottom: 1px solid #e1e4e8; padding-bottom: 6px; margin-top: 30px; }
+      h3 { margin-top: 20px; }
+      ul { padding-left: 20px; }
+      li { margin-bottom: 6px; }
+      code { background: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+      a { color: #0366d6; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .nav { margin-bottom: 20px; }
+      strong { color: #24292e; }
+    </style>
+  </head>
+  <body>
+    <div class="nav"><a href="index.html">&larr; Back to Docs</a></div>
+    <h1>Memory &amp; Context Settings</h1>
+    <p>Waifu Companion provides sophisticated memory management to maintain conversation context while preventing token limit issues.</p>
+
+    <h2>Conversation Memory</h2>
+
+    <h3>Memory Size</h3>
+    <ul>
+      <li><strong>Range</strong>: 5 to 50 messages</li>
+      <li><strong>Default</strong>: 30 messages</li>
+      <li>Controls how many recent messages are included in the AI context</li>
+    </ul>
+
+    <h3>Summary Trigger</h3>
+    <ul>
+      <li><strong>Range</strong>: 5 to 50 messages</li>
+      <li><strong>Default</strong>: 30 messages</li>
+      <li>Automatically triggers conversation summarization after this many messages</li>
+    </ul>
+
+    <h3>Summary Length Options</h3>
+    <ul>
+      <li><strong>Ultra-Concise</strong>: 1 sentence summary</li>
+      <li><strong>Concise</strong>: Short paragraph (default)</li>
+      <li><strong>Detailed</strong>: 1-2 paragraphs</li>
+      <li><strong>Comprehensive</strong>: In-depth summary</li>
+    </ul>
+
+    <h3>Manual Summarization</h3>
+    <p>You can manually trigger summarization by clicking "Update Summary from Chat" in Memory Settings. The summary is stored in the "Conversation Summary" text area and can be manually edited.</p>
+
+    <h2>Context Settings</h2>
+    <p>The following information can be included in AI context:</p>
+
+    <h3>Time Context</h3>
+    <ul>
+      <li>Includes current date and time in AI prompts</li>
+      <li>Enabled by default</li>
+    </ul>
+
+    <h3>Battery Status</h3>
+    <ul>
+      <li>Provides device battery level and charging state</li>
+      <li>Disabled by default (requires Battery API support)</li>
+    </ul>
+
+    <h3>Tutorial Context</h3>
+    <ul>
+      <li>Includes application tutorial in AI context</li>
+      <li>Allows AI to reference feature documentation</li>
+    </ul>
+
+    <h3>AI Settings Control</h3>
+    <ul>
+      <li>Allows AI to modify application settings</li>
+      <li><strong>Experimental feature</strong> - use with caution</li>
+    </ul>
+
+    <h3>JSON Emotion Format</h3>
+    <ul>
+      <li>Forces AI to respond in JSON for emotional reactions</li>
+      <li>May cause errors on weaker LLM models</li>
+      <li>Disabled by default</li>
+    </ul>
+  </body>
+</html>

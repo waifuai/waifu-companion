@@ -1,0 +1,144 @@
+<html>
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-MJCT26J1BK'); </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice &amp; Audio Settings - WaifuAI Docs</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; }
+      h1 { border-bottom: 2px solid #e1e4e8; padding-bottom: 10px; }
+      h2 { border-bottom: 1px solid #e1e4e8; padding-bottom: 6px; margin-top: 30px; }
+      h3 { margin-top: 20px; }
+      ul { padding-left: 20px; }
+      li { margin-bottom: 6px; }
+      code { background: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+      a { color: #0366d6; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .nav { margin-bottom: 20px; }
+      strong { color: #24292e; }
+    </style>
+  </head>
+  <body>
+    <div class="nav"><a href="index.html">&larr; Back to Docs</a></div>
+    <h1>Voice &amp; Audio Settings</h1>
+    <p>Waifu Companion supports multiple text-to-speech engines, real-time lip-sync, audio preloading, and various audio features.</p>
+
+    <h2>Text-to-Speech (TTS)</h2>
+    <p>Three TTS providers are available, each can be independently enabled/disabled:</p>
+
+    <h3>TikTok TTS (Primary)</h3>
+    <p>Free TTS API with the largest voice selection. Enable in Settings &gt; Voice &gt; Enable TikTok TTS.</p>
+    <p><strong>Voices (35+):</strong></p>
+    <ul>
+      <li><strong>English (US)</strong>: Female (F1, F2), Male (M1, M2, M3, M4)</li>
+      <li><strong>English (UK)</strong>: Male (M1, M2)</li>
+      <li><strong>English (Australian)</strong>: Female, Male</li>
+      <li><strong>French</strong>: Male (M1, M2)</li>
+      <li><strong>German</strong>: Female, Male</li>
+      <li><strong>Spanish (ES)</strong>: Male</li>
+      <li><strong>Spanish (MX)</strong>: Male</li>
+      <li><strong>Portuguese (BR)</strong>: Female (F1, F2, F3), Male</li>
+      <li><strong>Japanese</strong>: Female (F1, F2, F3), Male</li>
+      <li><strong>Korean</strong>: Male (M1, M2), Female</li>
+      <li><strong>Indonesian</strong>: Female</li>
+      <li><strong>Character Voices</strong>: Ghost Face, C3PO, Stitch, Pirate, Narrator, Warmy Breeze</li>
+    </ul>
+
+    <h3>Kokoro TTS (Local)</h3>
+    <p>High-quality, offline text-to-speech powered by ONNX Runtime. Runs locally in the browser using WebGPU (preferred) or WASM (CPU fallback).</p>
+    <p><strong>Features:</strong></p>
+    <ul>
+      <li>No API key or internet required after initial model download</li>
+      <li>Automatic hardware detection (WebGPU vs WASM)</li>
+      <li>Safety checks: disabled on low RAM (&lt;4GB) or slow networks (2G/3G)</li>
+      <li>Background preloading at startup</li>
+    </ul>
+    <p><strong>Voices (10+):</strong></p>
+    <ul>
+      <li><strong>US English</strong>: Heart (F), Bella (F), Nicole (F), Sarah (F), Sky (F), Adam (M), Michael (M)</li>
+      <li><strong>UK English</strong>: Alice (F), Emma (F), George (M), Lewis (M)</li>
+    </ul>
+
+    <h3>Browser SpeechSynthesis</h3>
+    <p>Built-in browser TTS with no rate limits or dependencies. Uses the system's native speech voices.</p>
+    <ul>
+      <li><strong>Female</strong>: Uses first available female voice for the detected language</li>
+      <li><strong>Male</strong>: Uses first available male voice for the detected language</li>
+    </ul>
+
+    <h2>Voice Language Overrides</h2>
+    <p>The app maps unsupported language codes to a base language whose voices should be used. This covers 100+ language codes:</p>
+    <ul>
+      <li>Southeast Asian languages (Javanese, Sundanese, Cebuano, etc.) &rarr; Indonesian</li>
+      <li>Slavic languages (Ukrainian, Bulgarian, Serbian, etc.) &rarr; Russian</li>
+      <li>East Asian languages (Cantonese, Thai, Vietnamese, etc.) &rarr; Chinese</li>
+      <li>Indic languages (Bengali, Tamil, Telugu, etc.) &rarr; Hindi</li>
+      <li>Romance languages (Catalan, Galician, Romanian, etc.) &rarr; Spanish/Italian/French</li>
+      <li>Germanic languages (Dutch, Afrikaans, Danish, Swedish, etc.) &rarr; German/English</li>
+      <li>And many more</li>
+    </ul>
+
+    <h2>Real-Time Lip-Sync</h2>
+    <p>During TTS playback, the Live2D model's mouth animates based on audio frequency analysis:</p>
+    <ul>
+      <li>Analyzes vocal frequency range (10-100 Hz band)</li>
+      <li>Drives <code>ParamMouthOpenY</code> (mouth openness) and <code>ParamMouthForm</code> (mouth shape)</li>
+      <li>Smooth volume interpolation prevents jitter</li>
+      <li>Works with all three TTS providers</li>
+      <li>Resets mouth position when audio ends</li>
+    </ul>
+
+    <h2>TTS Preloading</h2>
+    <p>The TTS queue manager pre-fetches the next message's audio in the background:</p>
+    <ul>
+      <li>Reduces delay between messages in multi-sentence responses</li>
+      <li>Audio buffer is cached and played instantly when ready</li>
+      <li>Preloading respects voice ID and text matching to avoid stale cache</li>
+    </ul>
+
+    <h2>Speech-to-Text (STT)</h2>
+    <p>Use your microphone to speak to your companion:</p>
+    <ol>
+      <li>Click the microphone icon in the chat input</li>
+      <li>Speak your message</li>
+      <li>Click again to stop recording</li>
+      <li>Message is automatically transcribed and sent</li>
+    </ol>
+    <p>Powered by the Web Speech API. Requires microphone permissions.</p>
+
+    <h2>Internet Radio</h2>
+    <p>Stream music from Listen.moe:</p>
+    <ol>
+      <li>Go to Settings &gt; Audio Settings</li>
+      <li>Toggle the radio on/off</li>
+      <li>Volume can be adjusted in the same section</li>
+    </ol>
+
+    <h2>Sound Effects</h2>
+    <p>UI interactions produce subtle sound effects powered by Tone.js:</p>
+    <ul>
+      <li>Button clicks</li>
+      <li>Panel opens/closes</li>
+      <li>Chat message send/receive</li>
+    </ul>
+
+    <h2>Audio Settings</h2>
+    <ul>
+      <li><strong>Master Volume</strong>: Overall audio volume</li>
+      <li><strong>TTS Volume</strong>: Text-to-speech volume</li>
+      <li><strong>Radio Volume</strong>: Internet radio volume</li>
+      <li><strong>Sound Effects</strong>: Toggle UI sound effects on/off</li>
+      <li><strong>Enable TikTok TTS</strong>: Primary voice engine toggle</li>
+      <li><strong>Enable Kokoro Voice</strong>: Local ONNX engine toggle</li>
+    </ul>
+
+    <h2>TTS Queue</h2>
+    <p>Multi-sentence AI responses are split into individual sentences for TTS:</p>
+    <ul>
+      <li>Sentences are processed sequentially</li>
+      <li>Each sentence can be preloaded while the previous one plays</li>
+      <li>Configurable character limit per TTS chunk</li>
+      <li>Queue can be interrupted by sending a new message</li>
+    </ul>
+  </body>
+</html>
