@@ -830,6 +830,7 @@
         <span id="chatTitle">Chat</span>
         <span id="chat-status-indicator">OFFLINE</span>
         <button id="goOnlineBtn" class="go-online-btn" type="button">Go Online</button>
+        <button class="regenerate-title-btn" onclick="handleRegenerateTitle()" title="Regenerate Title">🔄</button>
         <button class="new-chat-btn" onclick="handleNewChat()" title="New Chat">＋</button>
       </div>
       <div class="chat-content">
@@ -850,7 +851,6 @@
             </svg>
           </button>
           <button onclick="sendMessage()">Send</button>
-          <button id="resetChatBtn" onclick="clearChatHistory()">Reset Chat</button>
         </div>
       </div>
     </div>

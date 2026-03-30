@@ -73,7 +73,7 @@ function createNewChat(name) {
   const now = Date.now();
   const meta = {
     id,
-    name: name || 'Chat ' + new Date(now).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    name: name || 'New Chat',
     messageCount: 0,
     createdAt: now,
     updatedAt: now,
@@ -205,7 +205,7 @@ function migrateLegacyChat() {
         const lastMsg = context[context.length - 1];
         const meta = {
           id,
-          name: 'Chat ' + new Date(now).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          name: 'New Chat',
           messageCount: context.length,
           createdAt: now,
           updatedAt: now,
@@ -249,9 +249,7 @@ function renderChatList() {
 
   listEl.innerHTML = chats.map(chat => {
     const isActive = chat.id === activeId;
-    const date = new Date(chat.updatedAt);
-    const timeStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
-                    date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const timeStr = _relativeTime(chat.updatedAt);
     return `
       <div class="chat-list-item ${isActive ? 'active' : ''}" data-chat-id="${chat.id}">
         <div class="chat-list-item-content" onclick="handleSwitchChat('${chat.id}')">
@@ -277,6 +275,78 @@ function _escapeHtml(str) {
   return div.innerHTML;
 }
 
+function _relativeTime(timestamp) {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + (minutes === 1 ? ' min ago' : ' mins ago');
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + (hours === 1 ? ' hour ago' : ' hours ago');
+  const days = Math.floor(hours / 24);
+  if (days < 30) return days + (days === 1 ? ' day ago' : ' days ago');
+  const months = Math.floor(days / 30);
+  if (months < 12) return months + (months === 1 ? ' month ago' : ' months ago');
+  const years = Math.floor(months / 12);
+  return years + (years === 1 ? ' year ago' : ' years ago');
+}
+
+// Generate a chat title using the LLM based on recent messages
+async function generateChatTitle(chatId, force = false) {
+  const data = _getChatData(chatId);
+  if (!data) return;
+
+  const messages = data.conversationContext || [];
+  if (messages.length === 0) return;
+
+  const meta = getChatMeta(chatId);
+  if (!meta || (!force && meta.name !== 'New Chat')) return;
+
+  const recentMessages = messages.slice(-6);
+  const contextText = recentMessages
+    .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.substring(0, 150)}`)
+    .join('\n');
+
+  try {
+    let title = null;
+
+    if (window.GroqAPI && window.GroqAPI.isConfigured()) {
+      const result = await window.GroqAPI.createCompletion({
+        messages: [
+          { role: 'system', content: 'Generate a very short title (3-6 words) that summarizes the topic of this conversation. Reply with ONLY the title, no quotes or punctuation.' },
+          { role: 'user', content: contextText }
+        ]
+      });
+      title = result?.content;
+    } else if (window.OpenRouterAPI && window.OpenRouterAPI.isConfigured()) {
+      const result = await window.OpenRouterAPI.createCompletion({
+        messages: [
+          { role: 'system', content: 'Generate a very short title (3-6 words) that summarizes the topic of this conversation. Reply with ONLY the title, no quotes or punctuation.' },
+          { role: 'user', content: contextText }
+        ]
+      });
+      title = result?.content;
+    }
+
+    if (title && title.trim()) {
+      title = title.trim().replace(/^["']|["']$/g, '').substring(0, 40);
+      renameChat(chatId, title);
+      if (getActiveChatId() === chatId) {
+        _updateChatHeader(title);
+      }
+      renderChatList();
+      debugLog(`ChatManager: Generated title "${title}" for chat ${chatId}`, 'info');
+    }
+  } catch (e) {
+    debugLog(`ChatManager: Title generation failed: ${e.message}`, 'warn');
+  }
+}
+
+async function handleRegenerateTitle() {
+  const chatId = getActiveChatId();
+  if (!chatId) return;
+  await generateChatTitle(chatId, true);
+}
+
 // Toggle chat sidebar visibility
 function toggleChatSidebar() {
   const sidebar = document.getElementById('chatSidebar');
@@ -294,8 +364,7 @@ function handleNewChat() {
     saveCurrentChat(currentId);
   }
 
-  const name = 'Chat ' + new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const id = createNewChat(name);
+  const id = createNewChat('New Chat');
 
   // Reset global state for new chat
   window.conversationContext = [];
@@ -390,6 +459,7 @@ window.ChatManager = {
   deleteChat,
   renameChat,
   getChatCount,
+  generateChatTitle,
   migrateLegacyChat,
   renderChatList,
   toggleChatSidebar,
@@ -405,3 +475,5 @@ window.handleSwitchChat = handleSwitchChat;
 window.handleDeleteChat = handleDeleteChat;
 window.handleRenameChat = handleRenameChat;
 window.toggleChatSidebar = toggleChatSidebar;
+window.handleRegenerateTitle = handleRegenerateTitle;
+window.generateChatTitle = generateChatTitle;

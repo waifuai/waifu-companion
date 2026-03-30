@@ -248,7 +248,14 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     // Save to chat manager
     if (window.ChatManager) {
       const activeId = window.ChatManager.getActiveChatId();
-      if (activeId) window.ChatManager.saveCurrentChat(activeId);
+      if (activeId) {
+        window.ChatManager.saveCurrentChat(activeId);
+        // Generate title from first message if chat is still named "New Chat"
+        const meta = window.ChatManager.getChatMeta(activeId);
+        if (meta && meta.name === 'New Chat' && meta.messageCount >= 2 && typeof generateChatTitle === 'function') {
+          generateChatTitle(activeId);
+        }
+      }
     }
 
     // Trigger preloading for next queued message if available
