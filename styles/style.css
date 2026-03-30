@@ -1200,18 +1200,18 @@ canvas {
 
 .debug-header-buttons {
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .debug-header-btn {
   background: rgba(255, 255, 255, 0.1);
   border: none;
   color: #ccc;
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
