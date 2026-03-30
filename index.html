@@ -823,7 +823,10 @@
     <div id="chatSidebar" class="chat-sidebar">
       <div class="chat-sidebar-header">
         <span>Chat History</span>
-        <button class="chat-sidebar-close" onclick="toggleChatSidebar()">✕</button>
+        <div class="chat-sidebar-header-actions">
+          <button class="chat-sidebar-action-btn" onclick="exportAllChats()" title="Export All Chats">⬇</button>
+          <button class="chat-sidebar-close" onclick="toggleChatSidebar()">✕</button>
+        </div>
       </div>
       <div id="chatList" class="chat-list"></div>
     </div>

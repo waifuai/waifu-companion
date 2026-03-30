@@ -447,6 +447,44 @@ function _updateChatHeader(name) {
   if (headerEl) headerEl.textContent = name;
 }
 
+// Export all chats as a JSON file download
+function exportAllChats() {
+  const index = _getChatIndex();
+  if (index.length === 0) {
+    alert('No chats to export.');
+    return;
+  }
+
+  const exportData = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    chatCount: index.length,
+    chats: index.map(meta => {
+      const data = _getChatData(meta.id) || {};
+      return {
+        meta,
+        messages: data.conversationContext || [],
+        summary: data.conversationSummary || '',
+        messageCountSinceLastSummary: data.messageCountSinceLastSummary || 0
+      };
+    })
+  };
+
+  const json = JSON.stringify(exportData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.download = `waifu-chats-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  debugLog(`ChatManager: Exported ${index.length} chats as JSON`, 'info');
+}
+
 // Expose to global scope
 window.ChatManager = {
   getActiveChatId,
@@ -466,7 +504,8 @@ window.ChatManager = {
   handleNewChat,
   handleSwitchChat,
   handleDeleteChat,
-  handleRenameChat
+  handleRenameChat,
+  exportAllChats
 };
 
 // Also expose handlers directly for onclick attributes
@@ -477,3 +516,4 @@ window.handleRenameChat = handleRenameChat;
 window.toggleChatSidebar = toggleChatSidebar;
 window.handleRegenerateTitle = handleRegenerateTitle;
 window.generateChatTitle = generateChatTitle;
+window.exportAllChats = exportAllChats;
