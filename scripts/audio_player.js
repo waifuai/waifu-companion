@@ -210,12 +210,14 @@ async function fetchTTSBuffer(textChunk, voiceId) {
     }
   }
 
-  if (provider === 'tiktok') {
+  let primaryFailed = false;
+  let tiktokBuffer = null;
+
+  if (provider === 'tiktok' && window.enablePrimaryVoice !== false) {
     const apiUrl = "https://ottsy.weilbyte.dev/api/generation";
     debugLog(`TTS: === TikTok TTS Flow START ===`, 'info');
     debugLog(`TTS: API URL: ${apiUrl}`, 'info');
-    
-    let response;
+
     try {
       const fetchOptions = {
         method: "POST",
@@ -223,7 +225,46 @@ async function fetchTTSBuffer(textChunk, voiceId) {
         body: JSON.stringify({ text: textChunk, voice: voiceId })
       };
       debugLog(`TTS: Request options: method=${fetchOptions.method}, body=${JSON.stringify(fetchOptions.body).substring(0, 100)}...`, 'info');
-      response = await fetchWithProxy(apiUrl, fetchOptions);
+      const response = await fetchWithProxy(apiUrl, fetchOptions);
+
+      debugLog(`TTS: Response status: ${response.status}`, 'info');
+      debugLog(`TTS: Response headers: ${JSON.stringify([...response.headers.entries()].reduce((acc, [k,v]) =>{acc[k]=v; return acc;}, {}))}`, 'info');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        debugLog(`TTS: TikTok TTS error response: ${errorText.slice(0, 200)}`, 'error');
+        primaryFailed = true;
+      } else {
+        const json = await response.json();
+        debugLog(`TTS: TikTok TTS response JSON: ${JSON.stringify(json).substring(0, 200)}`, 'info');
+        if (json.success === false) {
+          debugLog(`TTS: TikTok API returned error: ${json.error || 'Unknown error'}`, 'warn');
+          primaryFailed = true;
+        } else {
+          const audioData = json.data || json.audio || json;
+          if (!audioData) {
+            debugLog(`TTS: TikTok TTS returned no audio data`, 'error');
+            primaryFailed = true;
+          } else {
+            try {
+              const binaryString = atob(audioData);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              tiktokBuffer = await audioContext.decodeAudioData(bytes.buffer);
+              debugLog(`TTS: TikTok TTS audio decoded successfully, duration: ${tiktokBuffer.duration.toFixed(2)}s`, 'info');
+            } catch (decodeErr) {
+              debugError('TTS: TikTok TTS audio decode failed', decodeErr, {
+                voiceId: voiceId,
+                textLen: textChunk.length,
+                audioDataLen: audioData?.length
+              });
+              primaryFailed = true;
+            }
+          }
+        }
+      }
     } catch (fetchErr) {
       debugError('TTS: Proxy fetch failed', fetchErr, {
         provider: 'tiktok',
@@ -231,77 +272,26 @@ async function fetchTTSBuffer(textChunk, voiceId) {
         textLen: textChunk.length,
         apiUrl: apiUrl
       });
-      return null;
+      primaryFailed = true;
     }
-    
-    debugLog(`TTS: Response status: ${response.status}`, 'info');
-    debugLog(`TTS: Response headers: ${JSON.stringify([...response.headers.entries()].reduce((acc, [k,v]) => {acc[k]=v; return acc;}, {}))}`, 'info');
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      const err = new Error(`TikTok TTS error ${response.status}: ${errorText.slice(0, 200)}`);
-      err.status = response.status;
-      debugLog(`TTS: TikTok TTS error response: ${errorText.slice(0, 200)}`, 'error');
-      return null;
-    }
-    
-    const json = await response.json();
-    debugLog(`TTS: TikTok TTS response JSON: ${JSON.stringify(json).substring(0, 200)}`, 'info');
-    if (json.success === false) {
-      debugLog(`TTS: TikTok API returned error: ${json.error || 'Unknown error'}`, 'warn');
-      return null;
-    }
-    
-    const audioData = json.data || json.audio || json;
-    if (!audioData) {
-      debugLog(`TTS: TikTok TTS returned no audio data`, 'error');
-      return null;
-    }
-    
-    let audioBuffer;
-    try {
-      const binaryString = atob(audioData);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      audioBuffer = await audioContext.decodeAudioData(bytes.buffer);
-      debugLog(`TTS: TikTok TTS audio decoded successfully, duration: ${audioBuffer.duration.toFixed(2)}s`, 'info');
-      return audioBuffer;
-    } catch (decodeErr) {
-      debugError('TTS: TikTok TTS audio decode failed', decodeErr, {
-        voiceId: voiceId,
-        textLen: textChunk.length,
-        audioDataLen: audioData?.length
-      });
-      return null;
-    }
+
+    if (tiktokBuffer) return tiktokBuffer;
   }
 
-  let primaryFailed = false;
-
-  // 1. Try Primary Voice if Enabled
-  if (window.enablePrimaryVoice !== false) {
+  // 1. Try Primary Voice if Enabled (non-tiktok providers)
+  if (!primaryFailed && provider !== 'tiktok' && window.enablePrimaryVoice !== false) {
     try {
       if (provider === 'browser') {
         return await browserSpeechSynthesisPlay(textChunk, voiceId);
       }
-
-      // Use the TikTok TTS API
-      debugLog(`TTS: Attempting Primary TTS for voice: ${voiceId}`, 'info');
-      
-      // Already handled above for tiktok, handle browser here
-      if (provider === 'tiktok') {
-        // This should have been handled above, but just in case
-        throw new Error('TikTok TTS should have been handled above');
-      }
-      
       primaryFailed = true;
     } catch (err) {
       debugLog(`TTS: Primary API failed or rate limit: ${err.message}.`, 'warn');
       primaryFailed = true;
     }
-  } else {
+  } else if (!primaryFailed && provider === 'tiktok') {
+    // tiktok already handled above
+  } else if (window.enablePrimaryVoice === false) {
     debugLog(`TTS: Primary voice disabled.`, 'info');
     primaryFailed = true;
   }
@@ -330,10 +320,11 @@ async function fetchTTSBuffer(textChunk, voiceId) {
     const fallbackId = window.ttsFallbackVoiceId || 'browser-female';
     return await browserSpeechSynthesisPlay(textChunk, fallbackId);
   }
-  
+
   return null;
 }
 window.fetchTTSBuffer = fetchTTSBuffer;
+
 
 async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloadedBuffer = null) {
     const MAX_SPLIT_ATTEMPTS = 5;

@@ -450,14 +450,16 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
   const onChunk = options.onChunk;
   const onComplete = options.onComplete;
 
+  const useGroq = window.useGroq && window.groqApiKey && window.groqModel;
+  const useOpenRouter = window.OpenRouterAPI && window.OpenRouterAPI.isConfigured();
+  let streamProvider = useGroq ? 'groq' : (useOpenRouter ? 'openrouter' : null);
+  let streamModel = useGroq ? window.groqModel : (useOpenRouter ? window.OpenRouterAPI?.getModel() : null);
+
   try {
     if (window.forceOfflineMode) {
       debugLog('AI completions are disabled (Force Offline Mode). Using Local Fallback Engine.', 'warn');
       throw new Error('ForceOfflineModeEnabled');
     }
-
-    const useGroq = window.useGroq && window.groqApiKey && window.groqModel;
-    const useOpenRouter = window.OpenRouterAPI && window.OpenRouterAPI.isConfigured();
 
     if (!useGroq && !useOpenRouter) {
       debugLog('No LLM provider configured. Using Local Fallback Engine.', 'warn');
@@ -575,8 +577,8 @@ interface Response {
     const sanitizeMessages = (msgs) => msgs.map(m => ({ role: m.role, content: m.content }));
 
     const streamRequestStartTime = Date.now();
-    const streamProvider = useGroq ? 'groq' : 'openrouter';
-    const streamModel = useGroq ? window.groqModel : window.OpenRouterAPI?.getModel();
+    streamProvider = useGroq ? 'groq' : 'openrouter';
+    streamModel = useGroq ? window.groqModel : window.OpenRouterAPI?.getModel();
     if (typeof trackEvent === 'function') {
       trackEvent('llm_request_started', { provider: streamProvider, model: streamModel, is_streaming: true });
     }
