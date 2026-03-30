@@ -54,7 +54,7 @@ OpenRouter provides access to a wide variety of LLM models from different provid
 | Setting | Description |
 |---------|-------------|
 | API Key | Your OpenRouter API key from [openrouter.ai](https://openrouter.ai/) |
-| Primary Model | Main model (e.g., `arcee-ai/trinity-large-preview:free`) |
+| Primary Model | Main model (e.g., `stepfun/step-3.5-flash:free`) |
 | Fallback Model 1 | Used if primary fails |
 | Fallback Model 2 | Used if both primary and fallback 1 fail |
 

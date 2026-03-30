@@ -21,7 +21,7 @@ OpenRouter is used automatically when:
 
 ### Model Selection
 
-**Primary Model**: The main LLM model to use (default: `arcee-ai/trinity-large-preview:free`)
+**Primary Model**: The main LLM model to use (default: `stepfun/step-3.5-flash:free`)
 
 **Fallback Models** (up to 2):
 - First fallback: Used if primary model fails
@@ -30,10 +30,9 @@ OpenRouter is used automatically when:
 ### Example Free Models
 
 Popular free models available on OpenRouter:
-- `arcee-ai/trinity-large-preview:free`
 - `stepfun/step-3.5-flash:free`
-- `openrouter/free`
 - `nvidia/nemotron-3-super-120b-a12b:free`
+- `z-ai/glm-4.5-air:free`
 
 ## Features
 

@@ -727,7 +727,7 @@ window.addEventListener('load', async () => { // Make async to await model load
   const openRouterFallbackModel2Input = document.getElementById('openRouterFallbackModel2Input');
   if (openRouterFallbackModel2Input) {
     try {
-      window.openRouterFallbackModel2 = localStorage.getItem('openRouterFallbackModel2') || 'arcee-ai/trinity-large-preview:free';
+      window.openRouterFallbackModel2 = localStorage.getItem('openRouterFallbackModel2') || 'z-ai/glm-4.5-air:free';
       openRouterFallbackModel2Input.value = window.openRouterFallbackModel2;
     } catch(e) {
       debugLog(`Error reading openRouterFallbackModel2: ${e.message}`, 'warn');

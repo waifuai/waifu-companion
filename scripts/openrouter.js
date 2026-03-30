@@ -8,7 +8,7 @@
 const OpenRouterAPI = {
   API_URL: 'https://openrouter.ai/api/v1/chat/completions',
 
-  DEFAULT_MODEL: 'arcee-ai/trinity-large-preview:free',
+  DEFAULT_MODEL: 'stepfun/step-3.5-flash:free',
 
   SITE_NAME: 'Waifu AI',
   SITE_URL: 'https://waifuai.com',
