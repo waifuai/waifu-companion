@@ -10,26 +10,25 @@
 // are available.
 
 window.addEventListener('load', async () => { // Make async to await model load
-  // Load conversation history from localStorage
-  try {
-    const savedContext = localStorage.getItem('conversationContext');
-    if (savedContext) {
-      conversationContext = JSON.parse(savedContext);
-      debugLog('Loaded conversation context from localStorage', 'info');
-      chatHistory.innerHTML = ''; 
-      conversationContext.forEach(msg => {
-        const id = addMessage(msg.content, msg.role === 'user', null, null, msg.role === 'user' ? 'en-US' : (msg.languageCode || selectedLanguageCode));
-        msg.id = id;
-      });
-      updateSummaryMarker();
-    } else {
-       conversationContext = []; 
-       debugLog('No conversation context found in localStorage', 'info');
+  // --- Initialize Chat Manager ---
+  // Migrate legacy single-chat localStorage data into chat manager format
+  if (window.ChatManager) {
+    window.ChatManager.migrateLegacyChat();
+
+    // Load the active chat
+    const activeId = window.ChatManager.getActiveChatId();
+    if (activeId) {
+      window.ChatManager.loadChat(activeId);
+      const meta = window.ChatManager.getChatMeta(activeId);
+      const headerEl = document.getElementById('chatTitle');
+      if (headerEl && meta) headerEl.textContent = meta.name;
     }
-  } catch (error) {
-    debugError('Error loading conversation context from localStorage', error);
-    conversationContext = []; 
-    localStorage.removeItem('conversationContext'); 
+
+    // Render chat list and restore sidebar visibility
+    window.ChatManager.renderChatList();
+    const sidebarVisible = localStorage.getItem('chatSidebarVisible') === 'true';
+    const sidebar = document.getElementById('chatSidebar');
+    if (sidebar && sidebarVisible) sidebar.classList.add('visible');
   }
 
   setupSounds(); // Initialize Tone.js sounds (from sound_manager.js)

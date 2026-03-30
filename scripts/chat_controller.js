@@ -25,6 +25,12 @@ function deleteMessage(messageElement, content, isUser) {
       localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
       debugLog(`Message deleted from context: "${content.substring(0, 30)}..."`, 'info');
       debugState('Conversation', 'message_deleted', { role: role, remainingContext: conversationContext.length });
+
+      // Save to chat manager
+      if (window.ChatManager) {
+        const activeId = window.ChatManager.getActiveChatId();
+        if (activeId) window.ChatManager.saveCurrentChat(activeId);
+      }
     } catch (e) {
       debugError('Failed to update localStorage after message deletion', e, { key: 'conversationContext' });
     }
@@ -120,6 +126,12 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
           debugLog('Conversation summarized and memory compressed.', 'info');
           debugState('Conversation', 'summarized', { messagesRemoved: trigger, remainingContext: conversationContext.length });
           updateSummaryMarker();
+
+          // Save to chat manager
+          if (window.ChatManager) {
+            const activeId = window.ChatManager.getActiveChatId();
+            if (activeId) window.ChatManager.saveCurrentChat(activeId);
+          }
         });
       }
 
@@ -130,6 +142,12 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       debugLog('Saved user message to conversation context', 'info');
       debugState('Conversation', 'user_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
       updateSummaryMarker();
+
+      // Save to chat manager
+      if (window.ChatManager) {
+        const activeId = window.ChatManager.getActiveChatId();
+        if (activeId) window.ChatManager.saveCurrentChat(activeId);
+      }
     }
 
     // Determine if we should use streaming (only with OpenRouter)
@@ -226,6 +244,12 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     debugLog('Saved AI response to conversation context and trimmed.', 'info');
     debugState('Conversation', 'assistant_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
     updateSummaryMarker();
+
+    // Save to chat manager
+    if (window.ChatManager) {
+      const activeId = window.ChatManager.getActiveChatId();
+      if (activeId) window.ChatManager.saveCurrentChat(activeId);
+    }
 
     // Trigger preloading for next queued message if available
     if (window.isUserMessageQueueEnabled && userMessageQueue.length > 0) {

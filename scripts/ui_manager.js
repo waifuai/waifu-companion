@@ -180,10 +180,29 @@ function showTypingIndicator(show) {
 
 function clearChatHistory() {
   // Assumes chatHistory, conversationContext, debugLog are accessible
-  debugLog('Clearing chat history and localStorage', 'info');
+  debugLog('Clearing chat history', 'info');
+
+  // Reset current chat data in-place
   chatHistory.innerHTML = '';
   conversationContext = [];
-  localStorage.removeItem('conversationContext');
+  window.conversationSummary = '';
+  window.messageCountSinceLastSummary = 0;
+
+  localStorage.setItem('conversationContext', '[]');
+  localStorage.setItem('conversationSummary', '');
+  localStorage.setItem('messageCountSinceLastSummary', '0');
+
+  // Save the cleared state to the active chat
+  if (window.ChatManager) {
+    const activeId = window.ChatManager.getActiveChatId();
+    if (activeId) {
+      window.ChatManager.saveCurrentChat(activeId);
+      window.ChatManager.renderChatList();
+    }
+  }
+
+  const summaryEl = document.getElementById('conversationSummary');
+  if (summaryEl) summaryEl.value = '';
 }
 
 function populateModelSelector() {

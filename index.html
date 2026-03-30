@@ -816,11 +816,21 @@
       <!-- Moved to settings panel -->
     </div>
 
+    <div id="chatSidebar" class="chat-sidebar">
+      <div class="chat-sidebar-header">
+        <span>Chat History</span>
+        <button class="chat-sidebar-close" onclick="toggleChatSidebar()">✕</button>
+      </div>
+      <div id="chatList" class="chat-list"></div>
+    </div>
+
     <div class="chat-container">
       <div class="chat-header">
-        <span>💬 Chat</span>
+        <button class="chat-sidebar-toggle" onclick="toggleChatSidebar()" title="Chat History">☰</button>
+        <span id="chatTitle">Chat</span>
         <span id="chat-status-indicator">OFFLINE</span>
         <button id="goOnlineBtn" class="go-online-btn" type="button">Go Online</button>
+        <button class="new-chat-btn" onclick="handleNewChat()" title="New Chat">＋</button>
       </div>
       <div class="chat-content">
         <div class="chat-history" id="chatHistory"></div>
@@ -904,6 +914,7 @@
     <script src="scripts/settings_handlers.js"></script>
     <script src="scripts/radio_controller.js"></script>
     <script src="scripts/sound_manager.js"></script>
+    <script src="scripts/chat_manager.js"></script>
     <script src="scripts/chat_controller.js"></script>
     <script src="scripts/tutorial.js"></script>
     <script src="scripts/stt_controller.js"></script>
