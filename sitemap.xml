@@ -11,6 +11,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://waifuai.com/docs/help.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://waifuai.com/docs/memory.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

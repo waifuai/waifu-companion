@@ -273,32 +273,16 @@ window.getUIStringsForLanguage = getUIStringsForLanguage;
 window.loadCachedTranslations = loadCachedTranslations;
 
 // Function to translate the tutorial's second half content
-async function translateTutorialSecondHalf(targetLang) {
-  const englishContent = `<h4>🤖🚀 LLM & OpenRouter Settings</h4>
-<p>Configure your AI model in <b>Settings → LLM Provider</b>. You can use <b>OpenRouter</b> or <b>Groq</b> - both support free models. You'll need an API key from <a href="https://openrouter.ai/" target="_blank">openrouter.ai</a> or <a href="https://console.groq.com/" target="_blank">console.groq.com</a>. Both support <b>Streaming</b> ⚡ for real-time character-by-character responses.</p>
-
-<h4>🧠🧵 Persona, Memory & Summarization</h4>
-<p>Your AI isn't just a generic bot; you can define its <b>Core Identity</b> and <b>Custom Personality</b> in Persona Settings. Whether you want a helpful assistant or a specific character archetype, the AI will adapt its tone and behavior. To handle long conversations, the app uses a <b>Memory System</b>. As older messages are pushed out of immediate memory to save performance, the AI automatically generates a <b>Conversation Summary</b> 📝. This summary is fed back into the AI's context, ensuring it never truly "forgets" important events or your name.</p>
-
-<h4>🎭✨ Live2D Animations & Expressions</h4>
-<p>The Live2D models aren't just static images. They feature <b>Automatic Gaze</b> 👁️ (following your interactions), breathing animations, and physics-based hair/clothing movement. When chatting, the AI can trigger specific <b>Emotions</b> (Happy, Sad, Surprised, Thoughtful, Excited) and <b>Gestures</b> (like nodding or tilting its head) based on the sentiment of its reply. You can also add your own models by providing a URL to a <code>.model3.json</code> file.</p>
-
-<h4>🔊🎤 TTS & Voice Interaction</h4>
-<p>Text-to-Speech (TTS) is powered by TikTok's free TTS API, offering a variety of natural-sounding voices across many languages. You can select a unique voice for each language you use. For input, use the <b>Microphone</b> 🎤 icon to speak directly to your character. This uses your browser's native Speech-To-Text capabilities. Note: For the best experience, use a Chromium-based browser and ensure you've granted microphone permissions.</p>
-
-<h4>🔌🔋 Context & Offline Fallback</h4>
-<p>The AI can be made "aware" of your environment. By enabling <b>Time</b> and <b>Battery</b> context, the AI will know if it's late at night or if your device is running low on power, leading to more natural observations. If you lose your internet connection, the <b>Local Fallback Engine</b> 🔌 takes over, using smart heuristics to provide relevant (though less "intelligent") replies until the connection is restored.</p>
-
-<h4>🐞🧰 Debug Panel & Troubleshooting</h4>
-<p>If something isn't working as expected, the <b>Debug Panel</b> is your best friend. It logs everything from network requests to model loading errors. You can even enable <b>Show Chat Context</b> to see exactly what "thoughts" and instructions are being sent to the AI behind the scenes. If audio doesn't play, remember that most browsers require at least one manual click 🖱️ on the page before they allow automatic sound playback.</p>`;
+async function translateTutorialSecondHalf(targetLang, englishContent) {
+  const fallbackContent = englishContent || '';
 
   if (targetLang === 'en-US') {
-    return englishContent;
+    return fallbackContent;
   }
 
   if (!window.OpenRouterAPI || !window.OpenRouterAPI.isConfigured()) {
     debugLog('Tutorial translation requires OpenRouter API', 'warn');
-    return englishContent;
+    return fallbackContent;
   }
 
   try {
@@ -309,7 +293,7 @@ async function translateTutorialSecondHalf(targetLang) {
           role: "system", 
           content: `Translate the following HTML tutorial content (keeping all HTML tags and emojis intact) to ${targetLanguageName}. Preserve the structure and all formatting. Respond ONLY with the translated HTML.` 
         },
-        { role: "user", content: englishContent }
+        { role: "user", content: fallbackContent }
       ]
     });
     
@@ -317,7 +301,7 @@ async function translateTutorialSecondHalf(targetLang) {
     return completion.content;
   } catch(e) {
     debugError('Failed to translate tutorial second half', e, { targetLang: targetLang });
-    return englishContent; // Fallback to English
+    return fallbackContent; // Fallback to English
   }
 }
 

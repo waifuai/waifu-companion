@@ -151,3 +151,30 @@ body {
   box-sizing: border-box;
   background-color: var(--bg-color);
 }
+
+.docs-tutorial-content {
+  padding-top: 8px;
+}
+
+.docs-tutorial-content .tutorial-step-card,
+.docs-tutorial-content .tutorial-details-section {
+  background: var(--container-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.docs-tutorial-content .tutorial-step-card {
+  margin-bottom: 16px;
+}
+
+.docs-tutorial-content .tutorial-details-section {
+  margin-top: 32px;
+}
+
+.docs-tutorial-content p {
+  color: var(--text-color);
+}
+
+.docs-tutorial-content .tutorial-details-section p {
+  color: #cbd5e1;
+}

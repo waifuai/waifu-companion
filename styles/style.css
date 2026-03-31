@@ -1645,6 +1645,14 @@ canvas {
   color: #eee;
 }
 
+.tutorial-doc-link-card {
+  margin-bottom: 16px;
+}
+
+.tutorial-doc-link {
+  margin-top: 10px;
+}
+
 .tutorial-step-card {
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
