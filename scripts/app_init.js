@@ -1,4 +1,30 @@
 // This file contains the application initialization logic, previously in main.js's window.onload
+
+function getStoredValueOrDefault(storageKey, fallbackValue) {
+  try {
+    const storedValue = localStorage.getItem(storageKey);
+    if (typeof storedValue === 'string' && storedValue.trim()) {
+      return storedValue.trim();
+    }
+  } catch (e) {
+    debugLog(`Error reading ${storageKey}: ${e.message}`, 'warn');
+  }
+
+  return fallbackValue;
+}
+
+function syncVoiceControlsVisibility() {
+  const controls = document.getElementById('voiceControls');
+  if (!controls) return;
+  controls.style.display = window.enableVoice ? 'block' : 'none';
+}
+
+function syncLegacyEnableVoiceCheckbox() {
+  const checkbox = document.getElementById('enableVoiceCheckbox');
+  if (checkbox) {
+    checkbox.checked = !!window.enableVoice;
+  }
+}
 // and some other top-level event listeners from main.js.
 
 // Assumes all necessary global variables (from config.js) and functions (from other manager scripts)
@@ -254,16 +280,19 @@ window.addEventListener('load', async () => { // Make async to await model load
                               (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
   window.enableFallbackVoice = storedFallback !== null ? (storedFallback === 'true') : 
                                (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
+  window.enableKokoro = localStorage.getItem('enableKokoro') === 'true';
 
   if (document.getElementById('enableTikTokVoiceCheckbox')) {
     document.getElementById('enableTikTokVoiceCheckbox').checked = window.enablePrimaryVoice;
     document.getElementById('enableTikTokVoiceCheckbox').addEventListener('change', (e) => {
         window.enablePrimaryVoice = e.target.checked;
-        window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice;
+        window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
         localStorage.setItem('enablePrimaryVoice', window.enablePrimaryVoice.toString());
         if (typeof trackEvent === 'function') {
           trackEvent('voice_enabled_toggle', { type: 'tiktok', enabled: window.enablePrimaryVoice });
         }
+        syncLegacyEnableVoiceCheckbox();
+        syncVoiceControlsVisibility();
         debugLog(`TikTok voice enabled: ${window.enablePrimaryVoice}`, 'info');
     });
   }
@@ -272,11 +301,13 @@ window.addEventListener('load', async () => { // Make async to await model load
     document.getElementById('enableFallbackVoiceCheckbox').checked = window.enableFallbackVoice;
     document.getElementById('enableFallbackVoiceCheckbox').addEventListener('change', (e) => {
         window.enableFallbackVoice = e.target.checked;
-        window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice;
+        window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
         localStorage.setItem('enableFallbackVoice', window.enableFallbackVoice.toString());
         if (typeof trackEvent === 'function') {
           trackEvent('voice_enabled_toggle', { type: 'fallback', enabled: window.enableFallbackVoice });
         }
+        syncLegacyEnableVoiceCheckbox();
+        syncVoiceControlsVisibility();
         debugLog(`Fallback voice enabled: ${window.enableFallbackVoice}`, 'info');
     });
   }
@@ -285,6 +316,8 @@ window.addEventListener('load', async () => { // Make async to await model load
   // but many apps just keep it visible if 'Enable Voice' was once there.
   // Derive global enableVoice from individual provider flags
   window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
+  syncLegacyEnableVoiceCheckbox();
+  syncVoiceControlsVisibility();
   debugLog(`Voice (TTS) enabled states initialized. Primary: ${window.enablePrimaryVoice}, Fallback: ${window.enableFallbackVoice}`, 'info');
 
   // --- Initialize Opacity Settings ---
@@ -464,6 +497,8 @@ window.addEventListener('load', async () => { // Make async to await model load
   }
   // Re-derive global enableVoice now that Kokoro flag is loaded
   window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
+  syncLegacyEnableVoiceCheckbox();
+  syncVoiceControlsVisibility();
   if (enableKokoroVoiceCheckbox) {
       enableKokoroVoiceCheckbox.checked = window.enableKokoro;
       enableKokoroVoiceCheckbox.addEventListener('change', window.handleEnableKokoroVoiceChange);
@@ -668,28 +703,24 @@ window.addEventListener('load', async () => { // Make async to await model load
   }
 
   if (openRouterModelInput) {
-    try {
-      window.openRouterModel = localStorage.getItem('openRouterModel') || 'stepfun/step-3.5-flash:free';
-      openRouterModelInput.value = window.openRouterModel;
-    } catch(e) {
-      debugLog(`Error reading openRouterModel: ${e.message}`, 'warn');
-      window.openRouterModel = '';
-    }
+    const defaultModel = window.OpenRouterAPI?.DEFAULT_MODEL || 'stepfun/step-3.5-flash:free';
+    window.openRouterModel = getStoredValueOrDefault('openRouterModel', defaultModel);
+    openRouterModelInput.value = window.openRouterModel;
+    openRouterModelInput.placeholder = defaultModel;
     openRouterModelInput.addEventListener('change', handleOpenRouterModelChange);
     openRouterModelInput.addEventListener('blur', handleOpenRouterModelChange);
   }
 
   const openRouterFallbackModelsInput = document.getElementById('openRouterFallbackModelsInput');
   if (openRouterFallbackModelsInput) {
-    try {
-      window.openRouterFallbackModels = localStorage.getItem('openRouterFallbackModels') || '';
-      openRouterFallbackModelsInput.value = window.openRouterFallbackModels;
-    } catch(e) {
-      debugLog(`Error reading openRouterFallbackModels: ${e.message}`, 'warn');
-      window.openRouterFallbackModels = '';
+    window.openRouterFallbackModels = getStoredValueOrDefault('openRouterFallbackModels', '');
+    openRouterFallbackModelsInput.value = window.openRouterFallbackModels;
+    if (typeof handleOpenRouterFallbackModelsChange === 'function') {
+      openRouterFallbackModelsInput.addEventListener('change', handleOpenRouterFallbackModelsChange);
+      openRouterFallbackModelsInput.addEventListener('blur', handleOpenRouterFallbackModelsChange);
+    } else {
+      debugLog('OpenRouter combined fallback model input found, but no handler is registered. Skipping listeners.', 'warn');
     }
-    openRouterFallbackModelsInput.addEventListener('change', handleOpenRouterFallbackModelsChange);
-    openRouterFallbackModelsInput.addEventListener('blur', handleOpenRouterFallbackModelsChange);
   }
 
   const linksList = document.querySelector('.links-list');
@@ -705,26 +736,20 @@ window.addEventListener('load', async () => { // Make async to await model load
 
   const openRouterFallbackModel1Input = document.getElementById('openRouterFallbackModel1Input');
   if (openRouterFallbackModel1Input) {
-    try {
-      window.openRouterFallbackModel1 = localStorage.getItem('openRouterFallbackModel1') || 'nvidia/nemotron-3-super-120b-a12b:free';
-      openRouterFallbackModel1Input.value = window.openRouterFallbackModel1;
-    } catch(e) {
-      debugLog(`Error reading openRouterFallbackModel1: ${e.message}`, 'warn');
-      window.openRouterFallbackModel1 = '';
-    }
+    const defaultFallback1 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || 'nvidia/nemotron-3-super-120b-a12b:free';
+    window.openRouterFallbackModel1 = getStoredValueOrDefault('openRouterFallbackModel1', defaultFallback1);
+    openRouterFallbackModel1Input.value = window.openRouterFallbackModel1;
+    openRouterFallbackModel1Input.placeholder = defaultFallback1;
     openRouterFallbackModel1Input.addEventListener('change', handleOpenRouterFallbackModel1Change);
     openRouterFallbackModel1Input.addEventListener('blur', handleOpenRouterFallbackModel1Change);
   }
 
   const openRouterFallbackModel2Input = document.getElementById('openRouterFallbackModel2Input');
   if (openRouterFallbackModel2Input) {
-    try {
-      window.openRouterFallbackModel2 = localStorage.getItem('openRouterFallbackModel2') || 'qwen/qwen3.6-plus-preview:free';
-      openRouterFallbackModel2Input.value = window.openRouterFallbackModel2;
-    } catch(e) {
-      debugLog(`Error reading openRouterFallbackModel2: ${e.message}`, 'warn');
-      window.openRouterFallbackModel2 = '';
-    }
+    const defaultFallback2 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || 'qwen/qwen3.6-plus-preview:free';
+    window.openRouterFallbackModel2 = getStoredValueOrDefault('openRouterFallbackModel2', defaultFallback2);
+    openRouterFallbackModel2Input.value = window.openRouterFallbackModel2;
+    openRouterFallbackModel2Input.placeholder = defaultFallback2;
     openRouterFallbackModel2Input.addEventListener('change', handleOpenRouterFallbackModel2Change);
     openRouterFallbackModel2Input.addEventListener('blur', handleOpenRouterFallbackModel2Change);
   }

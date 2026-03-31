@@ -4,6 +4,11 @@ let isCurrentlySpeaking = false; // Tracks if processNextTTSInQueue is actively 
 let ttsCancelled = false; // Internal flag to stop a running chunk loop
 
 async function playTTS(fullText, languageCode, messageId = null, startIndex = 0, preloadedBuffer = null) {
+  if (!window.enableVoice) {
+    debugLog('TTS: Ignoring playback request because voice is disabled.', 'info');
+    return;
+  }
+
   if (fullText) {
     debugLog(`TTS: Queuing request for language ${languageCode || 'default_en-US'}: "${fullText.toString().substring(0, 50)}..."`, 'info');
     ttsQueue.push({ fullText: fullText.toString(), languageCode: languageCode || 'en-US', messageId, startIndex, preloadedBuffer });
@@ -27,6 +32,14 @@ async function playTTS(fullText, languageCode, messageId = null, startIndex = 0,
 // sequential processing
 async function processNextTTSInQueue() {
   if (isCurrentlySpeaking || ttsQueue.length === 0) return;
+  if (!window.enableVoice) {
+    debugLog('TTS: Clearing queued playback because voice is disabled.', 'info');
+    ttsQueue = [];
+    if (typeof window.onAIResponseFullyFinished === 'function') {
+      window.onAIResponseFullyFinished();
+    }
+    return;
+  }
   isCurrentlySpeaking = true;
   ttsCancelled = false;
   

@@ -109,6 +109,11 @@ async function browserSpeechSynthesisPlay(textChunk, voiceId) {
     return null;
   }
 
+  if (window.enableFallbackVoice === false) {
+    debugLog('TTS: Browser SpeechSynthesis blocked because fallback voice is disabled', 'info');
+    return null;
+  }
+
   // Ensure voices are loaded
   let availableVoices = speechSynthesis.getVoices();
   if (availableVoices.length === 0) {
@@ -175,6 +180,12 @@ async function browserSpeechSynthesisPlay(textChunk, voiceId) {
       debugLog(`TTS: Browser SpeechSynthesis error: ${e.error}`, 'error');
       resolve(null);
     };
+
+    if (window.enableFallbackVoice === false) {
+      debugLog('TTS: Browser SpeechSynthesis canceled before playback started', 'info');
+      resolve(null);
+      return;
+    }
 
     speechSynthesis.speak(utterance);
   });
@@ -402,7 +413,8 @@ async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloadedBuff
             };
             updateMouth(); 
         } else {
-            audioBufferSource.connect(audioContext.destination); // Connect directly if no model for analysis
+            const gainNode = typeof getTTSGainNode === 'function' ? getTTSGainNode() : audioContext.destination;
+            audioBufferSource.connect(gainNode);
         }
         
         await new Promise((resolve, reject) => {

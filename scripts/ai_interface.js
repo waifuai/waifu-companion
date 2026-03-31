@@ -222,13 +222,7 @@ interface Response {
       throw new Error('BlankAIResponse');
     }
 
-    window.isOfflineMode = false;
-    const chatContainer = document.querySelector('.chat-container');
-    if (chatContainer) {
-      chatContainer.classList.remove('offline-mode');
-      const statusInd = document.getElementById('chat-status-indicator');
-      if (statusInd) statusInd.textContent = 'ONLINE';
-    }
+    setTransientFallbackState(false);
     return data;
 
   } catch (error) {
@@ -242,8 +236,7 @@ interface Response {
     });
 
     if (window.LocalFallbackEngine) {
-      debugLog('Switching to Local Heuristic Fallback Engine due to AI failure or blank response.', 'warn');
-      return window.LocalFallbackEngine.getResponse(userMessage);
+      return getLocalFallbackResponse(userMessage, 'ai failure or blank response');
     }
 
     return {
@@ -251,6 +244,31 @@ interface Response {
       emotion: "sad",
     };
   }
+}
+
+function setTransientFallbackState(isActive) {
+  window.isOfflineMode = !!isActive;
+
+  if (window.forceOfflineMode) {
+    return;
+  }
+
+  const chatContainer = document.querySelector('.chat-container');
+  const statusInd = document.getElementById('chat-status-indicator');
+
+  if (isActive) {
+    if (chatContainer) chatContainer.classList.add('offline-mode');
+    if (statusInd) statusInd.textContent = 'OFFLINE FALLBACK';
+  } else {
+    if (chatContainer) chatContainer.classList.remove('offline-mode');
+    if (statusInd) statusInd.textContent = 'ONLINE';
+  }
+}
+
+function getLocalFallbackResponse(userMessage, reason) {
+  setTransientFallbackState(true);
+  debugLog(`Using Local Heuristic Fallback Engine (${reason}).`, 'warn');
+  return window.LocalFallbackEngine.getResponse(userMessage);
 }
 
 async function getTranslatedText(text, targetLangCode, sourceLangCode = 'auto') {
@@ -782,13 +800,7 @@ interface Response {
       throw new Error('BlankAIResponse');
     }
 
-    window.isOfflineMode = false;
-    const chatContainer = document.querySelector('.chat-container');
-    if (chatContainer) {
-      chatContainer.classList.remove('offline-mode');
-      const statusInd = document.getElementById('chat-status-indicator');
-      if (statusInd) statusInd.textContent = 'ONLINE';
-    }
+    setTransientFallbackState(false);
 
     if (onComplete) {
       onComplete(data);
@@ -810,8 +822,7 @@ interface Response {
     }
 
     if (window.LocalFallbackEngine) {
-      debugLog('Switching to Local Heuristic Fallback Engine due to AI failure.', 'warn');
-      return window.LocalFallbackEngine.getResponse(userMessage);
+      return getLocalFallbackResponse(userMessage, 'streaming failure');
     }
 
     return {

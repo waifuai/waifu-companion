@@ -98,10 +98,23 @@ function handleTTSVolumeChange(event) {
 }
 
 function handleEnableVoiceChange(event) {
-    enableVoice = event.target.checked;
+    const enableVoice = event.target.checked;
     window.enableVoice = enableVoice;
+    window.enablePrimaryVoice = enableVoice;
+    window.enableFallbackVoice = enableVoice;
+    window.enableKokoro = enableVoice;
     localStorage.setItem('enableVoice', enableVoice.toString());
+    localStorage.setItem('enablePrimaryVoice', enableVoice.toString());
+    localStorage.setItem('enableFallbackVoice', enableVoice.toString());
+    localStorage.setItem('enableKokoro', enableVoice.toString());
     debugLog(`Enable voice changed to: ${enableVoice}`, 'info');
+
+    const tiktokCheckbox = document.getElementById('enableTikTokVoiceCheckbox');
+    if (tiktokCheckbox) tiktokCheckbox.checked = enableVoice;
+    const fallbackCheckbox = document.getElementById('enableFallbackVoiceCheckbox');
+    if (fallbackCheckbox) fallbackCheckbox.checked = enableVoice;
+    const kokoroCheckbox = document.getElementById('enableKokoroVoiceCheckbox');
+    if (kokoroCheckbox) kokoroCheckbox.checked = enableVoice;
     
     // Toggle visibility/disabled state of voice selector container
     if (voiceControls) {
@@ -325,11 +338,17 @@ function handleOpenRouterApiKeyChange(event) {
 
 function handleOpenRouterModelChange(event) {
     const val = event.target.value.trim();
-    window.openRouterModel = val;
+    const fallbackModel = window.OpenRouterAPI?.DEFAULT_MODEL || 'stepfun/step-3.5-flash:free';
+    const resolvedValue = val || fallbackModel;
+    window.openRouterModel = resolvedValue;
     try {
-        localStorage.setItem('openRouterModel', val);
-        if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val });
-        debugLog(`OpenRouter model set to: ${val || '(empty)'}`, 'info');
+        localStorage.setItem('openRouterModel', resolvedValue);
+        if (event.target) {
+            event.target.value = resolvedValue;
+            event.target.placeholder = fallbackModel;
+        }
+        if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: resolvedValue });
+        debugLog(`OpenRouter model set to: ${resolvedValue}`, 'info');
     } catch (e) {
         debugLog(`Failed to persist openRouterModel: ${e.message}`, 'error');
     }
@@ -337,10 +356,16 @@ function handleOpenRouterModelChange(event) {
 
 function handleOpenRouterFallbackModel1Change(event) {
     const value = event.target.value.trim();
-    window.openRouterFallbackModel1 = value;
+    const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || 'nvidia/nemotron-3-super-120b-a12b:free';
+    const resolvedValue = value || fallbackModel;
+    window.openRouterFallbackModel1 = resolvedValue;
     try {
-        localStorage.setItem('openRouterFallbackModel1', value);
-        debugLog(`OpenRouter fallback model 1 set to: ${value || '(empty)'}`, 'info');
+        localStorage.setItem('openRouterFallbackModel1', resolvedValue);
+        if (event.target) {
+            event.target.value = resolvedValue;
+            event.target.placeholder = fallbackModel;
+        }
+        debugLog(`OpenRouter fallback model 1 set to: ${resolvedValue}`, 'info');
     } catch (e) {
         debugLog(`Failed to persist openRouterFallbackModel1: ${e.message}`, 'error');
     }
@@ -348,10 +373,16 @@ function handleOpenRouterFallbackModel1Change(event) {
 
 function handleOpenRouterFallbackModel2Change(event) {
     const value = event.target.value.trim();
-    window.openRouterFallbackModel2 = value;
+    const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || 'qwen/qwen3.6-plus-preview:free';
+    const resolvedValue = value || fallbackModel;
+    window.openRouterFallbackModel2 = resolvedValue;
     try {
-        localStorage.setItem('openRouterFallbackModel2', value);
-        debugLog(`OpenRouter fallback model 2 set to: ${value || '(empty)'}`, 'info');
+        localStorage.setItem('openRouterFallbackModel2', resolvedValue);
+        if (event.target) {
+            event.target.value = resolvedValue;
+            event.target.placeholder = fallbackModel;
+        }
+        debugLog(`OpenRouter fallback model 2 set to: ${resolvedValue}`, 'info');
     } catch (e) {
         debugLog(`Failed to persist openRouterFallbackModel2: ${e.message}`, 'error');
     }
