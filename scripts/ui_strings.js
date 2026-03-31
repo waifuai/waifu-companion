@@ -136,7 +136,7 @@ window.UI_STRINGS = {
     openRouterApiKeyLabel: '🔑 OpenRouter API Key',
     openRouterApiKeyDesc: 'Stored locally in your browser and sent only to openrouter.ai over HTTPS.',
     openRouterModelLabel: '🧬 OpenRouter Model Name',
-    openRouterModelDesc: 'Examples: stepfun/step-3.5-flash:free, nvidia/nemotron-3-super-120b-a12b:free, z-ai/glm-4.5-air:free, etc.',
+    openRouterModelDesc: 'Examples: stepfun/step-3.5-flash:free, nvidia/nemotron-3-super-120b-a12b:free, qwen/qwen3.6-plus-preview:free, etc.',
     openRouterFallbackModel1Label: '🔄 Fallback Model 1',
     openRouterFallbackModel1Desc: 'First fallback model. Used if the primary model fails.',
     openRouterFallbackModel2Label: '🔄 Fallback Model 2',

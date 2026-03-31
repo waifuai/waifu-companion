@@ -32,7 +32,7 @@ OpenRouter is used automatically when:
 Popular free models available on OpenRouter:
 - `stepfun/step-3.5-flash:free`
 - `nvidia/nemotron-3-super-120b-a12b:free`
-- `z-ai/glm-4.5-air:free`
+- `qwen/qwen3.6-plus-preview:free`
 
 ## Features
 
