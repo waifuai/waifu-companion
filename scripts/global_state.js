@@ -57,6 +57,10 @@ window.openRouterFallbackModel2Input = document.getElementById('openRouterFallba
 window.useGroqCheckbox = document.getElementById('useGroqCheckbox');
 window.groqApiKeyInput = document.getElementById('groqApiKeyInput');
 window.groqModelInput = document.getElementById('groqModelInput');
+window.useOpenAICompatibleCheckbox = document.getElementById('useOpenAICompatibleCheckbox');
+window.openaiCompatibleBaseUrlInput = document.getElementById('openaiCompatibleBaseUrlInput');
+window.openaiCompatibleApiKeyInput = document.getElementById('openaiCompatibleApiKeyInput');
+window.openaiCompatibleModelInput = document.getElementById('openaiCompatibleModelInput');
 
 
 // Global State Variables
@@ -109,6 +113,10 @@ window.openRouterFallbackModel2 = 'z-ai/glm-4.5-air:free';
 window.useGroq = false;
 window.groqApiKey = '';
 window.groqModel = 'llama-3.3-70b-versatile';
+window.useOpenAICompatible = false;
+window.openaiCompatibleBaseUrl = '';
+window.openaiCompatibleApiKey = '';
+window.openaiCompatibleModel = 'gpt-3.5-turbo';
 window.disableAutoOfflineCheckbox = document.getElementById('disableAutoOfflineCheckbox');
 window.useJsonForEmotionCheckbox = document.getElementById('useJsonForEmotionCheckbox');
 window.useJsonForEmotion = false;

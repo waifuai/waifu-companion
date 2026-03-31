@@ -780,6 +780,61 @@ window.addEventListener('load', async () => { // Make async to await model load
     groqModelInput.addEventListener('blur', handleGroqModelChange);
   }
 
+  const useOpenAICompatibleCheckbox = document.getElementById('useOpenAICompatibleCheckbox');
+  const openaiCompatibleBaseUrlInput = document.getElementById('openaiCompatibleBaseUrlInput');
+  const openaiCompatibleApiKeyInput = document.getElementById('openaiCompatibleApiKeyInput');
+  const openaiCompatibleModelInput = document.getElementById('openaiCompatibleModelInput');
+
+  if (useOpenAICompatibleCheckbox) {
+    try {
+      const storedUseOAI = localStorage.getItem('useOpenAICompatible') === 'true';
+      window.useOpenAICompatible = storedUseOAI;
+      useOpenAICompatibleCheckbox.checked = storedUseOAI;
+    } catch(e) {
+      debugLog(`Error reading useOpenAICompatible: ${e.message}`, 'warn');
+      window.useOpenAICompatible = false;
+      useOpenAICompatibleCheckbox.checked = false;
+    }
+    useOpenAICompatibleCheckbox.addEventListener('change', handleUseOpenAICompatibleChange);
+  }
+
+  if (openaiCompatibleBaseUrlInput) {
+    try {
+      window.openaiCompatibleBaseUrl = localStorage.getItem('openaiCompatibleBaseUrl') || '';
+      openaiCompatibleBaseUrlInput.value = window.openaiCompatibleBaseUrl;
+    } catch(e) {
+      debugLog(`Error reading openaiCompatibleBaseUrl: ${e.message}`, 'warn');
+      window.openaiCompatibleBaseUrl = '';
+    }
+    openaiCompatibleBaseUrlInput.addEventListener('change', handleOpenAICompatibleBaseUrlChange);
+    openaiCompatibleBaseUrlInput.addEventListener('blur', handleOpenAICompatibleBaseUrlChange);
+  }
+
+  if (openaiCompatibleApiKeyInput) {
+    try {
+      window.openaiCompatibleApiKey = localStorage.getItem('openaiCompatibleApiKey') || '';
+      openaiCompatibleApiKeyInput.value = window.openaiCompatibleApiKey;
+    } catch(e) {
+      debugLog(`Error reading openaiCompatibleApiKey: ${e.message}`, 'warn');
+      window.openaiCompatibleApiKey = '';
+    }
+    openaiCompatibleApiKeyInput.addEventListener('change', handleOpenAICompatibleApiKeyChange);
+    openaiCompatibleApiKeyInput.addEventListener('blur', handleOpenAICompatibleApiKeyChange);
+  }
+
+  if (openaiCompatibleModelInput) {
+    try {
+      window.openaiCompatibleModel = localStorage.getItem('openaiCompatibleModel') || 'gpt-3.5-turbo';
+      openaiCompatibleModelInput.value = window.openaiCompatibleModel;
+    } catch(e) {
+      debugLog(`Error reading openaiCompatibleModel: ${e.message}`, 'warn');
+      window.openaiCompatibleModel = 'gpt-3.5-turbo';
+      openaiCompatibleModelInput.value = window.openaiCompatibleModel;
+    }
+    openaiCompatibleModelInput.addEventListener('change', handleOpenAICompatibleModelChange);
+    openaiCompatibleModelInput.addEventListener('blur', handleOpenAICompatibleModelChange);
+  }
+
   if (forceOfflineCheckbox) {
     const storedOffline = localStorage.getItem('forceOfflineMode') === 'true';
     window.forceOfflineMode = storedOffline;

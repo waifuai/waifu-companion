@@ -392,6 +392,52 @@ function handleGroqModelChange(event) {
     }
 }
 
+function handleUseOpenAICompatibleChange(event) {
+    const val = event.target.checked;
+    window.useOpenAICompatible = val;
+    try {
+        localStorage.setItem('useOpenAICompatible', val.toString());
+        if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openai_compatible: val });
+        debugLog(`Use OpenAI Compatible API set to: ${val}`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist useOpenAICompatible: ${e.message}`, 'error');
+    }
+}
+
+function handleOpenAICompatibleBaseUrlChange(event) {
+    const value = event.target.value.trim();
+    window.openaiCompatibleBaseUrl = value;
+    try {
+        localStorage.setItem('openaiCompatibleBaseUrl', value);
+        debugLog(`OpenAI Compatible base URL updated: ${value}`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist openaiCompatibleBaseUrl: ${e.message}`, 'error');
+    }
+}
+
+function handleOpenAICompatibleApiKeyChange(event) {
+    const value = event.target.value.trim();
+    window.openaiCompatibleApiKey = value;
+    try {
+        localStorage.setItem('openaiCompatibleApiKey', value);
+        debugLog(`OpenAI Compatible API key updated (length=${value.length}).`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist openaiCompatibleApiKey: ${e.message}`, 'error');
+    }
+}
+
+function handleOpenAICompatibleModelChange(event) {
+    const val = event.target.value.trim();
+    window.openaiCompatibleModel = val;
+    try {
+        localStorage.setItem('openaiCompatibleModel', val);
+        if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val });
+        debugLog(`OpenAI Compatible model set to: ${val || '(empty)'}`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist openaiCompatibleModel: ${e.message}`, 'error');
+    }
+}
+
 function handleForceOfflineChange(event) {
     const val = event.target.checked;
     window.forceOfflineMode = val;

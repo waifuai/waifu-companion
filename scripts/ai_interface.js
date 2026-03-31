@@ -19,11 +19,12 @@ async function getAIResponse(userMessage, targetLanguageCode = 'en-US', options 
 
     const isOpenRouterConfigured = window.OpenRouterAPI && window.OpenRouterAPI.isConfigured();
     const isGroqConfigured = window.useGroq && window.groqApiKey && window.groqModel;
+    const isOpenAICompatibleConfigured = window.OpenAICompatibleAPI && window.OpenAICompatibleAPI.isConfigured();
 
-    debugLog(`LLM Decision (non-streaming): isOpenRouterConfigured=${isOpenRouterConfigured}, isGroqConfigured=${isGroqConfigured}`, 'info');
+    debugLog(`LLM Decision (non-streaming): isOpenRouterConfigured=${isOpenRouterConfigured}, isGroqConfigured=${isGroqConfigured}, isOpenAICompatibleConfigured=${isOpenAICompatibleConfigured}`, 'info');
 
-    if (!isOpenRouterConfigured && !isGroqConfigured) {
-      debugLog('No LLM provider configured. OpenRouter and Groq not configured. Using Local Fallback Engine.', 'warn');
+    if (!isOpenRouterConfigured && !isGroqConfigured && !isOpenAICompatibleConfigured) {
+      debugLog('No LLM provider configured. OpenRouter, Groq, and OpenAI Compatible not configured. Using Local Fallback Engine.', 'warn');
       throw new Error('LLMNotConfigured');
     }
 
@@ -146,6 +147,7 @@ interface Response {
     // Determine which LLM provider to use
     const useGroq = window.useGroq && window.groqApiKey && window.groqModel;
     const useOpenRouter = window.OpenRouterAPI && window.OpenRouterAPI.isConfigured();
+    const useOpenAICompatible = window.OpenAICompatibleAPI && window.OpenAICompatibleAPI.isConfigured();
     
     let completion;
     if (useGroq) {
@@ -162,6 +164,13 @@ interface Response {
         json: true,
       });
       debugLog('Received AI response from OpenRouter', 'info');
+    } else if (useOpenAICompatible) {
+      debugLog('Using OpenAI Compatible API for completion', 'info');
+      completion = await window.OpenAICompatibleAPI.createCompletion({
+        messages: sanitizeMessages(messages),
+        json: true,
+      });
+      debugLog('Received AI response from OpenAI Compatible', 'info');
     } else {
       throw new Error('No LLM provider configured');
     }
@@ -227,6 +236,7 @@ interface Response {
       messagePreview: userMessage.substring(0, 80),
       useGroq: !!useGroq,
       useOpenRouter: !!useOpenRouter,
+      useOpenAICompatible: !!useOpenAICompatible,
       offlineMode: !!window.forceOfflineMode,
       fallbackAvailable: !!window.LocalFallbackEngine
     });
@@ -249,8 +259,9 @@ async function getTranslatedText(text, targetLangCode, sourceLangCode = 'auto') 
 
   const useGroq = window.useGroq && window.groqApiKey && window.groqModel;
   const useOpenRouter = window.OpenRouterAPI && window.OpenRouterAPI.isConfigured();
+  const useOpenAICompatible = window.OpenAICompatibleAPI && window.OpenAICompatibleAPI.isConfigured();
 
-  if (!useGroq && !useOpenRouter) {
+  if (!useGroq && !useOpenRouter && !useOpenAICompatible) {
     debugLog('No LLM provider configured for translation', 'warn');
     return null;
   }
@@ -259,8 +270,8 @@ async function getTranslatedText(text, targetLangCode, sourceLangCode = 'auto') 
   const sourceLanguage = sourceLangCode === 'auto' ? 'the automatically detected language' : (languages.find(l => l.code === sourceLangCode)?.englishName || sourceLangCode);
 
   try {
-    const provider = useGroq ? 'groq' : 'openrouter';
-    const model = useGroq ? window.groqModel : window.OpenRouterAPI.getModel();
+    const provider = useGroq ? 'groq' : (useOpenAICompatible ? 'openai_compatible' : 'openrouter');
+    const model = useGroq ? window.groqModel : (useOpenAICompatible ? window.OpenAICompatibleAPI.getModel() : window.OpenRouterAPI.getModel());
     const translateStartTime = Date.now();
     if (typeof trackEvent === 'function') {
       trackEvent('llm_translate_started', { provider: provider, model: model, target_language: targetLangCode });
@@ -269,6 +280,13 @@ async function getTranslatedText(text, targetLangCode, sourceLangCode = 'auto') 
     let completion;
     if (useGroq) {
       completion = await window.GroqAPI.createCompletion({
+        messages: [
+          { role: "system", content: `You are a translation engine. Translate the following text from ${sourceLanguage} to ${targetLanguage}. Respond ONLY with the translated text. Do not include explanations, apologies, or any conversational fluff. If the input text is already in ${targetLanguage}, return it as is.` },
+          { role: "user", content: text }
+        ]
+      });
+    } else if (useOpenAICompatible) {
+      completion = await window.OpenAICompatibleAPI.createCompletion({
         messages: [
           { role: "system", content: `You are a translation engine. Translate the following text from ${sourceLanguage} to ${targetLanguage}. Respond ONLY with the translated text. Do not include explanations, apologies, or any conversational fluff. If the input text is already in ${targetLanguage}, return it as is.` },
           { role: "user", content: text }
@@ -293,8 +311,8 @@ async function getTranslatedText(text, targetLangCode, sourceLangCode = 'auto') 
       trackEvent('llm_translate_completed', { success: false, error: error.message });
     }
     debugError(`Translation to ${targetLangCode} failed`, error, {
-      provider: useGroq ? 'groq' : 'openrouter',
-      model: useGroq ? window.groqModel : (window.OpenRouterAPI?.getModel() || 'unknown'),
+      provider: useGroq ? 'groq' : (useOpenAICompatible ? 'openai_compatible' : 'openrouter'),
+      model: useGroq ? window.groqModel : (useOpenAICompatible ? window.OpenAICompatibleAPI?.getModel() : (window.OpenRouterAPI?.getModel() || 'unknown')),
       targetLang: targetLangCode,
       sourceLang: sourceLangCode,
       textLen: text?.length
@@ -308,15 +326,16 @@ async function summarizeConversation(oldMessages, existingSummary) {
 
   const useGroq = window.useGroq && window.groqApiKey && window.groqModel;
   const useOpenRouter = window.OpenRouterAPI && window.OpenRouterAPI.isConfigured();
+  const useOpenAICompatible = window.OpenAICompatibleAPI && window.OpenAICompatibleAPI.isConfigured();
 
-  if (!useGroq && !useOpenRouter) {
+  if (!useGroq && !useOpenRouter && !useOpenAICompatible) {
     debugLog('No LLM provider configured for summarization', 'warn');
     return existingSummary;
   }
 
   try {
-    const provider = useGroq ? 'groq' : 'openrouter';
-    const model = useGroq ? window.groqModel : window.OpenRouterAPI.getModel();
+    const provider = useGroq ? 'groq' : (useOpenAICompatible ? 'openai_compatible' : 'openrouter');
+    const model = useGroq ? window.groqModel : (useOpenAICompatible ? window.OpenAICompatibleAPI.getModel() : window.OpenRouterAPI.getModel());
     const summarizeStartTime = Date.now();
     if (typeof trackEvent === 'function') {
       trackEvent('llm_summarize_started', { provider: provider, model: model, message_count: oldMessages.length });
@@ -347,6 +366,13 @@ ${lengthInstruction} that combines the previous summary and these new messages. 
           { role: "user", content: prompt }
         ]
       });
+    } else if (useOpenAICompatible) {
+      completion = await window.OpenAICompatibleAPI.createCompletion({
+        messages: [
+          { role: "system", content: "You summarize conversations concisely." },
+          { role: "user", content: prompt }
+        ]
+      });
     } else {
       completion = await window.OpenRouterAPI.createCompletion({
         messages: [
@@ -367,8 +393,8 @@ ${lengthInstruction} that combines the previous summary and these new messages. 
       trackEvent('llm_summarize_completed', { success: false, error: error.message });
     }
     debugError('Summarization failed', error, {
-      provider: useGroq ? 'groq' : 'openrouter',
-      model: useGroq ? window.groqModel : (window.OpenRouterAPI?.getModel() || 'unknown'),
+      provider: useGroq ? 'groq' : (useOpenAICompatible ? 'openai_compatible' : 'openrouter'),
+      model: useGroq ? window.groqModel : (useOpenAICompatible ? window.OpenAICompatibleAPI?.getModel() : (window.OpenRouterAPI?.getModel() || 'unknown')),
       messageCount: oldMessages.length,
       hasExistingSummary: !!existingSummary
     });
@@ -382,8 +408,9 @@ async function getTransliteration(text, langCode) {
 
   const useGroq = window.useGroq && window.groqApiKey && window.groqModel;
   const useOpenRouter = window.OpenRouterAPI && window.OpenRouterAPI.isConfigured();
+  const useOpenAICompatible = window.OpenAICompatibleAPI && window.OpenAICompatibleAPI.isConfigured();
 
-  if (!useGroq && !useOpenRouter) {
+  if (!useGroq && !useOpenRouter && !useOpenAICompatible) {
     debugLog('No LLM provider configured for transliteration', 'warn');
     return null;
   }
@@ -399,8 +426,8 @@ async function getTransliteration(text, langCode) {
   }
 
   try {
-    const provider = useGroq ? 'groq' : 'openrouter';
-    const model = useGroq ? window.groqModel : window.OpenRouterAPI.getModel();
+    const provider = useGroq ? 'groq' : (useOpenAICompatible ? 'openai_compatible' : 'openrouter');
+    const model = useGroq ? window.groqModel : (useOpenAICompatible ? window.OpenAICompatibleAPI.getModel() : window.OpenRouterAPI.getModel());
     const translitStartTime = Date.now();
     if (typeof trackEvent === 'function') {
       trackEvent('llm_transliteration_started', { provider: provider, model: model, language: langCode });
@@ -409,6 +436,13 @@ async function getTransliteration(text, langCode) {
     let completion;
     if (useGroq) {
       completion = await window.GroqAPI.createCompletion({
+        messages: [
+          { role: "system", content: instruction },
+          { role: "user", content: text }
+        ]
+      });
+    } else if (useOpenAICompatible) {
+      completion = await window.OpenAICompatibleAPI.createCompletion({
         messages: [
           { role: "system", content: instruction },
           { role: "user", content: text }
@@ -435,8 +469,8 @@ async function getTransliteration(text, langCode) {
       trackEvent('llm_transliteration_completed', { success: false, error: error.message });
     }
     debugError(`Transliteration for ${langCode} failed`, error, {
-      provider: useGroq ? 'groq' : 'openrouter',
-      model: useGroq ? window.groqModel : (window.OpenRouterAPI?.getModel() || 'unknown'),
+      provider: useGroq ? 'groq' : (useOpenAICompatible ? 'openai_compatible' : 'openrouter'),
+      model: useGroq ? window.groqModel : (useOpenAICompatible ? window.OpenAICompatibleAPI?.getModel() : (window.OpenRouterAPI?.getModel() || 'unknown')),
       langCode: langCode,
       textLen: text?.length
     });
@@ -452,8 +486,9 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
 
   const useGroq = window.useGroq && window.groqApiKey && window.groqModel;
   const useOpenRouter = window.OpenRouterAPI && window.OpenRouterAPI.isConfigured();
-  let streamProvider = useGroq ? 'groq' : (useOpenRouter ? 'openrouter' : null);
-  let streamModel = useGroq ? window.groqModel : (useOpenRouter ? window.OpenRouterAPI?.getModel() : null);
+  const useOpenAICompatible = window.OpenAICompatibleAPI && window.OpenAICompatibleAPI.isConfigured();
+  let streamProvider = useGroq ? 'groq' : (useOpenAICompatible ? 'openai_compatible' : (useOpenRouter ? 'openrouter' : null));
+  let streamModel = useGroq ? window.groqModel : (useOpenAICompatible ? window.OpenAICompatibleAPI?.getModel() : (useOpenRouter ? window.OpenRouterAPI?.getModel() : null));
 
   try {
     if (window.forceOfflineMode) {
@@ -461,7 +496,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
       throw new Error('ForceOfflineModeEnabled');
     }
 
-    if (!useGroq && !useOpenRouter) {
+    if (!useGroq && !useOpenRouter && !useOpenAICompatible) {
       debugLog('No LLM provider configured. Using Local Fallback Engine.', 'warn');
       throw new Error('LLMNotConfigured');
     }
@@ -577,8 +612,8 @@ interface Response {
     const sanitizeMessages = (msgs) => msgs.map(m => ({ role: m.role, content: m.content }));
 
     const streamRequestStartTime = Date.now();
-    streamProvider = useGroq ? 'groq' : 'openrouter';
-    streamModel = useGroq ? window.groqModel : window.OpenRouterAPI?.getModel();
+    streamProvider = useGroq ? 'groq' : (useOpenAICompatible ? 'openai_compatible' : 'openrouter');
+    streamModel = useGroq ? window.groqModel : (useOpenAICompatible ? window.OpenAICompatibleAPI?.getModel() : window.OpenRouterAPI?.getModel());
     if (typeof trackEvent === 'function') {
       trackEvent('llm_request_started', { provider: streamProvider, model: streamModel, is_streaming: true });
     }
@@ -588,6 +623,14 @@ interface Response {
     if (useGroq) {
       debugLog('Starting streaming request to Groq', 'info');
       const result = await window.GroqAPI.createCompletionStream({
+        messages: sanitizeMessages(messages),
+        json: true
+      });
+      stream = result.stream;
+      response = result.response;
+    } else if (useOpenAICompatible) {
+      debugLog('Starting streaming request to OpenAI Compatible', 'info');
+      const result = await window.OpenAICompatibleAPI.createCompletionStream({
         messages: sanitizeMessages(messages),
         json: true
       });
