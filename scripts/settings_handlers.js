@@ -988,40 +988,6 @@ function renderBackgroundLibrary() {
   }));
 }
 
-async function handleGenerateBackground() {
-  const input = document.getElementById('bgPromptInput'); 
-  if (!input) return;
-  const prompt = (input.value||'').trim(); 
-  if (!prompt) { 
-    debugLog('BG: Empty prompt.','warn'); 
-    return; 
-  }
-  debugLog('BG: Image generation requires a separate image generation service. Please use a custom URL or select from library.','warn');
-  alert('Image generation is not available. Please use a custom URL or select from the library.');
-}
-
-async function handleGenerateBackgroundFromContext() {
-  try {
-    const history = (window.conversationContext||[]).slice(-10).map(m=>`${m.role}: ${m.content}`).join('\n') || 'A calm friendly chat.';
-    
-    if (!window.OpenRouterAPI || !window.OpenRouterAPI.isConfigured()) {
-      debugLog('BG: OpenRouter not configured for prompt generation', 'warn');
-      return;
-    }
-    
-    const completion = await window.OpenRouterAPI.createCompletion({
-      messages: [
-        {role:"system",content:'Respond with JSON only, schema: {"prompt": string}. Create a concise scenic environment prompt that matches the conversation\'s mood and topic. Avoid people; describe environment, lighting, mood, style.'},
-        {role:"user",content:history}
-      ],
-      json: true
-    });
-    const prompt = JSON.parse(completion.content).prompt || 'atmospheric environment, soft light, no people';
-    debugLog(`BG: Generated prompt from context: "${prompt}"`, 'info');
-    alert(`Generated prompt: ${prompt}\n\nImage generation requires a separate service. Please use a custom URL or select from the library.`);
-  } catch(e){ debugError('BG context generation failed', e); }
-}
-
 function handleApplyBackgroundFromUrl() {
   const input = document.getElementById('bgUrlInput');
   const url = (input?.value || '').trim();

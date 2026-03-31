@@ -77,10 +77,6 @@ window.UI_STRINGS = {
     bgOpacityLabel: '🖼️ Background Image Opacity',
     
     backgroundSettingsTitle: '🖼️ Background Image',
-    bgPromptLabel: '✨ AI Background Prompt',
-    bgPromptPlaceholder: 'e.g., tranquil starry night sky, minimal, soft light',
-    generateBgBtn: 'Generate Background',
-    generateBgFromContextBtn: 'Generate from Conversation',
     bgUrlLabel: '🌐 Custom Background URL',
     bgUrlPlaceholder: 'https://example.com/image.jpg',
     applyBgUrlBtn: 'Set Background',

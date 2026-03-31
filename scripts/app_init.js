@@ -340,13 +340,6 @@ window.addEventListener('load', async () => { // Make async to await model load
       addMessage(`Sorry, I couldn't load the initial character model (${error.message}).`, false);
   }
 
-  // Background generation events
-  const bgBtn = document.getElementById('generateBgBtn');
-  const bgInput = document.getElementById('bgPromptInput');
-  if (bgBtn) bgBtn.addEventListener('click', handleGenerateBackground);
-  if (bgInput) bgInput.addEventListener('keydown', (e)=>{ if (e.key==='Enter') handleGenerateBackground(); });
-  const bgCtxBtn = document.getElementById('generateBgFromContextBtn');
-  if (bgCtxBtn) bgCtxBtn.addEventListener('click', handleGenerateBackgroundFromContext);
   const bgUrlBtn = document.getElementById('applyBgUrlBtn');
   const bgUrlInput = document.getElementById('bgUrlInput');
   if (bgUrlBtn) bgUrlBtn.addEventListener('click', handleApplyBackgroundFromUrl);
