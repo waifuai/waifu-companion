@@ -471,10 +471,13 @@ function initChatController() {
   } else {
     debugLog('Chat_Controller: messageInput not found for event listener attachment.', 'error');
   }
-  // Add listener for the send button if not using inline onclick
-  // For this refactor, we'll keep the inline onclick="sendMessage()" for the button
-  // but the Enter key listener is good to have here.
 
-  // Add listener for reset chat button if not using inline onclick
-  // For this refactor, we'll keep the inline onclick="clearChatHistory()" for the button
+  const sendButton = document.getElementById('sendMessageBtn');
+  if (sendButton) {
+    sendButton.addEventListener('click', () => {
+      sendMessage();
+    });
+  }
 }
+
+window.sendMessage = sendMessage;

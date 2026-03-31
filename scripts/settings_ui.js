@@ -70,6 +70,46 @@ function closeSubmenu() {
 window.openSubmenu = openSubmenu;
 window.closeSubmenu = closeSubmenu;
 
+function bindSettingsPanelEvents() {
+  if (!settingsPanel || settingsPanel.dataset.eventsBound === 'true') return;
+
+  settingsPanel.addEventListener('click', (event) => {
+    const actionEl = event.target.closest('[data-action]');
+    if (!actionEl || !settingsPanel.contains(actionEl)) return;
+
+    const action = actionEl.dataset.action;
+    switch (action) {
+      case 'open-submenu':
+        if (actionEl.dataset.submenu) {
+          openSubmenu(actionEl.dataset.submenu);
+        }
+        break;
+      case 'close-submenu':
+        closeSubmenu();
+        break;
+      case 'clear-debug-log':
+        if (typeof clearDebugLog === 'function') clearDebugLog();
+        break;
+      default:
+        break;
+    }
+  });
+
+  settingsPanel.addEventListener('keydown', (event) => {
+    const actionEl = event.target.closest('[data-action="open-submenu"]');
+    if (!actionEl || !settingsPanel.contains(actionEl)) return;
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (actionEl.dataset.submenu) {
+        openSubmenu(actionEl.dataset.submenu);
+      }
+    }
+  });
+
+  settingsPanel.dataset.eventsBound = 'true';
+}
+
 function filterSettings(query) {
   const mainMenu = document.getElementById('settingsMainMenu');
   const searchResults = document.getElementById('settingsSearchResults');
@@ -147,6 +187,8 @@ function filterSettings(query) {
 
 // Initialize search listener
 document.addEventListener('DOMContentLoaded', () => {
+  bindSettingsPanelEvents();
+
   // Pre-set category names for search flattening
   document.querySelectorAll('.settings-submenu').forEach(submenu => {
     const title = submenu.querySelector('h3')?.textContent || 'General';

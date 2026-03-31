@@ -101,7 +101,7 @@ function copyDebugLog() {
   if (!text) return;
   navigator.clipboard.writeText(text).then(() => {
     // Brief visual feedback on the copy button
-    const btn = document.querySelector('.debug-header-btn[onclick="copyDebugLog()"]');
+    const btn = document.querySelector('[data-action="copy-debug-log"]');
     if (btn) {
       const orig = btn.textContent;
       btn.textContent = '✅';
@@ -118,3 +118,33 @@ function clearDebugLog() {
   debugLogElement.innerHTML = '';
   if (typeof trackEvent === 'function') trackEvent('debug_log_cleared');
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const debugPanel = document.getElementById('debugPanel');
+  if (!debugPanel || debugPanel.dataset.eventsBound === 'true') return;
+
+  debugPanel.addEventListener('click', (event) => {
+    const actionEl = event.target.closest('[data-action]');
+    if (!actionEl || !debugPanel.contains(actionEl)) return;
+
+    switch (actionEl.dataset.action) {
+      case 'clear-debug-log':
+        clearDebugLog();
+        break;
+      case 'copy-debug-log':
+        copyDebugLog();
+        break;
+      case 'toggle-debugger':
+        toggleDebugger();
+        break;
+      default:
+        break;
+    }
+  });
+
+  debugPanel.dataset.eventsBound = 'true';
+});
+
+window.toggleDebugger = toggleDebugger;
+window.copyDebugLog = copyDebugLog;
+window.clearDebugLog = clearDebugLog;

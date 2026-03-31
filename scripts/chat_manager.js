@@ -252,7 +252,7 @@ function renderChatList() {
     const timeStr = _relativeTime(chat.updatedAt);
     return `
       <div class="chat-list-item ${isActive ? 'active' : ''}" data-chat-id="${chat.id}">
-        <div class="chat-list-item-content" onclick="handleSwitchChat('${chat.id}')">
+        <div class="chat-list-item-content" data-action="switch-chat" data-chat-id="${chat.id}" role="button" tabindex="0">
           <div class="chat-list-item-name">${_escapeHtml(chat.name)}</div>
           <div class="chat-list-item-meta">
             <span class="chat-list-item-count">${chat.messageCount} msgs</span>
@@ -261,8 +261,8 @@ function renderChatList() {
           ${chat.preview ? `<div class="chat-list-item-preview">${_escapeHtml(chat.preview)}</div>` : ''}
         </div>
         <div class="chat-list-item-actions">
-          <button class="chat-action-btn" onclick="event.stopPropagation(); handleRenameChat('${chat.id}')" title="Rename">✏️</button>
-          <button class="chat-action-btn chat-action-delete" onclick="event.stopPropagation(); handleDeleteChat('${chat.id}')" title="Delete">🗑️</button>
+          <button class="chat-action-btn" type="button" data-action="rename-chat" data-chat-id="${chat.id}" title="Rename">✏️</button>
+          <button class="chat-action-btn chat-action-delete" type="button" data-action="delete-chat" data-chat-id="${chat.id}" title="Delete">🗑️</button>
         </div>
       </div>
     `;
@@ -484,6 +484,61 @@ function exportAllChats() {
 
   debugLog(`ChatManager: Exported ${index.length} chats as JSON`, 'info');
 }
+
+function bindChatUIEvents() {
+  if (document.body.dataset.chatUiEventsBound === 'true') return;
+
+  document.addEventListener('click', (event) => {
+    const actionEl = event.target.closest('[data-action]');
+    if (!actionEl) return;
+
+    const action = actionEl.dataset.action;
+    const chatId = actionEl.dataset.chatId;
+
+    switch (action) {
+      case 'switch-chat':
+        if (chatId) handleSwitchChat(chatId);
+        break;
+      case 'rename-chat':
+        event.stopPropagation();
+        if (chatId) handleRenameChat(chatId);
+        break;
+      case 'delete-chat':
+        event.stopPropagation();
+        if (chatId) handleDeleteChat(chatId);
+        break;
+      case 'toggle-chat-sidebar':
+        toggleChatSidebar();
+        break;
+      case 'new-chat':
+        handleNewChat();
+        break;
+      case 'regenerate-title':
+        handleRegenerateTitle();
+        break;
+      case 'export-all-chats':
+        exportAllChats();
+        break;
+      default:
+        break;
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    const actionEl = event.target.closest('[data-action="switch-chat"]');
+    if (!actionEl) return;
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      const chatId = actionEl.dataset.chatId;
+      if (chatId) handleSwitchChat(chatId);
+    }
+  });
+
+  document.body.dataset.chatUiEventsBound = 'true';
+}
+
+bindChatUIEvents();
 
 // Expose to global scope
 window.ChatManager = {

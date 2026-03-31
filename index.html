@@ -115,63 +115,63 @@
       <div id="settingsSearchResults" class="settings-search-results" style="display: none;"></div>
       <div id="settingsMainMenu" class="settings-main-menu">
         <div class="settings-category-label">AI & Language</div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-language')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-language" role="button" tabindex="0">
           <span class="icon">🌐</span> <span data-ui-key="languageSettingsTitle">Language Settings</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-openrouter')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-openrouter" role="button" tabindex="0">
           <span class="icon">🤖</span> <span data-ui-key="llmSettingsTitle">LLM Provider</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-persona')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-persona" role="button" tabindex="0">
           <span class="icon">🧠</span> <span data-ui-key="personaSettingsTitle">Persona System Prompt</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-memory')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-memory" role="button" tabindex="0">
           <span class="icon">🧵</span> <span data-ui-key="memorySettingsTitle">Memory Settings</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-context')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-context" role="button" tabindex="0">
           <span class="icon">🧠</span> <span data-ui-key="contextSettingsTitle">Context Settings</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-automation')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-automation" role="button" tabindex="0">
           <span class="icon">🤖</span> <span data-ui-key="automationSettingsTitle">Automation Settings</span> <span class="chevron">›</span>
         </div>
 
         <div class="settings-category-label">Models & Visuals</div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-model')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-model" role="button" tabindex="0">
           <span class="icon">🧩</span> <span data-ui-key="modelSettingsTitle">Model Settings</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-display')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-display" role="button" tabindex="0">
           <span class="icon">🖥️</span> <span data-ui-key="displaySettingsTitle">Display Settings</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-background')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-background" role="button" tabindex="0">
           <span class="icon">🖼️</span> <span data-ui-key="backgroundSettingsTitle">Background Image</span> <span class="chevron">›</span>
         </div>
 
         <div class="settings-category-label">Audio</div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-voice')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-voice" role="button" tabindex="0">
           <span class="icon">🔊</span> <span data-ui-key="voiceSettingsTitle">Voice Settings</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-audio')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-audio" role="button" tabindex="0">
           <span class="icon">🎧</span> <span data-ui-key="audioSettingsTitle">Audio Settings</span> <span class="chevron">›</span>
         </div>
 
         <div class="settings-category-label">System</div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-preferences')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-preferences" role="button" tabindex="0">
           <span class="icon">⚙️</span> <span data-ui-key="preferencesTitle">Preferences</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-debug')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-debug" role="button" tabindex="0">
           <span class="icon">🐞</span> <span data-ui-key="debugSettingsTitle">Debug Settings</span> <span class="chevron">›</span>
         </div>
 
-        <div class="settings-menu-item" onclick="openSubmenu('group-links')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-links" role="button" tabindex="0">
           <span class="icon">🔗</span> <span>Links</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" onclick="openSubmenu('group-help')">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-help" role="button" tabindex="0">
           <span class="icon">❓</span> <span data-ui-key="helpTutorialTitle">Help & Tutorial</span> <span class="chevron">›</span>
         </div>
       </div>
 
       <div id="group-language" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="languageSettingsTitle">🌐 Language Settings</h3>
         </div>
         <div class="settings-item">
@@ -195,7 +195,7 @@
 
       <div id="group-openrouter" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="llmSettingsTitle">🤖 LLM Provider</h3>
         </div>
         <div class="provider-section">
@@ -326,7 +326,7 @@
 
       <div id="group-model" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="modelSettingsTitle">🧩 Model Settings</h3>
         </div>
         <div class="settings-item">
@@ -363,7 +363,7 @@
 
       <div id="group-persona" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="personaSettingsTitle">🧠 Persona System Prompt</h3>
         </div>
         <div class="settings-item">
@@ -385,7 +385,7 @@
 
       <div id="group-memory" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="memorySettingsTitle">🧠 Memory Settings</h3>
         </div>
         <div class="settings-item">
@@ -425,7 +425,7 @@
 
       <div id="group-context" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="contextSettingsTitle">🧠 Context Settings</h3>
         </div>
         <div class="settings-item">
@@ -468,7 +468,7 @@
 
       <div id="group-voice" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="voiceSettingsTitle">🔊 Voice Settings</h3>
         </div>
         <div class="settings-item">
@@ -535,7 +535,7 @@
 
       <div id="group-audio" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="audioSettingsTitle">🎧 Audio Settings</h3>
         </div>
         <div class="settings-item">
@@ -561,7 +561,7 @@
 
       <div id="group-display" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="displaySettingsTitle">🖥️ Display Settings</h3>
         </div>
         <div class="settings-item">
@@ -594,7 +594,7 @@
 
       <div id="group-background" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="backgroundSettingsTitle">🖼️ Background Image</h3>
         </div>
         <div class="settings-item">
@@ -637,7 +637,7 @@
 
       <div id="group-automation" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="automationSettingsTitle">🤖 Automation Settings</h3>
         </div>
         <div class="settings-item">
@@ -682,7 +682,7 @@
 
       <div id="group-preferences" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="preferencesTitle">⚙️ Preferences</h3>
         </div>
         <div class="settings-item">
@@ -705,7 +705,7 @@
 
       <div id="group-debug" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="debugSettingsTitle">🐞 Debug Settings</h3>
         </div>
         <div class="settings-item">
@@ -719,7 +719,7 @@
           </label>
         </div>
         <div class="settings-item">
-          <button onclick="clearDebugLog()" data-ui-key="clearDebugLogBtn">🧹 Clear Debug Log</button>
+          <button type="button" data-action="clear-debug-log" data-ui-key="clearDebugLogBtn">🧹 Clear Debug Log</button>
         </div>
         <div class="settings-item">
           <label data-ui-key="showVerboseLogsLabel">
@@ -767,7 +767,7 @@
 
       <div id="group-links" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3>🔗 Links</h3>
         </div>
         <div class="settings-item">
@@ -850,7 +850,7 @@
 
       <div id="group-help" class="settings-submenu">
         <div class="submenu-header">
-          <button class="back-button" onclick="closeSubmenu()">‹</button>
+          <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="helpTutorialTitle">❓ Help & Tutorial</h3>
         </div>
         <div id="settingsTutorialContent" class="settings-tutorial-content">
@@ -890,8 +890,8 @@
       <div class="chat-sidebar-header">
         <span>Chat History</span>
         <div class="chat-sidebar-header-actions">
-          <button class="chat-sidebar-action-btn" onclick="exportAllChats()" title="Export All Chats">⬇</button>
-          <button class="chat-sidebar-close" onclick="toggleChatSidebar()">✕</button>
+          <button class="chat-sidebar-action-btn" type="button" data-action="export-all-chats" title="Export All Chats">⬇</button>
+          <button class="chat-sidebar-close" type="button" data-action="toggle-chat-sidebar">✕</button>
         </div>
       </div>
       <div id="chatList" class="chat-list"></div>
@@ -899,12 +899,12 @@
 
     <div class="chat-container">
       <div class="chat-header">
-        <button class="chat-sidebar-toggle" onclick="toggleChatSidebar()" title="Chat History">☰</button>
+        <button class="chat-sidebar-toggle" type="button" data-action="toggle-chat-sidebar" title="Chat History">☰</button>
         <span id="chatTitle">Chat</span>
         <span id="chat-status-indicator">OFFLINE</span>
         <button id="goOnlineBtn" class="go-online-btn" type="button">Go Online</button>
-        <button class="regenerate-title-btn" onclick="handleRegenerateTitle()" title="Regenerate Title">🔄</button>
-        <button class="new-chat-btn" onclick="handleNewChat()" title="New Chat">＋</button>
+        <button class="regenerate-title-btn" type="button" data-action="regenerate-title" title="Regenerate Title">🔄</button>
+        <button class="new-chat-btn" type="button" data-action="new-chat" title="New Chat">＋</button>
       </div>
       <div class="chat-content">
         <div class="chat-history" id="chatHistory"></div>
@@ -914,7 +914,7 @@
             <span id="queueLengthText">Queued: 0</span>
             <div id="queuedMessagesList" class="queued-messages-list"></div>
           </div>
-          <button id="clearQueueChatBtn" class="clear-queue-chat-btn" onclick="handleClearQueue()">Clear</button>
+          <button id="clearQueueChatBtn" class="clear-queue-chat-btn" type="button" data-action="clear-queue">Clear</button>
         </div>
         <div class="chat-input">
           <input type="text" id="messageInput" placeholder="Type your message..."/>
@@ -923,7 +923,7 @@
               <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v4a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 14 0h-2zM11 19h2v3h-2z"/>
             </svg>
           </button>
-          <button onclick="sendMessage()">Send</button>
+          <button id="sendMessageBtn" type="button" data-action="send-message">Send</button>
         </div>
       </div>
     </div>
@@ -932,9 +932,9 @@
       <div class="debug-header" id="debugHeader">
         <span class="debug-header-title">🧰 Debug Panel</span>
         <div class="debug-header-buttons">
-          <button class="debug-header-btn" onclick="clearDebugLog()" title="Clear debug log">🧹</button>
-          <button class="debug-header-btn" onclick="copyDebugLog()" title="Copy debug log to clipboard">📋</button>
-          <button class="debug-header-btn debug-close-btn" onclick="toggleDebugger()" title="Close debug panel">✕</button>
+          <button class="debug-header-btn" type="button" data-action="clear-debug-log" title="Clear debug log">🧹</button>
+          <button class="debug-header-btn" type="button" data-action="copy-debug-log" title="Copy debug log to clipboard">📋</button>
+          <button class="debug-header-btn debug-close-btn" type="button" data-action="toggle-debugger" title="Close debug panel">✕</button>
         </div>
       </div>
       <div class="debug-content">

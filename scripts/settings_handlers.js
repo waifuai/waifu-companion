@@ -1516,3 +1516,10 @@ window.preloadAmbientTTS = preloadAmbientTTS;
 window.handleClearQueue = handleClearQueue;
 window.updateQueueUI = updateQueueUI;
 window.resetAmbientTimer = resetAmbientTimer;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const clearQueueButton = document.getElementById('clearQueueChatBtn');
+  if (clearQueueButton) {
+    clearQueueButton.addEventListener('click', handleClearQueue);
+  }
+});
