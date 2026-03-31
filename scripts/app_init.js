@@ -784,6 +784,7 @@ window.addEventListener('load', async () => { // Make async to await model load
   const openaiCompatibleBaseUrlInput = document.getElementById('openaiCompatibleBaseUrlInput');
   const openaiCompatibleApiKeyInput = document.getElementById('openaiCompatibleApiKeyInput');
   const openaiCompatibleModelInput = document.getElementById('openaiCompatibleModelInput');
+  const openaiCompatibleCorsProxyInput = document.getElementById('openaiCompatibleCorsProxyInput');
 
   if (useOpenAICompatibleCheckbox) {
     try {
@@ -833,6 +834,18 @@ window.addEventListener('load', async () => { // Make async to await model load
     }
     openaiCompatibleModelInput.addEventListener('change', handleOpenAICompatibleModelChange);
     openaiCompatibleModelInput.addEventListener('blur', handleOpenAICompatibleModelChange);
+  }
+
+  if (openaiCompatibleCorsProxyInput) {
+    try {
+      window.openaiCompatibleCorsProxy = localStorage.getItem('openaiCompatibleCorsProxy') || '';
+      openaiCompatibleCorsProxyInput.value = window.openaiCompatibleCorsProxy;
+    } catch(e) {
+      debugLog(`Error reading openaiCompatibleCorsProxy: ${e.message}`, 'warn');
+      window.openaiCompatibleCorsProxy = '';
+    }
+    openaiCompatibleCorsProxyInput.addEventListener('change', handleOpenAICompatibleCorsProxyChange);
+    openaiCompatibleCorsProxyInput.addEventListener('blur', handleOpenAICompatibleCorsProxyChange);
   }
 
   if (forceOfflineCheckbox) {

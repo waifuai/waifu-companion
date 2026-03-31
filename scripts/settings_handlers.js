@@ -438,6 +438,17 @@ function handleOpenAICompatibleModelChange(event) {
     }
 }
 
+function handleOpenAICompatibleCorsProxyChange(event) {
+    const value = event.target.value.trim();
+    window.openaiCompatibleCorsProxy = value;
+    try {
+        localStorage.setItem('openaiCompatibleCorsProxy', value);
+        debugLog(`OpenAI Compatible CORS proxy updated: ${value || '(empty)'}`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist openaiCompatibleCorsProxy: ${e.message}`, 'error');
+    }
+}
+
 function handleForceOfflineChange(event) {
     const val = event.target.checked;
     window.forceOfflineMode = val;

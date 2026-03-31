@@ -20,9 +20,40 @@ const OpenAICompatibleAPI = {
     return window.openaiCompatibleModel || localStorage.getItem('openaiCompatibleModel') || this.DEFAULT_MODEL;
   },
 
+  getCorsProxy() {
+    return window.openaiCompatibleCorsProxy || localStorage.getItem('openaiCompatibleCorsProxy') || '';
+  },
+
   getApiUrl() {
     const base = this.getBaseUrl().replace(/\/+$/, '');
-    return `${base}/chat/completions`;
+    const url = `${base}/chat/completions`;
+    const proxy = this.getCorsProxy();
+    if (proxy) {
+      return `${proxy}${url}`;
+    }
+    return url;
+  },
+
+  getApiKey() {
+    return window.openaiCompatibleApiKey || localStorage.getItem('openaiCompatibleApiKey') || '';
+  },
+
+  getModel() {
+    return window.openaiCompatibleModel || localStorage.getItem('openaiCompatibleModel') || this.DEFAULT_MODEL;
+  },
+
+  getCorsProxy() {
+    return window.openaiCompatibleCorsProxy || localStorage.getItem('openaiCompatibleCorsProxy') || '';
+  },
+
+  getApiUrl() {
+    const base = this.getBaseUrl().replace(/\/+$/, '');
+    const url = `${base}/chat/completions`;
+    const proxy = this.getCorsProxy();
+    if (proxy) {
+      return `${proxy}${url}`;
+    }
+    return url;
   },
 
   isConfigured() {
