@@ -61,7 +61,12 @@
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@5.3.3/dist/pixi.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.6/dayjs.min.js"></script>
-    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/tokens.css">
+    <link rel="stylesheet" href="styles/chat.css">
+    <link rel="stylesheet" href="styles/settings.css">
+    <link rel="stylesheet" href="styles/overlays.css">
+    <link rel="stylesheet" href="styles/debug.css">
+    <link rel="stylesheet" href="styles/responsive.css">
   </head>
   <body>
     <noscript>
@@ -115,27 +120,27 @@
       <div id="settingsSearchResults" class="settings-search-results" style="display: none;"></div>
       <div id="settingsMainMenu" class="settings-main-menu">
         <div class="settings-category-label">AI & Language</div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-language" role="button" tabindex="0">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-language" role="button" tabindex="0" aria-label="Language Settings">
           <span class="icon">🌐</span> <span data-ui-key="languageSettingsTitle">Language Settings</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-openrouter" role="button" tabindex="0">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-openrouter" role="button" tabindex="0" aria-label="LLM Provider Settings">
           <span class="icon">🤖</span> <span data-ui-key="llmSettingsTitle">LLM Provider</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-persona" role="button" tabindex="0">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-persona" role="button" tabindex="0" aria-label="Persona System Prompt Settings">
           <span class="icon">🧠</span> <span data-ui-key="personaSettingsTitle">Persona System Prompt</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-memory" role="button" tabindex="0">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-memory" role="button" tabindex="0" aria-label="Memory Settings">
           <span class="icon">🧵</span> <span data-ui-key="memorySettingsTitle">Memory Settings</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-context" role="button" tabindex="0">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-context" role="button" tabindex="0" aria-label="Context Settings">
           <span class="icon">🧠</span> <span data-ui-key="contextSettingsTitle">Context Settings</span> <span class="chevron">›</span>
         </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-automation" role="button" tabindex="0">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-automation" role="button" tabindex="0" aria-label="Automation Settings">
           <span class="icon">🤖</span> <span data-ui-key="automationSettingsTitle">Automation Settings</span> <span class="chevron">›</span>
         </div>
 
         <div class="settings-category-label">Models & Visuals</div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-model" role="button" tabindex="0">
+        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-model" role="button" tabindex="0" aria-label="Model Settings">
           <span class="icon">🧩</span> <span data-ui-key="modelSettingsTitle">Model Settings</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-display" role="button" tabindex="0">

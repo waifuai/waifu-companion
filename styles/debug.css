@@ -1,0 +1,108 @@
+/* Debug panel */
+.debug-panel {
+  position: fixed;
+  top: 80px;
+  left: 24px;
+  width: 380px;
+  height: 380px;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(12px);
+  color: #4ade80;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  border-radius: 16px;
+  z-index: 9999;
+  display: none;
+  resize: both;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  overflow: hidden;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.debug-panel.visible {
+  display: flex;
+}
+
+.debug-header {
+  height: 30px;
+  flex-shrink: 0;
+  background: rgba(40, 40, 40, 0.9);
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 0 12px;
+  font-size: 11px;
+  color: #00ff00;
+  border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+  user-select: none;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.debug-header:active {
+  cursor: grabbing;
+}
+
+.debug-header-title {
+  flex: 1;
+}
+
+.debug-header-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.debug-header-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #ccc;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.debug-header-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.debug-close-btn:hover {
+  background: rgba(255, 80, 80, 0.5);
+  color: #fff;
+}
+
+.debug-content {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.debug-log {
+  margin: 5px 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.debug-log.error {
+  color: #ff4444;
+}
+
+.debug-log.warn {
+  color: #ffbb33;
+}
+
+.debug-log.info {
+  color: #33b5e5;
+}

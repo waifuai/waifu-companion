@@ -1,0 +1,168 @@
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+  .chat-container {
+    width: calc(100% - 20px) !important;
+    left: 10px !important;
+    bottom: 10px !important;
+    transform: none !important;
+    max-width: none;
+    min-width: 0;
+    height: 40vh;
+    padding: 10px;
+    padding-top: 25px;
+    box-sizing: border-box;
+  }
+
+  .chat-header {
+    height: 24px;
+    font-size: 10px;
+  }
+
+  .chat-sidebar {
+    width: calc(100% - 20px);
+    left: 10px;
+    bottom: 10px;
+    height: 60vh;
+    max-height: 60vh;
+  }
+
+  .chat-list-item-actions {
+    opacity: 1;
+  }
+
+  .chat-content {
+    margin-top: 20px;
+    height: calc(100% - 20px);
+  }
+
+  .chat-history {
+    padding: 5px;
+  }
+
+  .message {
+    margin: 10px 0;
+    font-size: 14px;
+    padding-bottom: 24px;
+  }
+
+  .user-message {
+    margin-left: 5%;
+  }
+
+  .model-message {
+    margin-right: 5%;
+  }
+
+  .message-actions {
+    display: flex;
+    bottom: -10px;
+    opacity: 1;
+    transform: scale(0.85);
+    right: 0px;
+    padding: 2px;
+  }
+
+  .settings-panel {
+    width: calc(100% - 20px) !important;
+    right: 10px !important;
+    left: 10px !important;
+    top: 65px !important;
+    transform: none !important;
+    max-height: calc(100vh - 80px);
+    box-sizing: border-box;
+    padding: 15px;
+  }
+
+  .settings-item .settings-select,
+  .settings-item .settings-textarea {
+    font-size: 16px;
+  }
+
+  .debug-panel {
+    width: calc(100% - 20px) !important;
+    left: 10px !important;
+    top: 65px !important;
+    transform: none !important;
+    height: 50vh;
+  }
+
+  .nowtime {
+    padding: 6px 10px;
+    top: 8px;
+    left: 8px;
+    border-radius: 12px;
+  }
+
+  #time {
+    font-size: 24px;
+  }
+
+  .settings-button {
+    top: 8px;
+    right: 8px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .mic-button, .chat-input button {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .radio-controls-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .volume-control-inline {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .bg-fit-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+
+  .bg-fit-group button {
+    padding: 6px 4px;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  #bgLibrary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tutorial-modal {
+    max-width: 95vw;
+    max-height: 90vh;
+  }
+
+  .model-gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 60px 12px 12px;
+  }
+}
+
+/* Landscape Mobile Tweaks */
+@media (max-width: 900px) and (orientation: landscape) {
+  .chat-container {
+    width: 40%;
+    height: 60vh;
+  }
+
+  .settings-panel {
+    width: 300px;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,380 @@
+/* Clock */
+.nowtime {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 15px 25px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 9998;
+  transform: translateZ(0);
+  transition: all 0.3s ease;
+  display: none;
+}
+
+.nowtime.visible {
+  display: block;
+}
+
+.nowtime:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: translateY(-2px) translateZ(0);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+#time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 2px;
+  margin: 0;
+  line-height: 1;
+}
+
+#colon {
+  animation: blink 1s infinite;
+  opacity: 1;
+  margin: 0 5px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Background library */
+#bgLibrary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+#bgLibrary img {
+  width: 100%;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+#bgLibrary img.selected {
+  outline: 3px solid #007bff;
+  outline-offset: 0;
+}
+
+/* Fullscreen viewer */
+.bg-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  z-index: 10003;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg-viewer-overlay.visible {
+  display: flex;
+}
+
+.bg-viewer-overlay img {
+  max-width: 92vw;
+  max-height: 92vh;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+.bg-viewer-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.bg-viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.bg-viewer-nav.prev { left: 20px; }
+.bg-viewer-nav.next { right: 20px; }
+
+.bg-viewer-counter {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ddd;
+  font-size: 12px;
+  background: rgba(255,255,255,0.08);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* Model gallery */
+.model-gallery-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  z-index: 10020;
+  overflow: auto;
+}
+
+.model-gallery-overlay.visible {
+  display: block;
+}
+
+.model-gallery-close {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.model-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 80px 24px 24px;
+}
+
+.model-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.model-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--primary-accent);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.model-thumb {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  background: #000;
+}
+
+.model-name {
+  padding: 10px 12px;
+  color: #eee;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Tutorial overlay */
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: none;
+  z-index: 10002;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tutorial-overlay.visible {
+  display: flex;
+}
+
+.tutorial-modal {
+  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+  color: #fff;
+  max-width: 600px;
+  width: 100%;
+  max-height: 85vh;
+  padding: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.tutorial-modal h3 {
+  margin: 0;
+  padding: 24px;
+  font-size: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tutorial-controls {
+  display: flex;
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  justify-content: flex-end;
+}
+
+.tutorial-controls button {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.tutorial-controls button:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.tutorial-controls #tutorialPrevBtn,
+.tutorial-controls #tutorialNextBtn {
+  display: none;
+}
+
+#tutorialBody {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  line-height: 1.7;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+
+#tutorialBody h4 {
+  margin: 24px 0 12px 0;
+  font-size: 18px;
+  color: #4da3ff;
+  border-bottom: 1px solid rgba(77, 163, 255, 0.2);
+  padding-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#tutorialBody h4:first-child {
+  margin-top: 0;
+}
+
+.settings-tutorial-content {
+  padding: 0;
+  color: #eee;
+}
+
+.tutorial-doc-link-card {
+  margin-bottom: 16px;
+}
+
+.tutorial-doc-link {
+  margin-top: 10px;
+}
+
+.tutorial-step-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.tutorial-step-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.tutorial-step-card h4,
+.settings-tutorial-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  color: #4da3ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.settings-tutorial-content h4:first-child {
+  margin-top: 0;
+}
+
+.settings-tutorial-content p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  color: #bbb;
+}
+
+.tutorial-details-section {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tutorial-details-section h4 {
+  font-size: 14px;
+  color: #88c0ff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 16px 0 8px 0;
+}
+
+.tutorial-details-section h4:first-child {
+  margin-top: 0;
+}
+
+.tutorial-details-section p {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 12px;
+}
