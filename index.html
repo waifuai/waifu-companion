@@ -198,6 +198,10 @@
           <button class="back-button" onclick="closeSubmenu()">‹</button>
           <h3 data-ui-key="llmSettingsTitle">🤖 LLM Provider</h3>
         </div>
+        <div class="provider-section">
+          <div class="provider-section-header">
+            <h4 data-ui-key="openRouterSectionTitle">OpenRouter</h4>
+          </div>
         <div class="settings-item">
           <label data-ui-key="useOpenRouterLabel">
             <input type="checkbox" id="useOpenRouterCheckbox" /> Use OpenRouter
@@ -214,11 +218,21 @@
           </div>
         </div>
         <div class="settings-item">
+          <label data-ui-key="openRouterPrimaryEnabledLabel">
+            <input type="checkbox" id="openRouterPrimaryEnabledCheckbox" /> Enable primary model
+          </label>
+        </div>
+        <div class="settings-item">
           <label for="openRouterModelInput" data-ui-key="openRouterModelLabel">🧬 OpenRouter Model Name</label>
           <input id="openRouterModelInput" class="settings-select" placeholder="stepfun/step-3.5-flash:free, nvidia/nemotron-3-super-120b-a12b:free or qwen/qwen3.6-plus-preview:free" />
           <div class="value-display" data-ui-desc="openRouterModelDesc">
             Examples: stepfun/step-3.5-flash:free, nvidia/nemotron-3-super-120b-a12b:free, qwen/qwen3.6-plus-preview:free, etc.
           </div>
+        </div>
+        <div class="settings-item">
+          <label data-ui-key="openRouterFallbackModel1EnabledLabel">
+            <input type="checkbox" id="openRouterFallbackModel1EnabledCheckbox" /> Enable fallback model 1
+          </label>
         </div>
         <div class="settings-item">
           <label for="openRouterFallbackModel1Input" data-ui-key="openRouterFallbackModel1Label">🔄 Fallback Model 1</label>
@@ -228,12 +242,22 @@
           </div>
         </div>
         <div class="settings-item">
+          <label data-ui-key="openRouterFallbackModel2EnabledLabel">
+            <input type="checkbox" id="openRouterFallbackModel2EnabledCheckbox" /> Enable fallback model 2
+          </label>
+        </div>
+        <div class="settings-item">
           <label for="openRouterFallbackModel2Input" data-ui-key="openRouterFallbackModel2Label">🔄 Fallback Model 2</label>
           <input id="openRouterFallbackModel2Input" class="settings-select" placeholder="qwen/qwen3.6-plus-preview:free" />
           <div class="value-display" data-ui-desc="openRouterFallbackModel2Desc">
             Second fallback model. Used if the primary and first fallback models fail.
           </div>
         </div>
+        </div>
+        <div class="provider-section">
+          <div class="provider-section-header">
+            <h4 data-ui-key="groqSectionTitle">Groq</h4>
+          </div>
         <div class="settings-item">
           <label data-ui-key="useGroqLabel">
             <input type="checkbox" id="useGroqCheckbox" /> Use Groq
@@ -256,6 +280,11 @@
             Examples: llama-3.3-70b-versatile, llama-3.1-70b-versatile, mixtral-8x7b-32768, etc.
           </div>
         </div>
+        </div>
+        <div class="provider-section">
+          <div class="provider-section-header">
+            <h4 data-ui-key="openAICompatibleSectionTitle">OpenAI Compatible</h4>
+          </div>
         <div class="settings-item">
           <label data-ui-key="useOpenAICompatibleLabel">
             <input type="checkbox" id="useOpenAICompatibleCheckbox" /> Use OpenAI Compatible API
@@ -291,6 +320,7 @@
           <div class="value-display" data-ui-desc="openaiCompatibleCorsProxyDesc">
             Optional CORS proxy URL to prefix API requests. Leave empty if the API endpoint supports CORS directly.
           </div>
+        </div>
         </div>
       </div>
 

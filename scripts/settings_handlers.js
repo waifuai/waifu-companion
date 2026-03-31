@@ -339,52 +339,82 @@ function handleOpenRouterApiKeyChange(event) {
 function handleOpenRouterModelChange(event) {
     const val = event.target.value.trim();
     const fallbackModel = window.OpenRouterAPI?.DEFAULT_MODEL || 'stepfun/step-3.5-flash:free';
-    const resolvedValue = val || fallbackModel;
-    window.openRouterModel = resolvedValue;
+    window.openRouterModel = val;
     try {
-        localStorage.setItem('openRouterModel', resolvedValue);
+        localStorage.setItem('openRouterModel', val);
         if (event.target) {
-            event.target.value = resolvedValue;
+            event.target.value = val;
             event.target.placeholder = fallbackModel;
         }
-        if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: resolvedValue });
-        debugLog(`OpenRouter model set to: ${resolvedValue}`, 'info');
+        if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val || '(empty)' });
+        debugLog(`OpenRouter model set to: ${val || '(empty)'}`, 'info');
     } catch (e) {
         debugLog(`Failed to persist openRouterModel: ${e.message}`, 'error');
+    }
+}
+
+function handleOpenRouterPrimaryEnabledChange(event) {
+    const val = event.target.checked;
+    window.openRouterPrimaryEnabled = val;
+    try {
+        localStorage.setItem('openRouterPrimaryEnabled', val.toString());
+        debugLog(`OpenRouter primary model enabled: ${val}`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist openRouterPrimaryEnabled: ${e.message}`, 'error');
     }
 }
 
 function handleOpenRouterFallbackModel1Change(event) {
     const value = event.target.value.trim();
     const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || 'nvidia/nemotron-3-super-120b-a12b:free';
-    const resolvedValue = value || fallbackModel;
-    window.openRouterFallbackModel1 = resolvedValue;
+    window.openRouterFallbackModel1 = value;
     try {
-        localStorage.setItem('openRouterFallbackModel1', resolvedValue);
+        localStorage.setItem('openRouterFallbackModel1', value);
         if (event.target) {
-            event.target.value = resolvedValue;
+            event.target.value = value;
             event.target.placeholder = fallbackModel;
         }
-        debugLog(`OpenRouter fallback model 1 set to: ${resolvedValue}`, 'info');
+        debugLog(`OpenRouter fallback model 1 set to: ${value || '(empty)'}`, 'info');
     } catch (e) {
         debugLog(`Failed to persist openRouterFallbackModel1: ${e.message}`, 'error');
+    }
+}
+
+function handleOpenRouterFallbackModel1EnabledChange(event) {
+    const val = event.target.checked;
+    window.openRouterFallbackModel1Enabled = val;
+    try {
+        localStorage.setItem('openRouterFallbackModel1Enabled', val.toString());
+        debugLog(`OpenRouter fallback model 1 enabled: ${val}`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist openRouterFallbackModel1Enabled: ${e.message}`, 'error');
     }
 }
 
 function handleOpenRouterFallbackModel2Change(event) {
     const value = event.target.value.trim();
     const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || 'qwen/qwen3.6-plus-preview:free';
-    const resolvedValue = value || fallbackModel;
-    window.openRouterFallbackModel2 = resolvedValue;
+    window.openRouterFallbackModel2 = value;
     try {
-        localStorage.setItem('openRouterFallbackModel2', resolvedValue);
+        localStorage.setItem('openRouterFallbackModel2', value);
         if (event.target) {
-            event.target.value = resolvedValue;
+            event.target.value = value;
             event.target.placeholder = fallbackModel;
         }
-        debugLog(`OpenRouter fallback model 2 set to: ${resolvedValue}`, 'info');
+        debugLog(`OpenRouter fallback model 2 set to: ${value || '(empty)'}`, 'info');
     } catch (e) {
         debugLog(`Failed to persist openRouterFallbackModel2: ${e.message}`, 'error');
+    }
+}
+
+function handleOpenRouterFallbackModel2EnabledChange(event) {
+    const val = event.target.checked;
+    window.openRouterFallbackModel2Enabled = val;
+    try {
+        localStorage.setItem('openRouterFallbackModel2Enabled', val.toString());
+        debugLog(`OpenRouter fallback model 2 enabled: ${val}`, 'info');
+    } catch (e) {
+        debugLog(`Failed to persist openRouterFallbackModel2Enabled: ${e.message}`, 'error');
     }
 }
 

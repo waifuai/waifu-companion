@@ -30,8 +30,26 @@ const OpenRouterAPI = {
     return trimmed || fallbackModel;
   },
 
+  getStoredModel(storageKey, fallbackModel) {
+    const storedModel = localStorage.getItem(storageKey);
+    if (storedModel === null) {
+      return fallbackModel;
+    }
+
+    return typeof storedModel === 'string' ? storedModel.trim() : '';
+  },
+
+  isModelEnabled(storageKey, defaultValue = true) {
+    const storedValue = localStorage.getItem(storageKey);
+    if (storedValue === null) {
+      return defaultValue;
+    }
+
+    return storedValue === 'true';
+  },
+
   getModel() {
-    return this.normalizeModel(localStorage.getItem('openRouterModel'), this.DEFAULT_MODEL);
+    return this.getStoredModel('openRouterModel', this.DEFAULT_MODEL);
   },
 
   setModel(model) {
@@ -40,16 +58,17 @@ const OpenRouterAPI = {
 
   getFallbackModels(primaryModel = this.getModel()) {
     const storedFallbacks = [
-      this.normalizeModel(localStorage.getItem('openRouterFallbackModel1'), this.DEFAULT_FALLBACK_MODELS[0]),
-      this.normalizeModel(localStorage.getItem('openRouterFallbackModel2'), this.DEFAULT_FALLBACK_MODELS[1])
+      this.isModelEnabled('openRouterFallbackModel1Enabled') ? this.getStoredModel('openRouterFallbackModel1', this.DEFAULT_FALLBACK_MODELS[0]) : '',
+      this.isModelEnabled('openRouterFallbackModel2Enabled') ? this.getStoredModel('openRouterFallbackModel2', this.DEFAULT_FALLBACK_MODELS[1]) : ''
     ];
 
     return storedFallbacks.filter((model, index, allModels) => model && model !== primaryModel && allModels.indexOf(model) === index);
   },
 
   getCandidateModels() {
-    const primaryModel = this.getModel();
-    return [primaryModel, ...this.getFallbackModels(primaryModel)];
+    const primaryModel = this.isModelEnabled('openRouterPrimaryEnabled') ? this.getModel() : '';
+    const fallbackModels = this.getFallbackModels(primaryModel);
+    return [primaryModel, ...fallbackModels].filter((model, index, allModels) => model && allModels.indexOf(model) === index);
   },
 
   buildRequestBody(model, messages, json, stream = false) {
@@ -204,7 +223,7 @@ const OpenRouterAPI = {
   },
 
   isConfigured() {
-    return !!this.getApiKey();
+    return !!this.getApiKey() && this.getCandidateModels().length > 0;
   },
 
   async createCompletion(options) {

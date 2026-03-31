@@ -13,6 +13,21 @@ function getStoredValueOrDefault(storageKey, fallbackValue) {
   return fallbackValue;
 }
 
+function getStoredValueWithInitialDefault(storageKey, fallbackValue) {
+  try {
+    const storedValue = localStorage.getItem(storageKey);
+    if (storedValue === null) {
+      return fallbackValue;
+    }
+
+    return typeof storedValue === 'string' ? storedValue.trim() : '';
+  } catch (e) {
+    debugLog(`Error reading ${storageKey}: ${e.message}`, 'warn');
+  }
+
+  return fallbackValue;
+}
+
 function syncVoiceControlsVisibility() {
   const controls = document.getElementById('voiceControls');
   if (!controls) return;
@@ -704,11 +719,18 @@ window.addEventListener('load', async () => { // Make async to await model load
 
   if (openRouterModelInput) {
     const defaultModel = window.OpenRouterAPI?.DEFAULT_MODEL || 'stepfun/step-3.5-flash:free';
-    window.openRouterModel = getStoredValueOrDefault('openRouterModel', defaultModel);
+    window.openRouterModel = getStoredValueWithInitialDefault('openRouterModel', defaultModel);
     openRouterModelInput.value = window.openRouterModel;
     openRouterModelInput.placeholder = defaultModel;
     openRouterModelInput.addEventListener('change', handleOpenRouterModelChange);
     openRouterModelInput.addEventListener('blur', handleOpenRouterModelChange);
+  }
+
+  if (openRouterPrimaryEnabledCheckbox) {
+    const storedEnabled = localStorage.getItem('openRouterPrimaryEnabled');
+    window.openRouterPrimaryEnabled = storedEnabled === null ? true : storedEnabled === 'true';
+    openRouterPrimaryEnabledCheckbox.checked = window.openRouterPrimaryEnabled;
+    openRouterPrimaryEnabledCheckbox.addEventListener('change', handleOpenRouterPrimaryEnabledChange);
   }
 
   const openRouterFallbackModelsInput = document.getElementById('openRouterFallbackModelsInput');
@@ -737,21 +759,35 @@ window.addEventListener('load', async () => { // Make async to await model load
   const openRouterFallbackModel1Input = document.getElementById('openRouterFallbackModel1Input');
   if (openRouterFallbackModel1Input) {
     const defaultFallback1 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || 'nvidia/nemotron-3-super-120b-a12b:free';
-    window.openRouterFallbackModel1 = getStoredValueOrDefault('openRouterFallbackModel1', defaultFallback1);
+    window.openRouterFallbackModel1 = getStoredValueWithInitialDefault('openRouterFallbackModel1', defaultFallback1);
     openRouterFallbackModel1Input.value = window.openRouterFallbackModel1;
     openRouterFallbackModel1Input.placeholder = defaultFallback1;
     openRouterFallbackModel1Input.addEventListener('change', handleOpenRouterFallbackModel1Change);
     openRouterFallbackModel1Input.addEventListener('blur', handleOpenRouterFallbackModel1Change);
   }
 
+  if (openRouterFallbackModel1EnabledCheckbox) {
+    const storedEnabled = localStorage.getItem('openRouterFallbackModel1Enabled');
+    window.openRouterFallbackModel1Enabled = storedEnabled === null ? true : storedEnabled === 'true';
+    openRouterFallbackModel1EnabledCheckbox.checked = window.openRouterFallbackModel1Enabled;
+    openRouterFallbackModel1EnabledCheckbox.addEventListener('change', handleOpenRouterFallbackModel1EnabledChange);
+  }
+
   const openRouterFallbackModel2Input = document.getElementById('openRouterFallbackModel2Input');
   if (openRouterFallbackModel2Input) {
     const defaultFallback2 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || 'qwen/qwen3.6-plus-preview:free';
-    window.openRouterFallbackModel2 = getStoredValueOrDefault('openRouterFallbackModel2', defaultFallback2);
+    window.openRouterFallbackModel2 = getStoredValueWithInitialDefault('openRouterFallbackModel2', defaultFallback2);
     openRouterFallbackModel2Input.value = window.openRouterFallbackModel2;
     openRouterFallbackModel2Input.placeholder = defaultFallback2;
     openRouterFallbackModel2Input.addEventListener('change', handleOpenRouterFallbackModel2Change);
     openRouterFallbackModel2Input.addEventListener('blur', handleOpenRouterFallbackModel2Change);
+  }
+
+  if (openRouterFallbackModel2EnabledCheckbox) {
+    const storedEnabled = localStorage.getItem('openRouterFallbackModel2Enabled');
+    window.openRouterFallbackModel2Enabled = storedEnabled === null ? true : storedEnabled === 'true';
+    openRouterFallbackModel2EnabledCheckbox.checked = window.openRouterFallbackModel2Enabled;
+    openRouterFallbackModel2EnabledCheckbox.addEventListener('change', handleOpenRouterFallbackModel2EnabledChange);
   }
 
   const useGroqCheckbox = document.getElementById('useGroqCheckbox');

@@ -1024,6 +1024,30 @@ canvas {
   margin-bottom: 15px;
 }
 
+.provider-section {
+  margin-bottom: 24px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.provider-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.provider-section-header {
+  margin: 0 0 14px;
+}
+
+.provider-section-header h4 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* Links section inside settings */
 .links-list {
   display: flex;
