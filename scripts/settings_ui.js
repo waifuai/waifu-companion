@@ -23,11 +23,7 @@ function setSettingsPanelVisible(visible) {
       filterSettings('');
     }
   }
-  try {
-    localStorage.setItem('settingsPanelLastOpen', visible.toString());
-  } catch (e) {
-    debugLog(`Could not persist settingsPanelLastOpen: ${e.message}`, 'warn');
-  }
+  AppStorage.setBoolean(AppStorage.KEYS.SETTINGS_PANEL_LAST_OPEN, visible);
 }
 
 window.toggleSettings = toggleSettings;
@@ -269,7 +265,7 @@ function populateModelSelector() {
       if (loadModel) {
         debugLog(`Model selection changed to: ${selectedUrl}`, 'info');
         loadModel(selectedUrl)
-          .then(() => localStorage.setItem('selectedModelUrl', selectedUrl))
+          .then(() => AppStorage.setString(AppStorage.KEYS.SELECTED_MODEL_URL, selectedUrl))
           .catch(error => {
             debugError('Failed to load selected Live2D model', error, { url: selectedUrl });
             addMessage(`Sorry, I couldn't load that model (${error.message}).`, false);
@@ -301,7 +297,7 @@ function populateModelSelector() {
   });
 
   // Set initial selected display (using saved or default)
-  const initialModelUrl = localStorage.getItem('selectedModelUrl') || defaultModelUrl;
+  const initialModelUrl = AppStorage.getString(AppStorage.KEYS.SELECTED_MODEL_URL, '') || defaultModelUrl;
   const initialModel = availableModels.find(m => m.url === initialModelUrl) || availableModels[0];
   if (initialModel) {
     selectedDisplay.querySelector('.model-selector-selected-img').src = initialModel.image;
@@ -316,7 +312,7 @@ function renderCustomModelsList() {
   const dropdown = document.getElementById('customModelsDropdown');
   if (!dropdown) return;
   let userModels = [];
-  try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch (e) { userModels = []; }
+  try { userModels = AppStorage.getJSON(AppStorage.KEYS.USER_MODELS, []); } catch (e) { userModels = []; }
   dropdown.innerHTML = '';
   if (!Array.isArray(userModels) || userModels.length === 0) {
     const opt = document.createElement('option');
@@ -348,7 +344,7 @@ function renderCustomModelsList() {
     if (nameEl) nameEl.textContent = model.name || 'Custom Model';
     if (typeof loadModel === 'function') {
       loadModel(url)
-        .then(() => { try { localStorage.setItem('selectedModelUrl', url); } catch (e) { debugLog(`Settings: persist selectedModelUrl failed: ${e.message}`, 'warn', true); } })
+        .then(() => { AppStorage.setString(AppStorage.KEYS.SELECTED_MODEL_URL, url); })
         .catch(err => debugError('Failed to load custom model from dropdown', err, { url: url }));
     }
     updateCustomModelInfo(url);
@@ -359,7 +355,7 @@ function renderCustomModelsList() {
 function updateCustomModelInfo(url) {
   const wrap = document.getElementById('customModelInfo'); if (!wrap) return;
   if (!url) { wrap.innerHTML = ''; return; }
-  let userModels = []; try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch (e) { debugLog(`Settings: userModels parse error: ${e.message}`, 'warn', true); }
+  let userModels = []; try { userModels = AppStorage.getJSON(AppStorage.KEYS.USER_MODELS, []); } catch (e) { debugLog(`Settings: userModels parse error: ${e.message}`, 'warn', true); }
   const m = userModels.find(x => x.url === url); if (!m) { wrap.innerHTML = ''; return; }
   const img = m.image || 'https://via.placeholder.com/64?text=L2D';
   wrap.innerHTML = `<div class="custom-model-info"><img src="${img}" alt="${m.name || 'Custom Model'}"><div class="meta"><div class="name">${m.name || 'Custom Model'}</div><a class="url" href="${m.url}" target="_blank" rel="noopener">${m.url}</a></div><button class="remove-btn" data-url="${m.url}">Remove</button></div>`;
@@ -401,7 +397,7 @@ function populateLanguageSelector() {
     debugLog(`Warning: selectedLanguageCode '${selectedLanguageCode}' not found in dropdown. Defaulting to first option: '${languages[0].code}'.`, 'warn');
     languageSelector.value = languages[0].code;
     selectedLanguageCode = languages[0].code; // Update global state
-    localStorage.setItem('selectedLanguageCode', selectedLanguageCode); // Persist fallback
+    AppStorage.setString(AppStorage.KEYS.SELECTED_LANGUAGE_CODE, selectedLanguageCode);
   }
   debugLog(`Language selector populated with all ${languages.length} languages. Current selected: ${selectedLanguageCode}. Dropdown actual value: ${languageSelector.value}`, 'info');
 
@@ -482,14 +478,14 @@ function populateVoiceSelector() {
   const defaultVoiceForLang = getDefaultVoiceForLanguage(selectedLanguageCode);
 
   // Check if user explicitly set to 'none'
-  const savedVoiceId = localStorage.getItem('selectedVoiceId');
+  const savedVoiceId = AppStorage.getString(AppStorage.KEYS.SELECTED_VOICE_ID, '');
   if (savedVoiceId === 'none') {
     selectedVoiceId = 'none';
   } else {
     // Always use the appropriate default voice for the current language
     // This ensures voice switches when language changes
     selectedVoiceId = defaultVoiceForLang;
-    localStorage.setItem('selectedVoiceId', selectedVoiceId);
+    AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID, selectedVoiceId);
   }
 
   voiceSelector.value = selectedVoiceId;
@@ -601,7 +597,7 @@ function applyBackgroundFit(mode) {
       bgLayer.style.backgroundSize = 'cover';
       bgLayer.style.backgroundPosition = 'center center';
   }
-  try { localStorage.setItem('bgFitMode', m || 'cover'); } catch (e) { debugLog(`Settings: persist bgFitMode failed: ${e.message}`, 'warn', true); }
+  AppStorage.setString(AppStorage.KEYS.BG_FIT_MODE, m || 'cover');
   setActiveBgFitButton(m || 'cover');
 }
 

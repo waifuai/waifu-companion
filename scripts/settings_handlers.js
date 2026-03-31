@@ -1,13 +1,10 @@
 // Contains all the event handler functions that respond to changes in the settings controls.
+const S = AppStorage; const K = AppStorage.KEYS;
 
 function handleAlwaysShowSettingsChange(event) {
   const value = event.target.checked;
-  try {
-    localStorage.setItem('settingsAlwaysShowOnLoad', value.toString());
-    debugLog(`Always show Settings on load changed to: ${value}`, 'info');
-  } catch (e) {
-    debugLog(`Failed to persist settingsAlwaysShowOnLoad: ${e.message}`, 'error');
-  }
+  S.setBoolean(K.SETTINGS_ALWAYS_SHOW_ON_LOAD, value);
+  debugLog(`Always show Settings on load changed to: ${value}`, 'info');
 }
 
 function updateMemorySize(value) {
@@ -16,26 +13,24 @@ function updateMemorySize(value) {
   maxMemorySize = parseInt(value);
   if (valEl) valEl.textContent = value;
 
-  try {
-    localStorage.setItem('maxMemorySize', maxMemorySize.toString());
-  } catch(e) { debugLog(`Failed to persist maxMemorySize: ${e.message}`, 'warn', true); }
+  S.setNumber(K.MAX_MEMORY_SIZE, maxMemorySize);
 
   // Trim conversation context if needed
   while (conversationContext.length > maxMemorySize) {
     conversationContext.shift();
   }
   // Save potentially trimmed context
-  localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
+  S.setJSON(K.CONVERSATION_CONTEXT, conversationContext);
   debugLog(`Memory size updated to ${maxMemorySize} and context trimmed.`, 'info');
 }
 
 function handleLanguageChange(event) {
     selectedLanguageCode = event.target.value;
-    localStorage.setItem('selectedLanguageCode', selectedLanguageCode);
+    S.setString(K.SELECTED_LANGUAGE_CODE, selectedLanguageCode);
     
     // Also set interface language to match
     window.currentInterfaceLanguage = selectedLanguageCode;
-    localStorage.setItem('interfaceLanguage', selectedLanguageCode);
+    S.setString(K.INTERFACE_LANGUAGE, selectedLanguageCode);
     
     // Apply the interface language translation only if enabled
     if (window.translateUI && typeof applyInterfaceLanguage === 'function') {
@@ -57,7 +52,7 @@ function handleLanguageChange(event) {
 
 function handleVoiceChange(event) {
     selectedVoiceId = event.target.value;
-    localStorage.setItem('selectedVoiceId', selectedVoiceId);
+    S.setString(K.SELECTED_VOICE_ID, selectedVoiceId);
     if (typeof trackEvent === 'function') trackEvent('voice_changed', { voice_id: selectedVoiceId });
     debugLog(`Voice changed to: ${selectedVoiceId}`, 'info');
 }
@@ -67,12 +62,8 @@ function handleTTSChunkLimitChange(event) {
     window.ttsChunkLimit = value;
     const valEl = document.getElementById('ttsChunkLimitValue');
     if (valEl) valEl.textContent = value;
-    try {
-        localStorage.setItem('ttsChunkLimit', value.toString());
-        debugLog(`TTS chunk limit changed to: ${value}`, 'info');
-    } catch (e) {
-        debugLog(`Could not persist ttsChunkLimit: ${e.message}`, 'warn');
-    }
+    S.setNumber(K.TTS_CHUNK_LIMIT, value);
+    debugLog(`TTS chunk limit changed to: ${value}`, 'info');
 }
 
 function handleTTSVolumeChange(event) {
@@ -81,12 +72,8 @@ function handleTTSVolumeChange(event) {
     window.ttsVolume = clamped;
     const valEl = document.getElementById('ttsVolumeValue');
     if (valEl) valEl.textContent = clamped.toFixed(2);
-    try {
-        localStorage.setItem('ttsVolume', clamped.toString());
-        debugLog(`TTS volume changed to: ${clamped.toFixed(2)}`, 'info');
-    } catch (e) {
-        debugLog(`Could not persist ttsVolume: ${e.message}`, 'warn');
-    }
+    S.setNumber(K.TTS_VOLUME, clamped);
+    debugLog(`TTS volume changed to: ${clamped.toFixed(2)}`, 'info');
     try {
         if (typeof getTTSGainNode === 'function') {
             const gain = getTTSGainNode();
@@ -103,10 +90,10 @@ function handleEnableVoiceChange(event) {
     window.enablePrimaryVoice = enableVoice;
     window.enableFallbackVoice = enableVoice;
     window.enableKokoro = enableVoice;
-    localStorage.setItem('enableVoice', enableVoice.toString());
-    localStorage.setItem('enablePrimaryVoice', enableVoice.toString());
-    localStorage.setItem('enableFallbackVoice', enableVoice.toString());
-    localStorage.setItem('enableKokoro', enableVoice.toString());
+    S.setBoolean(K.ENABLE_VOICE, enableVoice);
+    S.setBoolean(K.ENABLE_PRIMARY_VOICE, enableVoice);
+    S.setBoolean(K.ENABLE_FALLBACK_VOICE, enableVoice);
+    S.setBoolean(K.ENABLE_KOKORO, enableVoice);
     debugLog(`Enable voice changed to: ${enableVoice}`, 'info');
 
     const tiktokCheckbox = document.getElementById('enableTikTokVoiceCheckbox');
@@ -130,7 +117,7 @@ function handleTranslateToChange(event) {
 function handleShowTransliterationChange(event) {
     const val = event.target.checked;
     showTransliteration = val;
-    localStorage.setItem('showTransliteration', showTransliteration.toString());
+    S.setBoolean(K.SHOW_TRANSLITERATION, showTransliteration);
     if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'show_transliteration', value: val });
     debugLog(`Show transliteration changed to: ${showTransliteration}`, 'info');
 }
@@ -139,7 +126,7 @@ function handleShowClockChange(event) {
     // Assumes showClock (global state), clockContainer (DOM element), debugLog are accessible
     const val = event.target.checked;
     showClock = val; // Update global state
-    localStorage.setItem('showClock', showClock.toString());
+    S.setBoolean(K.SHOW_CLOCK, showClock);
     if (clockContainer) {
         clockContainer.classList.toggle('visible', showClock);
     }
@@ -152,12 +139,8 @@ function handleChatboxOpacityChange(event) {
     document.documentElement.style.setProperty('--chatbox-bg-opacity', val);
     const valEl = document.getElementById('chatboxOpacityValue');
     if (valEl) valEl.textContent = val;
-    try {
-        localStorage.setItem('chatboxOpacity', val);
-        if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'chatbox_opacity', value: val });
-    } catch (e) {
-        debugLog(`Could not persist chatboxOpacity: ${e.message}`, 'warn');
-    }
+    S.setString(K.CHATBOX_OPACITY, val);
+    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'chatbox_opacity', value: val });
 }
 
 function handleMessageOpacityChange(event) {
@@ -165,12 +148,8 @@ function handleMessageOpacityChange(event) {
     document.documentElement.style.setProperty('--message-bg-opacity', val);
     const valEl = document.getElementById('messageOpacityValue');
     if (valEl) valEl.textContent = val;
-    try {
-        localStorage.setItem('messageOpacity', val);
-        if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'message_opacity', value: val });
-    } catch (e) {
-        debugLog(`Could not persist messageOpacity: ${e.message}`, 'warn');
-    }
+    S.setString(K.MESSAGE_OPACITY, val);
+    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'message_opacity', value: val });
 }
 
 function handleBgOpacityChange(event) {
@@ -178,18 +157,14 @@ function handleBgOpacityChange(event) {
     document.documentElement.style.setProperty('--bg-image-opacity', val);
     const valEl = document.getElementById('bgOpacityValue');
     if (valEl) valEl.textContent = val;
-    try {
-        localStorage.setItem('bgImageOpacity', val);
-        if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'bg_opacity', value: val });
-    } catch (e) {
-        debugLog(`Could not persist bgImageOpacity: ${e.message}`, 'warn');
-    }
+    S.setString(K.BG_IMAGE_OPACITY, val);
+    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'bg_opacity', value: val });
 }
 
 function handleIncludeTimeChange(event) {
     const val = event.target.checked;
     includeTimeInContext = val;
-    localStorage.setItem('includeTimeInContext', includeTimeInContext.toString());
+    S.setBoolean(K.INCLUDE_TIME_IN_CONTEXT, includeTimeInContext);
     if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'include_time', value: val });
     debugLog(`Include time in context changed to: ${includeTimeInContext}`, 'info');
 }
@@ -197,7 +172,7 @@ function handleIncludeTimeChange(event) {
 function handleIncludeBatteryChange(event) {
     const val = event.target.checked;
     includeBatteryInContext = val;
-    localStorage.setItem('includeBatteryInContext', includeBatteryInContext.toString());
+    S.setBoolean(K.INCLUDE_BATTERY_IN_CONTEXT, includeBatteryInContext);
     if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'include_battery', value: val });
     debugLog(`Include battery in context changed to: ${includeBatteryInContext}`, 'info');
 }
@@ -207,97 +182,69 @@ function handleIncludeBatteryChange(event) {
 function handleMultipleModelsToggle(event){
   const enabled = !!event.target.checked;
   window.allowMultipleModels = enabled;
-  try { localStorage.setItem('allowMultipleModels', enabled ? 'true' : 'false'); } catch(_) { debugLog(`Failed to persist allowMultipleModels: ${_.message}`, 'warn', true); }
+  S.setBoolean(K.ALLOW_MULTIPLE_MODELS, enabled);
   debugLog(`Allow multiple models set to: ${enabled}`, 'info');
 }
 
 function handleShowVerboseLogsChange(event) {
   const value = event.target.checked;
   window.showVerboseLogs = value;
-  try {
-    localStorage.setItem('showVerboseLogs', value.toString());
-    debugLog(`Show Verbose Logs changed to: ${value}`, 'info');
-  } catch (e) {
-    debugLog(`Failed to persist showVerboseLogs: ${e.message}`, 'error');
-  }
+  S.setBoolean(K.SHOW_VERBOSE_LOGS, value);
+  debugLog(`Show Verbose Logs changed to: ${value}`, 'info');
 }
 
 function handleShowAIDebugLogsChange(event) {
   const value = event.target.checked;
   window.showAIDebugLogs = value;
-  try {
-    localStorage.setItem('showAIDebugLogs', value.toString());
-    debugLog(`Show AI Debug Logs changed to: ${value}`, 'info');
-  } catch (e) {
-    debugLog(`Failed to persist showAIDebugLogs: ${e.message}`, 'error');
-  }
+  S.setBoolean(K.SHOW_AI_DEBUG_LOGS, value);
+  debugLog(`Show AI Debug Logs changed to: ${value}`, 'info');
 }
 
 function handleShowTTSDebugLogsChange(event) {
   const value = event.target.checked;
   window.showTTSDebugLogs = value;
-  try {
-    localStorage.setItem('showTTSDebugLogs', value.toString());
-    debugLog(`Show TTS Debug Logs changed to: ${value}`, 'info');
-  } catch (e) {
-    debugLog(`Failed to persist showTTSDebugLogs: ${e.message}`, 'error');
-  }
+  S.setBoolean(K.SHOW_TTS_DEBUG_LOGS, value);
+  debugLog(`Show TTS Debug Logs changed to: ${value}`, 'info');
 }
 
 function handleTranslateUIChange(event) {
     const val = event.target.checked;
     window.translateUI = val;
-    try {
-        localStorage.setItem('translateUI', val.toString());
-        if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'translate_ui', value: val });
-        debugLog(`Translate User Interface changed to: ${val}`, 'info');
-        
-        // If turned on and current language is not English, trigger translation now
-        if (val && selectedLanguageCode !== 'en-US' && typeof applyInterfaceLanguage === 'function') {
-            applyInterfaceLanguage(selectedLanguageCode);
-        } else if (!val) {
-            // Revert to English UI if toggled off
-            if (typeof applyInterfaceLanguage === 'function') {
-                applyInterfaceLanguage('en-US');
-            }
+    S.setBoolean(K.TRANSLATE_UI, val);
+    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'translate_ui', value: val });
+    debugLog(`Translate User Interface changed to: ${val}`, 'info');
+    
+    // If turned on and current language is not English, trigger translation now
+    if (val && selectedLanguageCode !== 'en-US' && typeof applyInterfaceLanguage === 'function') {
+        applyInterfaceLanguage(selectedLanguageCode);
+    } else if (!val) {
+        // Revert to English UI if toggled off
+        if (typeof applyInterfaceLanguage === 'function') {
+            applyInterfaceLanguage('en-US');
         }
-    } catch (e) {
-        debugLog(`Failed to persist translateUI: ${e.message}`, 'error');
     }
 }
 
 function handleShowChatContextLogsChange(event) {
     const value = event.target.checked;
     window.showChatContextLogs = value;
-    try {
-        localStorage.setItem('showChatContextLogs', value.toString());
-        debugLog(`Show Chat Context in Debug changed to: ${value}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist showChatContextLogs: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.SHOW_CHAT_CONTEXT_LOGS, value);
+    debugLog(`Show Chat Context in Debug changed to: ${value}`, 'info');
 }
 
 function handleAllowAIModSettingsChange(event) {
     const val = event.target.checked;
     window.allowAIModSettings = val;
-    try {
-        localStorage.setItem('allowAIModSettings', val.toString());
-        if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'allow_ai_mod_settings', value: val });
-        debugLog(`Allow AI to modify settings changed to: ${val}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist allowAIModSettings: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.ALLOW_AI_MOD_SETTINGS, val);
+    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'allow_ai_mod_settings', value: val });
+    debugLog(`Allow AI to modify settings changed to: ${val}`, 'info');
 }
 
 function handleUseJsonForEmotionChange(event) {
     const value = event.target.checked;
     window.useJsonForEmotion = value;
-    try {
-        localStorage.setItem('useJsonForEmotion', value.toString());
-        debugLog(`Use JSON For Emotion changed to: ${value}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist useJsonForEmotion: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.USE_JSON_FOR_EMOTION, value);
+    debugLog(`Use JSON For Emotion changed to: ${value}`, 'info');
 }
 
 function updateChatOfflineUI(isOffline, labelText) {
@@ -316,210 +263,142 @@ function updateChatOfflineUI(isOffline, labelText) {
 function handleUseOpenRouterChange(event) {
     const val = event.target.checked;
     window.useOpenRouter = val;
-    try {
-        localStorage.setItem('useOpenRouter', val.toString());
-        if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openrouter: val });
-        debugLog(`Use OpenRouter set to: ${val}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist useOpenRouter: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.USE_OPEN_ROUTER, val);
+    if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openrouter: val });
+    debugLog(`Use OpenRouter set to: ${val}`, 'info');
 }
 
 function handleOpenRouterApiKeyChange(event) {
     const value = event.target.value.trim();
     window.openRouterApiKey = value;
-    try {
-        localStorage.setItem('openRouterApiKey', value);
-        debugLog(`OpenRouter API key updated (length=${value.length}).`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openRouterApiKey: ${e.message}`, 'error');
-    }
+    S.setString(K.OPEN_ROUTER_API_KEY, value);
+    debugLog(`OpenRouter API key updated (length=${value.length}).`, 'info');
 }
 
 function handleOpenRouterModelChange(event) {
     const val = event.target.value.trim();
     const fallbackModel = window.OpenRouterAPI?.DEFAULT_MODEL || 'stepfun/step-3.5-flash:free';
     window.openRouterModel = val;
-    try {
-        localStorage.setItem('openRouterModel', val);
-        if (event.target) {
-            event.target.value = val;
-            event.target.placeholder = fallbackModel;
-        }
-        if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val || '(empty)' });
-        debugLog(`OpenRouter model set to: ${val || '(empty)'}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openRouterModel: ${e.message}`, 'error');
+    S.setString(K.OPEN_ROUTER_MODEL, val);
+    if (event.target) {
+        event.target.value = val;
+        event.target.placeholder = fallbackModel;
     }
+    if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val || '(empty)' });
+    debugLog(`OpenRouter model set to: ${val || '(empty)'}`, 'info');
 }
 
 function handleOpenRouterPrimaryEnabledChange(event) {
     const val = event.target.checked;
     window.openRouterPrimaryEnabled = val;
-    try {
-        localStorage.setItem('openRouterPrimaryEnabled', val.toString());
-        debugLog(`OpenRouter primary model enabled: ${val}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openRouterPrimaryEnabled: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.OPEN_ROUTER_PRIMARY_ENABLED, val);
+    debugLog(`OpenRouter primary model enabled: ${val}`, 'info');
 }
 
 function handleOpenRouterFallbackModel1Change(event) {
     const value = event.target.value.trim();
     const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || 'nvidia/nemotron-3-super-120b-a12b:free';
     window.openRouterFallbackModel1 = value;
-    try {
-        localStorage.setItem('openRouterFallbackModel1', value);
-        if (event.target) {
-            event.target.value = value;
-            event.target.placeholder = fallbackModel;
-        }
-        debugLog(`OpenRouter fallback model 1 set to: ${value || '(empty)'}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openRouterFallbackModel1: ${e.message}`, 'error');
+    S.setString(K.OPEN_ROUTER_FALLBACK_MODEL_1, value);
+    if (event.target) {
+        event.target.value = value;
+        event.target.placeholder = fallbackModel;
     }
+    debugLog(`OpenRouter fallback model 1 set to: ${value || '(empty)'}`, 'info');
 }
 
 function handleOpenRouterFallbackModel1EnabledChange(event) {
     const val = event.target.checked;
     window.openRouterFallbackModel1Enabled = val;
-    try {
-        localStorage.setItem('openRouterFallbackModel1Enabled', val.toString());
-        debugLog(`OpenRouter fallback model 1 enabled: ${val}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openRouterFallbackModel1Enabled: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.OPEN_ROUTER_FALLBACK_MODEL_1_ENABLED, val);
+    debugLog(`OpenRouter fallback model 1 enabled: ${val}`, 'info');
 }
 
 function handleOpenRouterFallbackModel2Change(event) {
     const value = event.target.value.trim();
     const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || 'qwen/qwen3.6-plus-preview:free';
     window.openRouterFallbackModel2 = value;
-    try {
-        localStorage.setItem('openRouterFallbackModel2', value);
-        if (event.target) {
-            event.target.value = value;
-            event.target.placeholder = fallbackModel;
-        }
-        debugLog(`OpenRouter fallback model 2 set to: ${value || '(empty)'}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openRouterFallbackModel2: ${e.message}`, 'error');
+    S.setString(K.OPEN_ROUTER_FALLBACK_MODEL_2, value);
+    if (event.target) {
+        event.target.value = value;
+        event.target.placeholder = fallbackModel;
     }
+    debugLog(`OpenRouter fallback model 2 set to: ${value || '(empty)'}`, 'info');
 }
 
 function handleOpenRouterFallbackModel2EnabledChange(event) {
     const val = event.target.checked;
     window.openRouterFallbackModel2Enabled = val;
-    try {
-        localStorage.setItem('openRouterFallbackModel2Enabled', val.toString());
-        debugLog(`OpenRouter fallback model 2 enabled: ${val}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openRouterFallbackModel2Enabled: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.OPEN_ROUTER_FALLBACK_MODEL_2_ENABLED, val);
+    debugLog(`OpenRouter fallback model 2 enabled: ${val}`, 'info');
 }
 
 function handleUseGroqChange(event) {
     const val = event.target.checked;
     window.useGroq = val;
-    try {
-        localStorage.setItem('useGroq', val.toString());
-        if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_groq: val });
-        debugLog(`Use Groq set to: ${val}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist useGroq: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.USE_GROQ, val);
+    if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_groq: val });
+    debugLog(`Use Groq set to: ${val}`, 'info');
 }
 
 function handleGroqApiKeyChange(event) {
     const value = event.target.value.trim();
     window.groqApiKey = value;
-    try {
-        localStorage.setItem('groqApiKey', value);
-        debugLog(`Groq API key updated (length=${value.length}).`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist groqApiKey: ${e.message}`, 'error');
-    }
+    S.setString(K.GROQ_API_KEY, value);
+    debugLog(`Groq API key updated (length=${value.length}).`, 'info');
 }
 
 function handleGroqModelChange(event) {
     const val = event.target.value.trim();
     window.groqModel = val;
-    try {
-        localStorage.setItem('groqModel', val);
-        if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val });
-        debugLog(`Groq model set to: ${val || '(empty)'}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist groqModel: ${e.message}`, 'error');
-    }
+    S.setString(K.GROQ_MODEL, val);
+    if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val });
+    debugLog(`Groq model set to: ${val || '(empty)'}`, 'info');
 }
 
 function handleUseOpenAICompatibleChange(event) {
     const val = event.target.checked;
     window.useOpenAICompatible = val;
-    try {
-        localStorage.setItem('useOpenAICompatible', val.toString());
-        if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openai_compatible: val });
-        debugLog(`Use OpenAI Compatible API set to: ${val}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist useOpenAICompatible: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.USE_OPENAI_COMPATIBLE, val);
+    if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openai_compatible: val });
+    debugLog(`Use OpenAI Compatible API set to: ${val}`, 'info');
 }
 
 function handleOpenAICompatibleBaseUrlChange(event) {
     const value = event.target.value.trim();
     window.openaiCompatibleBaseUrl = value;
-    try {
-        localStorage.setItem('openaiCompatibleBaseUrl', value);
-        debugLog(`OpenAI Compatible base URL updated: ${value}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openaiCompatibleBaseUrl: ${e.message}`, 'error');
-    }
+    S.setString(K.OPENAI_COMPATIBLE_BASE_URL, value);
+    debugLog(`OpenAI Compatible base URL updated: ${value}`, 'info');
 }
 
 function handleOpenAICompatibleApiKeyChange(event) {
     const value = event.target.value.trim();
     window.openaiCompatibleApiKey = value;
-    try {
-        localStorage.setItem('openaiCompatibleApiKey', value);
-        debugLog(`OpenAI Compatible API key updated (length=${value.length}).`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openaiCompatibleApiKey: ${e.message}`, 'error');
-    }
+    S.setString(K.OPENAI_COMPATIBLE_API_KEY, value);
+    debugLog(`OpenAI Compatible API key updated (length=${value.length}).`, 'info');
 }
 
 function handleOpenAICompatibleModelChange(event) {
     const val = event.target.value.trim();
     window.openaiCompatibleModel = val;
-    try {
-        localStorage.setItem('openaiCompatibleModel', val);
-        if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val });
-        debugLog(`OpenAI Compatible model set to: ${val || '(empty)'}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openaiCompatibleModel: ${e.message}`, 'error');
-    }
+    S.setString(K.OPENAI_COMPATIBLE_MODEL, val);
+    if (typeof trackEvent === 'function') trackEvent('llm_model_changed', { model: val });
+    debugLog(`OpenAI Compatible model set to: ${val || '(empty)'}`, 'info');
 }
 
 function handleOpenAICompatibleCorsProxyChange(event) {
     const value = event.target.value.trim();
     window.openaiCompatibleCorsProxy = value;
-    try {
-        localStorage.setItem('openaiCompatibleCorsProxy', value);
-        debugLog(`OpenAI Compatible CORS proxy updated: ${value || '(empty)'}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist openaiCompatibleCorsProxy: ${e.message}`, 'error');
-    }
+    S.setString(K.OPENAI_COMPATIBLE_CORS_PROXY, value);
+    debugLog(`OpenAI Compatible CORS proxy updated: ${value || '(empty)'}`, 'info');
 }
 
 function handleForceOfflineChange(event) {
     const val = event.target.checked;
     window.forceOfflineMode = val;
-    try {
-        localStorage.setItem('forceOfflineMode', val.toString());
-        if (typeof trackEvent === 'function') trackEvent('offline_mode_toggled', { offline: val });
-        debugLog(`Force Offline Mode set to: ${val}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist forceOfflineMode: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.FORCE_OFFLINE_MODE, val);
+    if (typeof trackEvent === 'function') trackEvent('offline_mode_toggled', { offline: val });
+    debugLog(`Force Offline Mode set to: ${val}`, 'info');
     
     if (val) {
         window.isOfflineMode = true;
@@ -567,7 +446,7 @@ function startOfflineCountdown() {
             if (chatContainer) chatContainer.classList.remove('offline-mode');
             if (statusInd) statusInd.textContent = 'ONLINE';
             
-            try { localStorage.setItem('forceOfflineMode', 'false'); } catch(e) { debugLog(`Failed to reset forceOfflineMode: ${e.message}`, 'warn', true); }
+            S.setBoolean(K.FORCE_OFFLINE_MODE, false);
             debugLog('Offline mode duration expired. Returning to Online mode.', 'info');
         } else {
             updateUI(remaining);
@@ -582,13 +461,9 @@ function handleOfflineDurationChange(event) {
     if (valEl) {
         valEl.textContent = value > 3600 ? '∞ (Permanent)' : value + 's';
     }
-    try {
-        localStorage.setItem('offlineModeDuration', value.toString());
-        const logVal = value > 3600 ? 'Permanent' : value + 's';
-        debugLog(`Offline mode duration updated to: ${logVal}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist offlineModeDuration: ${e.message}`, 'error');
-    }
+    S.setNumber(K.OFFLINE_MODE_DURATION, value);
+    const logVal = value > 3600 ? 'Permanent' : value + 's';
+    debugLog(`Offline mode duration updated to: ${logVal}`, 'info');
 }
 
 function handleGoOnlineClick() {
@@ -611,11 +486,7 @@ function handleGoOnlineClick() {
     }
 
     // Persist the new state
-    try {
-        localStorage.setItem('forceOfflineMode', 'false');
-    } catch (e) {
-        debugLog(`Failed to persist forceOfflineMode when going online: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.FORCE_OFFLINE_MODE, false);
 
     // Update chat UI back to ONLINE
     updateChatOfflineUI(false, 'ONLINE');
@@ -643,24 +514,20 @@ function handleSavePersona() {
   window.summaryTriggerCount = trigger;
   window.summaryLengthPreference = length;
   
-  try {
-    localStorage.setItem('corePersonaPrompt', core);
-    localStorage.setItem('userPersonaPrompt', user);
-    localStorage.setItem('conversationSummary', summary);
-    localStorage.setItem('summaryTriggerCount', trigger.toString());
-    localStorage.setItem('summaryLengthPreference', length);
-    if (typeof trackEvent === 'function') trackEvent('persona_updated');
-    debugLog('Persona settings saved to localStorage.', 'info');
-    
-    // Visual feedback
-    const btn = document.getElementById('savePersonaBtn');
-    if (btn) {
-      const originalText = btn.textContent;
-      btn.textContent = '✅ Saved!';
-      setTimeout(() => { btn.textContent = originalText; }, 2000);
-    }
-  } catch(e) {
-    debugLog(`Failed to save persona prompt: ${e.message}`, 'error');
+  S.setString(K.CORE_PERSONA_PROMPT, core);
+  S.setString(K.USER_PERSONA_PROMPT, user);
+  S.setString(K.CONVERSATION_SUMMARY, summary);
+  S.setNumber(K.SUMMARY_TRIGGER_COUNT, trigger);
+  S.setString(K.SUMMARY_LENGTH_PREFERENCE, length);
+  if (typeof trackEvent === 'function') trackEvent('persona_updated');
+  debugLog('Persona settings saved to localStorage.', 'info');
+  
+  // Visual feedback
+  const btn = document.getElementById('savePersonaBtn');
+  if (btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '✅ Saved!';
+    setTimeout(() => { btn.textContent = originalText; }, 2000);
   }
 }
 
@@ -700,17 +567,17 @@ async function handleManualSummarize() {
     const newSummary = await summarizeConversation(messagesToSummarize, window.conversationSummary);
     
     window.conversationSummary = newSummary;
-    localStorage.setItem('conversationSummary', newSummary);
+    S.setString(K.CONVERSATION_SUMMARY, newSummary);
     
     const summaryEl = document.getElementById('conversationSummary');
     if (summaryEl) summaryEl.value = newSummary;
     
     // Clear context buffer since they are now in the summary
     window.conversationContext = [];
-    localStorage.setItem('conversationContext', JSON.stringify(window.conversationContext));
+    S.setJSON(K.CONVERSATION_CONTEXT, window.conversationContext);
     
     window.messageCountSinceLastSummary = 0;
-    localStorage.setItem('messageCountSinceLastSummary', '0');
+    S.setNumber(K.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
 
     debugLog('Manual summarization complete. Memory buffer cleared.', 'info');
     if (window.updateSummaryMarker) window.updateSummaryMarker();
@@ -749,25 +616,21 @@ function handleResetPersona() {
   if (triggerVal) triggerVal.textContent = 30;
   if (lengthSelect) lengthSelect.value = 'concise';
 
-  try {
-    localStorage.setItem('corePersonaPrompt', defaultCore);
-    localStorage.setItem('userPersonaPrompt', "");
-    localStorage.setItem('conversationSummary', "");
-    localStorage.setItem('messageCountSinceLastSummary', "0");
-    localStorage.setItem('summaryTriggerCount', "30");
-    localStorage.setItem('summaryLengthPreference', "concise");
-    if (typeof trackEvent === 'function') trackEvent('persona_reset');
-    debugLog('Persona settings reset to defaults.', 'info');
-    
-    // Visual feedback
-    const btn = document.getElementById('resetPersonaBtn');
-    if (btn) {
-      const originalText = btn.textContent;
-      btn.textContent = '🔄 Reset!';
-      setTimeout(() => { btn.textContent = originalText; }, 2000);
-    }
-  } catch(e) {
-    debugLog(`Failed to reset persona prompt: ${e.message}`, 'error');
+  S.setString(K.CORE_PERSONA_PROMPT, defaultCore);
+  S.setString(K.USER_PERSONA_PROMPT, "");
+  S.setString(K.CONVERSATION_SUMMARY, "");
+  S.setNumber(K.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
+  S.setNumber(K.SUMMARY_TRIGGER_COUNT, 30);
+  S.setString(K.SUMMARY_LENGTH_PREFERENCE, "concise");
+  if (typeof trackEvent === 'function') trackEvent('persona_reset');
+  debugLog('Persona settings reset to defaults.', 'info');
+  
+  // Visual feedback
+  const btn = document.getElementById('resetPersonaBtn');
+  if (btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '🔄 Reset!';
+    setTimeout(() => { btn.textContent = originalText; }, 2000);
   }
 }
 
@@ -776,21 +639,17 @@ function handleSummaryTriggerCountChange(event) {
     window.summaryTriggerCount = val;
     const valEl = document.getElementById('summaryTriggerCountValue');
     if (valEl) valEl.textContent = val;
-    try {
-        localStorage.setItem('summaryTriggerCount', val.toString());
-        if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_trigger_count', value: val });
-        debugLog(`Summary trigger count changed to ${val}`, 'info');
-    } catch(e) { debugLog(`Failed to persist summaryTriggerCount: ${e.message}`, 'warn', true); }
+    S.setNumber(K.SUMMARY_TRIGGER_COUNT, val);
+    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_trigger_count', value: val });
+    debugLog(`Summary trigger count changed to ${val}`, 'info');
 }
 
 function handleSummaryLengthPreferenceChange(event) {
     const val = event.target.value;
     window.summaryLengthPreference = val;
-    try {
-        localStorage.setItem('summaryLengthPreference', val);
-        if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_length_preference', value: val });
-        debugLog(`Summary length preference changed to ${val}`, 'info');
-    } catch(e) { debugLog(`Failed to persist summaryLengthPreference: ${e.message}`, 'warn', true); }
+    S.setString(K.SUMMARY_LENGTH_PREFERENCE, val);
+    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_length_preference', value: val });
+    debugLog(`Summary length preference changed to ${val}`, 'info');
 }
 
 function handleAddCustomModel() {
@@ -816,20 +675,19 @@ function handleAddCustomModel() {
   }
   if (!/\.model3\.json(\?|$)/i.test(url)) { debugLog('Custom model URL must end with .model3.json', 'warn'); return; }
 
-  let userModels = [];
-  try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch(e) { userModels = []; debugLog(`Custom model: userModels parse error: ${e.message}`, 'warn', true); }
+  let userModels = S.getJSON(K.USER_MODELS, []);
   if (availableModels.some(m => m.url === url) || userModels.some(m => m.url === url)) {
     debugLog('Custom model already exists (same URL).', 'warn'); return;
   }
 
   const entry = { name, url, image };
   userModels.push(entry);
-  localStorage.setItem('userModels', JSON.stringify(userModels));
+  S.setJSON(K.USER_MODELS, userModels);
   availableModels.push(entry);
   function modelComparator(a,b){const an=a.name||'',bn=b.name||'';const ai=/^\d+$/.test(an)?parseInt(an,10):null;const bi=/^\d+$/.test(bn)?parseInt(bn,10):null;if(ai===null&&bi===null)return an.localeCompare(bn);if(ai===null)return -1;if(bi===null)return 1;const ab=ai<10?0:1;const bb=bi<10?0:1;return ab!==bb?ab-bb:ai-bi;}
   availableModels.sort(modelComparator);
   // Persist and reflect selection immediately in UI
-  localStorage.setItem('selectedModelUrl', url);
+  S.setString(K.SELECTED_MODEL_URL, url);
   if (typeof populateModelSelector === 'function') populateModelSelector();
   if (typeof trackEvent === 'function') trackEvent('custom_model_added', { name: name || 'unnamed', url: url });
   debugLog(`Added custom model: ${name}`, 'info');
@@ -849,11 +707,10 @@ function handleAddCustomModel() {
 // Remove a custom model by URL and refresh UI
 function handleRemoveCustomModel(url) {
   if (!url) return;
-  let userModels = [];
-  try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch(e) { userModels = []; debugLog(`Custom model: userModels parse error: ${e.message}`, 'warn', true); }
+  let userModels = S.getJSON(K.USER_MODELS, []);
   const beforeLen = userModels.length;
   userModels = userModels.filter(m => m.url !== url);
-  localStorage.setItem('userModels', JSON.stringify(userModels));
+  S.setJSON(K.USER_MODELS, userModels);
   // Remove from availableModels
   const idx = availableModels.findIndex(m => m.url === url);
   if (idx !== -1) availableModels.splice(idx, 1);
@@ -861,9 +718,9 @@ function handleRemoveCustomModel(url) {
   availableModels.sort(modelComparator);
   debugLog(`Removed custom model. Before: ${beforeLen}, After: ${userModels.length}`, 'info');
   // If currently selected model is removed, fallback to default
-  const selectedUrl = localStorage.getItem('selectedModelUrl');
+  const selectedUrl = S.getString(K.SELECTED_MODEL_URL, '');
   if (selectedUrl === url) {
-    localStorage.setItem('selectedModelUrl', defaultModelUrl);
+    S.setString(K.SELECTED_MODEL_URL, defaultModelUrl);
     if (typeof loadModel === 'function') {
       loadModel(defaultModelUrl).catch(err=>debugError('Failed to load default after removal', err, { url: defaultModelUrl }));
     }
@@ -877,13 +734,13 @@ function handleRemoveCustomModel(url) {
 window.handleRemoveCustomModel = handleRemoveCustomModel;
 
 function handleClearAllCustomModels() {
-  let userModels = []; try { userModels = JSON.parse(localStorage.getItem('userModels') || '[]'); } catch(e) { debugLog(`Custom model: userModels parse error: ${e.message}`, 'warn', true); }
+  let userModels = S.getJSON(K.USER_MODELS, []);
   if (!Array.isArray(userModels) || userModels.length === 0) { debugLog('No custom models to clear.', 'info'); return; }
   const removedUrls = new Set(userModels.map(m => m.url));
-  localStorage.setItem('userModels', '[]');
+  S.setJSON(K.USER_MODELS, []);
   window.availableModels = (window.availableModels || []).filter(m => !removedUrls.has(m.url));
-  const selectedUrl = localStorage.getItem('selectedModelUrl');
-  if (selectedUrl && removedUrls.has(selectedUrl)) { localStorage.setItem('selectedModelUrl', defaultModelUrl); loadModel?.(defaultModelUrl).catch(()=>{}); }
+  const selectedUrl = S.getString(K.SELECTED_MODEL_URL, '');
+  if (selectedUrl && removedUrls.has(selectedUrl)) { S.setString(K.SELECTED_MODEL_URL, defaultModelUrl); loadModel?.(defaultModelUrl).catch(()=>{}); }
   populateModelSelector?.(); renderCustomModelsList?.(); updateCustomModelInfo?.('');
   if (typeof trackEvent === 'function') trackEvent('all_custom_models_cleared', { count: userModels.length });
   debugLog(`Cleared ${userModels.length} custom model(s).`, 'info');
@@ -899,12 +756,12 @@ function handleInterfaceLanguageChange(event) {
 // Change this function to async and extend its behavior
 async function handleResetLanguages() {
   selectedLanguageCode = 'en-US';
-  localStorage.setItem('selectedLanguageCode', 'en-US');
+  S.setString(K.SELECTED_LANGUAGE_CODE, 'en-US');
   translateToLanguageCode = 'en-US';
   window.currentInterfaceLanguage = 'en-US';
-  localStorage.setItem('interfaceLanguage', 'en-US');
+  S.setString(K.INTERFACE_LANGUAGE, 'en-US');
   showTransliteration = false; 
-  localStorage.setItem('showTransliteration','false');
+  S.setBoolean(K.SHOW_TRANSLITERATION, false);
 
   // Reset dropdowns and checkboxes in the Language section
   if (languageSelector) languageSelector.value = 'en-US';
@@ -1003,7 +860,7 @@ async function handleResetLanguages() {
   // Reset voice back to English default
   const enCfg = languages.find(l=>l.code==='en-US');
   selectedVoiceId = (enCfg?.defaultVoiceId) || 'en-female';
-  localStorage.setItem('selectedVoiceId', selectedVoiceId);
+  S.setString(K.SELECTED_VOICE_ID, selectedVoiceId);
   populateVoiceSelector?.(); 
   if (voiceSelector) voiceSelector.value = selectedVoiceId;
 
@@ -1015,28 +872,19 @@ function applyBackgroundImage(url) {
   if (!url) return; 
   const bgLayer = document.getElementById('bgLayer');
   if (bgLayer) bgLayer.style.backgroundImage = `url("${url}")`;
-  try { 
-    localStorage.setItem('currentBackgroundUrl', url); 
-  } catch(e){ 
-    debugError('BG save failed', e); 
-  }
+  S.setString(K.CURRENT_BACKGROUND_URL, url);
 }
 
 function saveToBgLibrary(url, prompt) {
-  try {
-    const list = JSON.parse(localStorage.getItem('bgLibrary')||'[]');
-    list.unshift({ url, prompt: prompt||'', ts: Date.now() });
-    localStorage.setItem('bgLibrary', JSON.stringify(list.slice(0,60)));
-  } catch(e){ 
-    debugError('BG library save failed', e); 
-  }
+  const list = S.getJSON(K.BG_LIBRARY, []);
+  list.unshift({ url, prompt: prompt||'', ts: Date.now() });
+  S.setJSON(K.BG_LIBRARY, list.slice(0,60));
 }
 
 function renderBackgroundLibrary() {
   const el = document.getElementById('bgLibrary'); 
   if (!el) return;
-  let list=[]; 
-  try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(e){ debugLog(`BG: library parse error: ${e.message}`, 'warn', true); }
+  let list = S.getJSON(K.BG_LIBRARY, []);
   el.innerHTML = list.map((i,idx)=>`<img src="${i.url}" title="${(i.prompt||'').replace(/"/g,'')}" data-url="${i.url}" data-idx="${idx}" class="${(window.bgSelected?.has(i.url)?'selected':'')}">`).join('') || '<div style="color:#aaa;font-size:13px;">No generated backgrounds yet.</div>';
   el.querySelectorAll('img').forEach(img=>img.addEventListener('click',()=>{
     if (window.bgSelectionMode){ toggleSelectBg(img.dataset.url); img.classList.toggle('selected'); updateBgSelectionButtons(); }
@@ -1069,7 +917,7 @@ function handleApplyBackgroundFromUrl() {
 function handleClearBackground(){
   const bgLayer = document.getElementById('bgLayer');
   if (bgLayer) bgLayer.style.backgroundImage = '';
-  try { localStorage.removeItem('currentBackgroundUrl'); } catch(e) { debugLog(`BG: Failed to remove from storage: ${e.message}`, 'warn', true); }
+  S.remove(K.CURRENT_BACKGROUND_URL);
   debugLog('Background cleared and removed from storage.', 'info');
 
   if (typeof trackEvent === 'function') {
@@ -1088,13 +936,13 @@ function updateBgSelectionButtons(){
 function toggleBgSelectionMode(){ bgSelectionMode=!bgSelectionMode; if (!bgSelectionMode) bgSelected.clear(); updateBgSelectionButtons(); renderBackgroundLibrary(); }
 function deleteSelectedFromLibrary(){
   if (bgSelected.size===0) return;
-  let list=[]; try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(e){ debugLog(`BG: library parse error: ${e.message}`, 'warn', true); }
-  list = list.filter(i=>!bgSelected.has(i.url)); localStorage.setItem('bgLibrary', JSON.stringify(list));
+  let list = S.getJSON(K.BG_LIBRARY, []);
+  list = list.filter(i=>!bgSelected.has(i.url)); S.setJSON(K.BG_LIBRARY, list);
   bgSelected.clear(); renderBackgroundLibrary(); updateBgSelectionButtons(); debugLog('BG: Deleted selected items','info');
 }
-function clearBackgroundLibrary(){ localStorage.setItem('bgLibrary','[]'); bgSelected.clear(); renderBackgroundLibrary(); updateBgSelectionButtons(); debugLog('BG: Library cleared','info'); }
+function clearBackgroundLibrary(){ S.setJSON(K.BG_LIBRARY, []); bgSelected.clear(); renderBackgroundLibrary(); updateBgSelectionButtons(); debugLog('BG: Library cleared','info'); }
 function openBgViewerAt(index){
-  let list=[]; try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(e){ debugLog(`BG: library parse error: ${e.message}`, 'warn', true); }
+  let list = S.getJSON(K.BG_LIBRARY, []);
   if (!list.length) return;
   bgViewerIndex = Math.max(0, Math.min(index, list.length-1));
   const overlay = document.getElementById('bgViewerOverlay');
@@ -1105,7 +953,7 @@ function openBgViewerAt(index){
 }
 function closeBgViewer(){ const o=document.getElementById('bgViewerOverlay'); o.classList.remove('visible'); o.setAttribute('aria-hidden','true'); }
 function stepBgViewer(dir){
-  let list=[]; try{ list=JSON.parse(localStorage.getItem('bgLibrary')||'[]'); }catch(e){ debugLog(`BG: library parse error: ${e.message}`, 'warn', true); }
+  let list = S.getJSON(K.BG_LIBRARY, []);
   if (!list.length) return; bgViewerIndex = (bgViewerIndex + dir + list.length) % list.length;
   document.getElementById('bgViewerImage').src = list[bgViewerIndex].url;
   document.getElementById('bgViewerCounter').textContent = `${bgViewerIndex+1} / ${list.length}`;
@@ -1249,23 +1097,15 @@ function applyAIProposedSettings(updates) {
 function handleIncludeTutorialInContextChange(event) {
     const value = event.target.checked;
     window.includeTutorialInContext = value;
-    try {
-        localStorage.setItem('includeTutorialInContext', value.toString());
-        debugLog(`Include Tutorial in Context changed to: ${value}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist includeTutorialInContext: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.INCLUDE_TUTORIAL_IN_CONTEXT, value);
+    debugLog(`Include Tutorial in Context changed to: ${value}`, 'info');
 }
 
 function handleDisableAutoOfflineChange(event) {
     const value = event.target.checked;
     window.disableAutoOfflineMode = value;
-    try {
-        localStorage.setItem('disableAutoOfflineMode', value.toString());
-        debugLog(`Disable automatic Offline Mode changed to: ${value}`, 'info');
-    } catch (e) {
-        debugLog(`Failed to persist disableAutoOfflineMode: ${e.message}`, 'error');
-    }
+    S.setBoolean(K.DISABLE_AUTO_OFFLINE_MODE, value);
+    debugLog(`Disable automatic Offline Mode changed to: ${value}`, 'info');
 }
 
 window.applyAIProposedSettings = applyAIProposedSettings;
@@ -1288,12 +1128,8 @@ document.getElementById('resetModelPositionBtn')?.addEventListener('click', ()=>
 function handleTTSFallbackVoiceChange(event) {
     const value = event.target.value;
     window.ttsFallbackVoiceId = value;
-    try {
-        localStorage.setItem('ttsFallbackVoiceId', value);
-        debugLog(`TTS fallback voice changed to: ${value}`, 'info');
-    } catch (e) {
-        debugLog(`Could not persist ttsFallbackVoiceId: ${e.message}`, 'warn');
-    }
+    S.setString(K.TTS_FALLBACK_VOICE_ID, value);
+    debugLog(`TTS fallback voice changed to: ${value}`, 'info');
 }
 window.handleTTSFallbackVoiceChange = handleTTSFallbackVoiceChange;
 
@@ -1301,24 +1137,16 @@ function handleEnableKokoroVoiceChange(event) {
     const value = event.target.checked;
     window.enableKokoro = value;
     window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
-    try {
-        localStorage.setItem('enableKokoro', value.toString());
-        debugLog(`Enable Kokoro (Local) changed to: ${value}`, 'info');
-    } catch (e) {
-        debugLog(`Could not persist enableKokoro: ${e.message}`, 'warn');
-    }
+    S.setBoolean(K.ENABLE_KOKORO, value);
+    debugLog(`Enable Kokoro (Local) changed to: ${value}`, 'info');
 }
 window.handleEnableKokoroVoiceChange = handleEnableKokoroVoiceChange;
 
 function handleKokoroVoiceChange(event) {
     const value = event.target.value;
     window.selectedKokoroVoiceId = value;
-    try {
-        localStorage.setItem('selectedKokoroVoiceId', value);
-        debugLog(`Kokoro voice changed to: ${value}`, 'info');
-    } catch (e) {
-        debugLog(`Could not persist selectedKokoroVoiceId: ${e.message}`, 'warn');
-    }
+    S.setString(K.SELECTED_KOKORO_VOICE_ID, value);
+    debugLog(`Kokoro voice changed to: ${value}`, 'info');
 }
 window.handleKokoroVoiceChange = handleKokoroVoiceChange;
 
@@ -1327,7 +1155,7 @@ window.handleKokoroVoiceChange = handleKokoroVoiceChange;
 function handleEnableUserMessageQueueChange(event) {
   const enabled = !!event.target.checked;
   window.isUserMessageQueueEnabled = enabled;
-  try { localStorage.setItem('isUserMessageQueueEnabled', enabled ? 'true' : 'false'); } catch(_) { debugLog(`Failed to persist isUserMessageQueueEnabled: ${_.message}`, 'warn', true); }
+  S.setBoolean(K.IS_USER_MESSAGE_QUEUE_ENABLED, enabled);
   debugLog(`User Message Queue set to: ${enabled}`, 'info');
 
   // Show/Hide queue status in chat
@@ -1340,7 +1168,7 @@ function handleEnableUserMessageQueueChange(event) {
 function handleEnableAmbientQueueChange(event) {
   const enabled = !!event.target.checked;
   window.isAmbientQueueEnabled = enabled;
-  try { localStorage.setItem('isAmbientQueueEnabled', enabled ? 'true' : 'false'); } catch(_) { debugLog(`Failed to persist isAmbientQueueEnabled: ${_.message}`, 'warn', true); }
+  S.setBoolean(K.IS_AMBIENT_QUEUE_ENABLED, enabled);
   debugLog(`Ambient Mode set to: ${enabled}`, 'info');
 
   if (!enabled && window.ambientTimer) {
@@ -1356,7 +1184,7 @@ function handleAmbientDelayChange(event) {
   window.ambientDelay = value;
   const valEl = document.getElementById('ambientDelayValue');
   if (valEl) valEl.textContent = value + 's';
-  try { localStorage.setItem('ambientDelay', value.toString()); } catch(_) { debugLog(`Failed to persist ambientDelay: ${_.message}`, 'warn', true); }
+  S.setNumber(K.AMBIENT_DELAY, value);
   debugLog(`Ambient Delay set to: ${value}s`, 'info');
   
   if (window.isAmbientQueueEnabled && !window.isAIResponding) {
@@ -1494,14 +1322,14 @@ async function preloadAmbientTTS(text) {
 function handleAmbientPromptChange(event) {
   const val = event.target.value;
   window.ambientPrompt = val;
-  try { localStorage.setItem('ambientPrompt', val); } catch(_) { debugLog(`Failed to persist ambientPrompt: ${_.message}`, 'warn', true); }
+  S.setString(K.AMBIENT_PROMPT, val);
   debugLog('Ambient prompt updated.', 'info');
 }
 
 function handleEnableAmbientPreloadChange(event) {
   const enabled = !!event.target.checked;
   window.isAmbientPreloadEnabled = enabled;
-  try { localStorage.setItem('isAmbientPreloadEnabled', enabled ? 'true' : 'false'); } catch(_) { debugLog(`Failed to persist isAmbientPreloadEnabled: ${_.message}`, 'warn', true); }
+  S.setBoolean(K.IS_AMBIENT_PRELOAD_ENABLED, enabled);
   debugLog(`Ambient Preload set to: ${enabled}`, 'info');
   if (!enabled) window.ambientPreloadBuffer = null;
 }

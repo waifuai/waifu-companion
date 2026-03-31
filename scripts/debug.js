@@ -88,12 +88,8 @@ function toggleDebugger() {
   debugPanel.classList.toggle('visible');
   enableDebuggerCheckbox.checked = isDebugging;
 
-  try {
-    localStorage.setItem('debugPanelVisible', isDebugging.toString());
-    if (typeof trackEvent === 'function') trackEvent('debug_panel_toggled', { visible: isDebugging });
-  } catch (e) {
-    debugLog(`Failed to persist debugPanelVisible: ${e.message}`, 'error');
-  }
+  AppStorage.setBoolean(AppStorage.KEYS.DEBUG_PANEL_VISIBLE, isDebugging);
+  if (typeof trackEvent === 'function') trackEvent('debug_panel_toggled', { visible: isDebugging });
 }
 
 function copyDebugLog() {
