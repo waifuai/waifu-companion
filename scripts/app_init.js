@@ -151,7 +151,7 @@ window.addEventListener('load', async () => { // Make async to await model load
 
   // --- Initialize Context Preferences ---
   const storedIncludeTime = localStorage.getItem('includeTimeInContext');
-  includeTimeInContext = storedIncludeTime !== null ? (storedIncludeTime === 'true') : true;
+  includeTimeInContext = storedIncludeTime !== null ? (storedIncludeTime === 'true') : false;
   if (includeTimeCheckbox) includeTimeCheckbox.checked = includeTimeInContext;
   debugLog(`Include time in context initialized to: ${includeTimeInContext}`, 'info');
   

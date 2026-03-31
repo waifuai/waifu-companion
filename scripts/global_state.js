@@ -86,7 +86,7 @@ window.enableVoice = true;
 window.selectedVoiceId = 'en-female';
 window.ttsChunkLimit = 300;
 window.ttsVolume = 1.0;
-window.includeTimeInContext = true;
+window.includeTimeInContext = false;
 window.includeBatteryInContext = false;
 window.translateUI = false;
 
