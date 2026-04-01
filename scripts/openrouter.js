@@ -3,16 +3,15 @@
  * 
  * Provides a compatible interface to OpenRouter's API for chat completions.
  * Supports configuration of API key and model through localStorage.
+ * 
+ * Model priority is defined in model_priority.js
  */
 
 const OpenRouterAPI = {
   API_URL: 'https://openrouter.ai/api/v1/chat/completions',
 
-  DEFAULT_MODEL: 'stepfun/step-3.5-flash:free',
-  DEFAULT_FALLBACK_MODELS: [
-    'nvidia/nemotron-3-super-120b-a12b:free',
-    'qwen/qwen3.6-plus-preview:free'
-  ],
+  DEFAULT_MODEL: MODEL_PRIORITY[0],
+  DEFAULT_FALLBACK_MODELS: [MODEL_PRIORITY[1], MODEL_PRIORITY[2]],
 
   SITE_NAME: 'Waifu AI',
   SITE_URL: 'https://waifuai.com',

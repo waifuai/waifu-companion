@@ -368,7 +368,7 @@ function initProviders() {
     openRouterApiKeyInput.addEventListener('blur', handleOpenRouterApiKeyChange);
   }
   if (openRouterModelInput) {
-    const defaultModel = window.OpenRouterAPI?.DEFAULT_MODEL || 'stepfun/step-3.5-flash:free';
+    const defaultModel = window.OpenRouterAPI?.DEFAULT_MODEL || MODEL_PRIORITY[0];
     window.openRouterModel = AppStorage.getString(AppStorage.KEYS.OPEN_ROUTER_MODEL, defaultModel);
     openRouterModelInput.value = window.openRouterModel;
     openRouterModelInput.placeholder = defaultModel;
@@ -392,7 +392,7 @@ function initProviders() {
   }
   const openRouterFallbackModel1Input = document.getElementById('openRouterFallbackModel1Input');
   if (openRouterFallbackModel1Input) {
-    const defaultFallback1 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || 'nvidia/nemotron-3-super-120b-a12b:free';
+    const defaultFallback1 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || MODEL_PRIORITY[1];
     window.openRouterFallbackModel1 = AppStorage.getString(AppStorage.KEYS.OPEN_ROUTER_FALLBACK_MODEL_1, defaultFallback1);
     openRouterFallbackModel1Input.value = window.openRouterFallbackModel1;
     openRouterFallbackModel1Input.placeholder = defaultFallback1;
@@ -407,7 +407,7 @@ function initProviders() {
   }
   const openRouterFallbackModel2Input = document.getElementById('openRouterFallbackModel2Input');
   if (openRouterFallbackModel2Input) {
-    const defaultFallback2 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || 'qwen/qwen3.6-plus-preview:free';
+    const defaultFallback2 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || MODEL_PRIORITY[2];
     window.openRouterFallbackModel2 = AppStorage.getString(AppStorage.KEYS.OPEN_ROUTER_FALLBACK_MODEL_2, defaultFallback2);
     openRouterFallbackModel2Input.value = window.openRouterFallbackModel2;
     openRouterFallbackModel2Input.placeholder = defaultFallback2;

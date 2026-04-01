@@ -277,7 +277,7 @@ function handleOpenRouterApiKeyChange(event) {
 
 function handleOpenRouterModelChange(event) {
     const val = event.target.value.trim();
-    const fallbackModel = window.OpenRouterAPI?.DEFAULT_MODEL || 'stepfun/step-3.5-flash:free';
+    const fallbackModel = window.OpenRouterAPI?.DEFAULT_MODEL || MODEL_PRIORITY[0];
     window.openRouterModel = val;
     S.setString(K.OPEN_ROUTER_MODEL, val);
     if (event.target) {
@@ -297,7 +297,7 @@ function handleOpenRouterPrimaryEnabledChange(event) {
 
 function handleOpenRouterFallbackModel1Change(event) {
     const value = event.target.value.trim();
-    const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || 'nvidia/nemotron-3-super-120b-a12b:free';
+    const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || MODEL_PRIORITY[1];
     window.openRouterFallbackModel1 = value;
     S.setString(K.OPEN_ROUTER_FALLBACK_MODEL_1, value);
     if (event.target) {
@@ -316,7 +316,7 @@ function handleOpenRouterFallbackModel1EnabledChange(event) {
 
 function handleOpenRouterFallbackModel2Change(event) {
     const value = event.target.value.trim();
-    const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || 'qwen/qwen3.6-plus-preview:free';
+    const fallbackModel = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || MODEL_PRIORITY[2];
     window.openRouterFallbackModel2 = value;
     S.setString(K.OPEN_ROUTER_FALLBACK_MODEL_2, value);
     if (event.target) {

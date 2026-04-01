@@ -152,9 +152,9 @@ AppState.offlineCountdownTimer = null;
 // Provider state
 AppState.useOpenRouter = false;
 AppState.openRouterApiKey = '';
-AppState.openRouterModel = 'stepfun/step-3.5-flash:free';
-AppState.openRouterFallbackModel1 = 'nvidia/nemotron-3-super-120b-a12b:free';
-AppState.openRouterFallbackModel2 = 'qwen/qwen3.6-plus-preview:free';
+AppState.openRouterModel = MODEL_PRIORITY[0];
+AppState.openRouterFallbackModel1 = MODEL_PRIORITY[1];
+AppState.openRouterFallbackModel2 = MODEL_PRIORITY[2];
 AppState.useGroq = false;
 AppState.groqApiKey = '';
 AppState.groqModel = 'llama-3.3-70b-versatile';

@@ -134,7 +134,7 @@ window.UI_STRINGS = {
     openRouterSectionTitle: 'OpenRouter',
     openRouterPrimaryEnabledLabel: 'Enable primary model',
     openRouterModelLabel: '🧬 OpenRouter Model Name',
-    openRouterModelDesc: 'Examples: stepfun/step-3.5-flash:free, nvidia/nemotron-3-super-120b-a12b:free, qwen/qwen3.6-plus-preview:free, etc.',
+    openRouterModelDesc: 'Examples: ' + MODEL_PRIORITY.join(', ') + ', etc.',
     openRouterFallbackModel1EnabledLabel: 'Enable fallback model 1',
     openRouterFallbackModel1Label: '🔄 Fallback Model 1',
     openRouterFallbackModel1Desc: 'First fallback model. Used if the primary model fails.',
