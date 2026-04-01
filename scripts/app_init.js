@@ -235,11 +235,15 @@ async function initModels() {
 
   const savedModelUrl = AppStorage.getString(AppStorage.KEYS.SELECTED_MODEL_URL, '');
   const initialModelUrl = savedModelUrl || defaultModelUrl;
-  try { await loadModel(initialModelUrl); }
-  catch (error) {
+  
+  // Fire and forget Live2D parsing so it doesn't block the serial boot chain
+  loadModel(initialModelUrl).then(() => {
+    debugLog('Initial Live2D model loaded successfully.', 'info');
+  }).catch(error => {
     debugError('Failed to load initial Live2D model', error, { url: initialModelUrl });
-    addMessage(`Sorry, I couldn't load the initial character model (${error.message}).`, false);
-  }
+    if (typeof addMessage === 'function') addMessage(`Sorry, I couldn't load the initial character model (${error.message}).`, false);
+  });
+  
   debugLog('Models initialized.', 'info');
 }
 

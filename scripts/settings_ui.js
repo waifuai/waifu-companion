@@ -245,7 +245,7 @@ function populateModelSelector() {
     listItem.dataset.image = model.image; // Store image path
     listItem.dataset.name = model.name; // Store name
     listItem.innerHTML = `
-      <img src="${model.image}" alt="${model.name}" class="model-selector-option-img">
+      <img data-src="${model.image}" alt="${model.name}" class="model-selector-option-img">
       <span>${model.name}</span>
     `;
     dropdownList.appendChild(listItem);
@@ -284,6 +284,16 @@ function populateModelSelector() {
   // Add click listener to the display area to toggle the dropdown
   selectedDisplay.addEventListener('click', () => {
     const isOpen = dropdownList.style.display === 'block';
+
+    // Lazy load thumbnails on first open
+    if (!isOpen) {
+      const images = dropdownList.querySelectorAll('img[data-src]');
+      images.forEach(img => {
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+      });
+    }
+
     dropdownList.style.display = isOpen ? 'none' : 'block';
     selectedDisplay.classList.toggle('open', !isOpen);
   });

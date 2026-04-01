@@ -1,5 +1,4 @@
-import { KokoroTTS } from "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js";
-
+// Dynamic import used instead of static to prevent blocking load
 /**
  * Silently preloads the Kokoro ONNX model in the background.
  * This is meant to be called at application startup without 'await'.
@@ -34,6 +33,7 @@ window.preloadKokoroInBackground = async function () {
         const targetDevice = hasWebGPU ? "webgpu" : "wasm";
         const targetDtype = hasWebGPU ? "fp32" : "q8";
 
+        const { KokoroTTS } = await import("https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js");
         window.kokoroTTS = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
             dtype: targetDtype, 
             device: targetDevice,
