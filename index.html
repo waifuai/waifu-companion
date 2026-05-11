@@ -1,1009 +1,238 @@
-<html>
-  <head>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-MJCT26J1BK'); </script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-MJCT26J1BK');</script>
 
-    <!-- Core Meta -->
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <!-- SEO -->
-    <title>WaifuAI – Free AI Companion with Live2D & Voice</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaifuAI — Free AI Companion with Live2D & Voice</title>
     <meta name="description" content="Chat with your own AI waifu companion. Free and open-source — Live2D animations, local voice (Kokoro TTS), custom personas, and memory. No login required. 500+ users across 50 countries.">
-    <meta name="keywords" content="AI companion, waifu AI, free AI girlfriend, Live2D chatbot, open source AI waifu, AI waifu chat, character AI alternative, anime AI companion, kokoro TTS, OpenRouter AI">
+    <meta name="keywords" content="AI companion, waifu AI, free AI girlfriend, Live2D chatbot, open source AI waifu, AI waifu chat, anime AI companion, desktop pet, Hermes Agent">
     <meta name="author" content="WaifuAI">
     <link rel="canonical" href="https://waifuai.com/">
 
-    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://waifuai.com/">
-    <meta property="og:title" content="WaifuAI – Free AI Companion with Live2D & Voice">
-    <meta property="og:description" content="Open-source AI companion with Live2D animations, local TTS voice, memory, and custom personas. Free to use, no login needed.">
+    <meta property="og:title" content="WaifuAI — Free AI Companion with Live2D & Voice">
+    <meta property="og:description" content="Open-source AI companion with Live2D animations, voice, memory, and custom personas. Free to use, no login needed.">
     <meta property="og:image" content="https://waifuai.com/favicon.png">
-    <meta property="og:site_name" content="WaifuAI">
-    <meta property="og:locale" content="en_US">
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@thewaifuai">
-    <meta name="twitter:title" content="WaifuAI – Free AI Companion with Live2D & Voice">
+    <meta name="twitter:title" content="WaifuAI — Free AI Companion with Live2D & Voice">
     <meta name="twitter:description" content="Open-source AI waifu companion. Live2D, voice, memory, custom personas. Free, no login.">
-    <meta name="twitter:image" content="https://waifuai.com/favicon.png">
 
-    <!-- Structured Data -->
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-friendly site description">
+
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "WaifuAI",
       "url": "https://waifuai.com/",
-      "description": "Free open-source AI companion featuring Live2D animations, local Kokoro TTS voice synthesis, conversation memory, and fully customizable personas. Powered by OpenRouter LLMs.",
+      "description": "Free open-source AI companion with Live2D animations, voice synthesis, conversation memory, and customizable personas. Powered by OpenRouter.",
       "applicationCategory": "EntertainmentApplication",
       "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "author": {
-        "@type": "Organization",
-        "name": "WaifuAI",
-        "url": "https://waifuai.com/"
-      }
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Organization", "name": "WaifuAI", "url": "https://waifuai.com/" },
+      "sameAs": [
+        "https://github.com/waifuai",
+        "https://waifuai.itch.io/",
+        "https://www.youtube.com/@thewaifuai",
+        "https://x.com/thewaifuai"
+      ]
     }
     </script>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="favicon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
 
-    <!-- Live2D & App Scripts (unchanged) -->
-    <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pixi.js@5.3.3/dist/pixi.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.6/dayjs.min.js"></script>
-    <link rel="stylesheet" href="styles/tokens.css">
-    <link rel="stylesheet" href="styles/chat.css">
-    <link rel="stylesheet" href="styles/settings.css">
-    <link rel="stylesheet" href="styles/overlays.css">
-    <link rel="stylesheet" href="styles/debug.css">
-    <link rel="stylesheet" href="styles/responsive.css">
-  </head>
-  <body>
-    <noscript>
-      <div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">
-        <h1>WaifuAI – Free AI Companion</h1>
-        <p>
-          WaifuAI is a free, open-source AI companion web app featuring real-time
-          Live2D animated characters, local high-quality voice synthesis via Kokoro TTS,
-          conversation memory, and fully customizable AI personas. No account or login required.
-        </p>
-        <h2>Features</h2>
-        <ul>
-          <li>Live2D animated waifu characters with emotion expressions</li>
-          <li>Local voice synthesis using Kokoro TTS — runs in your browser</li>
-          <li>Powered by OpenRouter and Groq — supports 100+ LLMs including free models</li>
-          <li>Conversation memory and rolling chat summaries</li>
-          <li>Custom persona system prompts — build any character you want</li>
-          <li>Ambient mode — AI speaks unprompted during silence</li>
-          <li>Multi-language support across 50+ languages</li>
-          <li>Fully client-side — no backend, no data collection</li>
-          <li>500+ users across 51 countries</li>
-          <li>100% free and open-source (MIT-0 license)</li>
-        </ul>
-        <h2>What is an AI Companion?</h2>
-        <p>
-          An AI companion is a conversational AI that simulates a personal relationship —
-          offering emotional support, entertainment, and interactive roleplay. WaifuAI
-          is a free alternative to Character.AI, Replika, and similar platforms, with full
-          user control and no subscription required.
-        </p>
-        <h2>Links</h2>
-        <ul>
-          <li><a href="https://github.com/waifuai">GitHub (open source)</a></li>
-          <li><a href="https://waifuai.blogspot.com/">Blog</a></li>
-          <li><a href="https://waifuai.itch.io/waifu">itch.io</a></li>
-        </ul>
-      </div>
-    </noscript>
-    <button class="settings-button">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0-1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-      </svg>
-    </button>
+        .hero {
+            text-align: center;
+            padding: 4rem 1.5rem 3rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .hero h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #ff6b9d, #c084fc, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.75rem;
+        }
+        .hero p {
+            font-size: 1.15rem;
+            color: #aaa;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 0.8rem 1.8rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(255,107,157,0.3); }
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b9d, #c084fc);
+            color: #fff;
+        }
+        .btn-secondary {
+            border: 1.5px solid #333;
+            color: #ccc;
+            background: transparent;
+        }
+        .btn-secondary:hover { border-color: #ff6b9d; color: #ff6b9d; }
 
-    <div class="settings-panel" id="settingsPanel">
-      <div class="settings-search-container">
-        <input type="text" id="settingsSearch" class="settings-search-input" placeholder="Search settings..." data-ui-key="searchSettingsPlaceholder">
-        <span class="search-icon">🔍</span>
-      </div>
-      <div id="settingsSearchResults" class="settings-search-results" style="display: none;"></div>
-      <div id="settingsMainMenu" class="settings-main-menu">
-        <div class="settings-category-label">AI & Language</div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-language" role="button" tabindex="0" aria-label="Language Settings">
-          <span class="icon">🌐</span> <span data-ui-key="languageSettingsTitle">Language Settings</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-openrouter" role="button" tabindex="0" aria-label="LLM Provider Settings">
-          <span class="icon">🤖</span> <span data-ui-key="llmSettingsTitle">LLM Provider</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-persona" role="button" tabindex="0" aria-label="Persona System Prompt Settings">
-          <span class="icon">🧠</span> <span data-ui-key="personaSettingsTitle">Persona System Prompt</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-memory" role="button" tabindex="0" aria-label="Memory Settings">
-          <span class="icon">🧵</span> <span data-ui-key="memorySettingsTitle">Memory Settings</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-context" role="button" tabindex="0" aria-label="Context Settings">
-          <span class="icon">🧠</span> <span data-ui-key="contextSettingsTitle">Context Settings</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-automation" role="button" tabindex="0" aria-label="Automation Settings">
-          <span class="icon">🤖</span> <span data-ui-key="automationSettingsTitle">Automation Settings</span> <span class="chevron">›</span>
-        </div>
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto 3rem;
+            padding: 0 1.5rem;
+        }
+        .feature {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            border: 1px solid #1a1a2e;
+            border-radius: 12px;
+            background: #0f0f1a;
+        }
+        .feature-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .feature h3 { font-size: 1rem; margin-bottom: 0.4rem; color: #fff; }
+        .feature p { font-size: 0.85rem; color: #888; }
 
-        <div class="settings-category-label">Models & Visuals</div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-model" role="button" tabindex="0" aria-label="Model Settings">
-          <span class="icon">🧩</span> <span data-ui-key="modelSettingsTitle">Model Settings</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-display" role="button" tabindex="0">
-          <span class="icon">🖥️</span> <span data-ui-key="displaySettingsTitle">Display Settings</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-background" role="button" tabindex="0">
-          <span class="icon">🖼️</span> <span data-ui-key="backgroundSettingsTitle">Background Image</span> <span class="chevron">›</span>
-        </div>
+        .section-title {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
 
-        <div class="settings-category-label">Audio</div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-voice" role="button" tabindex="0">
-          <span class="icon">🔊</span> <span data-ui-key="voiceSettingsTitle">Voice Settings</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-audio" role="button" tabindex="0">
-          <span class="icon">🎧</span> <span data-ui-key="audioSettingsTitle">Audio Settings</span> <span class="chevron">›</span>
-        </div>
+        .projects {
+            max-width: 900px;
+            margin: 0 auto 3rem;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .project-card {
+            border: 1px solid #1a1a2e;
+            border-radius: 10px;
+            padding: 1.2rem;
+            background: #0f0f1a;
+            transition: border-color 0.2s;
+        }
+        .project-card:hover { border-color: #c084fc; }
+        .project-card h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+        .project-card h3 a { color: #c084fc; text-decoration: none; }
+        .project-card h3 a:hover { text-decoration: underline; }
+        .project-card p { font-size: 0.8rem; color: #888; line-height: 1.4; }
 
-        <div class="settings-category-label">System</div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-preferences" role="button" tabindex="0">
-          <span class="icon">⚙️</span> <span data-ui-key="preferencesTitle">Preferences</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-debug" role="button" tabindex="0">
-          <span class="icon">🐞</span> <span data-ui-key="debugSettingsTitle">Debug Settings</span> <span class="chevron">›</span>
-        </div>
+        .links {
+            text-align: center;
+            padding: 2rem 1.5rem;
+            border-top: 1px solid #1a1a2e;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .links a {
+            color: #60a5fa;
+            text-decoration: none;
+            margin: 0 0.75rem;
+            font-size: 0.9rem;
+        }
+        .links a:hover { text-decoration: underline; }
 
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-links" role="button" tabindex="0">
-          <span class="icon">🔗</span> <span>Links</span> <span class="chevron">›</span>
-        </div>
-        <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-help" role="button" tabindex="0">
-          <span class="icon">❓</span> <span data-ui-key="helpTutorialTitle">Help & Tutorial</span> <span class="chevron">›</span>
-        </div>
-      </div>
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #555;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
 
-      <div id="group-language" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="languageSettingsTitle">🌐 Language Settings</h3>
-        </div>
-        <div class="settings-item">
-          <label for="languageSelector" data-ui-key="responseLanguageLabel">🌍 Language</label>
-          <select id="languageSelector" class="settings-select"></select>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="showTransliterationLabel">
-            <input type="checkbox" id="showTransliteration" /> 🔤 Show Transliteration (for JA, KO)
-          </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="translateUILabel">
-            <input type="checkbox" id="translateUICheckbox" /> 🈯 Translate User Interface (AI)
-          </label>
-        </div>
-        <div class="settings-item">
-          <button id="resetLanguagesBtn" data-ui-key="resetLanguagesBtn">Reset Languages</button>
-        </div>
-      </div>
-
-      <div id="group-openrouter" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="llmSettingsTitle">🤖 LLM Provider</h3>
-        </div>
-        <div class="provider-section">
-          <div class="provider-section-header">
-            <h4 data-ui-key="openRouterSectionTitle">OpenRouter</h4>
-          </div>
-        <div class="settings-item">
-          <label data-ui-key="useOpenRouterLabel">
-            <input type="checkbox" id="useOpenRouterCheckbox" /> Use OpenRouter
-          </label>
-          <div class="value-display" data-ui-desc="useOpenRouterDesc">
-            When enabled, chat, translation, and summarization will call OpenRouter using your API key and model name.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="openRouterApiKeyInput" data-ui-key="openRouterApiKeyLabel">🔑 OpenRouter API Key</label>
-          <input id="openRouterApiKeyInput" class="settings-select" type="new-password" placeholder="sk-or-v1-..." autocomplete="off" />
-          <div class="value-display" data-ui-desc="openRouterApiKeyDesc">
-            This is stored locally in your browser only and sent directly to openrouter.ai over HTTPS.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="openRouterPrimaryEnabledLabel">
-            <input type="checkbox" id="openRouterPrimaryEnabledCheckbox" /> Enable primary model
-          </label>
-        </div>
-        <div class="settings-item">
-          <label for="openRouterModelInput" data-ui-key="openRouterModelLabel">🧬 OpenRouter Model Name</label>
-          <input id="openRouterModelInput" class="settings-select" placeholder="" />
-          <div class="value-display" data-ui-desc="openRouterModelDesc">
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="openRouterFallbackModel1EnabledLabel">
-            <input type="checkbox" id="openRouterFallbackModel1EnabledCheckbox" /> Enable fallback model 1
-          </label>
-        </div>
-        <div class="settings-item">
-          <label for="openRouterFallbackModel1Input" data-ui-key="openRouterFallbackModel1Label">🔄 Fallback Model 1</label>
-          <input id="openRouterFallbackModel1Input" class="settings-select" placeholder="" />
-          <div class="value-display" data-ui-desc="openRouterFallbackModel1Desc">
-            First fallback model. Used if the primary model fails.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="openRouterFallbackModel2EnabledLabel">
-            <input type="checkbox" id="openRouterFallbackModel2EnabledCheckbox" /> Enable fallback model 2
-          </label>
-        </div>
-        <div class="settings-item">
-          <label for="openRouterFallbackModel2Input" data-ui-key="openRouterFallbackModel2Label">🔄 Fallback Model 2</label>
-          <input id="openRouterFallbackModel2Input" class="settings-select" placeholder="" />
-          <div class="value-display" data-ui-desc="openRouterFallbackModel2Desc">
-            Second fallback model. Used if the primary and first fallback models fail.
-          </div>
-        </div>
-        </div>
-        <div class="provider-section">
-          <div class="provider-section-header">
-            <h4 data-ui-key="groqSectionTitle">Groq</h4>
-          </div>
-        <div class="settings-item">
-          <label data-ui-key="useGroqLabel">
-            <input type="checkbox" id="useGroqCheckbox" /> Use Groq
-          </label>
-          <div class="value-display" data-ui-desc="useGroqDesc">
-            When enabled, chat, translation, and summarization will call Groq using your API key and model name.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="groqApiKeyInput" data-ui-key="groqApiKeyLabel">🔑 Groq API Key</label>
-          <input id="groqApiKeyInput" class="settings-select" type="new-password" placeholder="gsk_..." autocomplete="off" />
-          <div class="value-display" data-ui-desc="groqApiKeyDesc">
-            Get your free API key from console.groq.com. Stored locally in your browser.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="groqModelInput" data-ui-key="groqModelLabel">🧬 Groq Model Name</label>
-          <input id="groqModelInput" class="settings-select" placeholder="llama-3.3-70b-versatile, mixtral-8x7b-32768" />
-          <div class="value-display" data-ui-desc="groqModelDesc">
-            Examples: llama-3.3-70b-versatile, llama-3.1-70b-versatile, mixtral-8x7b-32768, etc.
-          </div>
-        </div>
-        </div>
-        <div class="provider-section">
-          <div class="provider-section-header">
-            <h4 data-ui-key="openAICompatibleSectionTitle">OpenAI Compatible</h4>
-          </div>
-        <div class="settings-item">
-          <label data-ui-key="useOpenAICompatibleLabel">
-            <input type="checkbox" id="useOpenAICompatibleCheckbox" /> Use OpenAI Compatible API
-          </label>
-          <div class="value-display" data-ui-desc="useOpenAICompatibleDesc">
-            Connect to any OpenAI-compatible API endpoint (local or remote) by specifying a custom base URL.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="openaiCompatibleBaseUrlInput" data-ui-key="openaiCompatibleBaseUrlLabel">🌐 API Base URL</label>
-          <input id="openaiCompatibleBaseUrlInput" class="settings-select" placeholder="http://localhost:1234/v1" autocomplete="off" />
-          <div class="value-display" data-ui-desc="openaiCompatibleBaseUrlDesc">
-            The base URL of your OpenAI-compatible API (e.g. http://localhost:1234/v1 for LM Studio, or a custom endpoint). Do not include /chat/completions.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="openaiCompatibleApiKeyInput" data-ui-key="openaiCompatibleApiKeyLabel">🔑 API Key</label>
-          <input id="openaiCompatibleApiKeyInput" class="settings-select" type="new-password" placeholder="sk-..." autocomplete="off" />
-          <div class="value-display" data-ui-desc="openaiCompatibleApiKeyDesc">
-            API key for the endpoint. Use any value if your local server does not require authentication.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="openaiCompatibleModelInput" data-ui-key="openaiCompatibleModelLabel">🧬 Model Name</label>
-          <input id="openaiCompatibleModelInput" class="settings-select" placeholder="gpt-3.5-turbo, llama-3, ..." />
-          <div class="value-display" data-ui-desc="openaiCompatibleModelDesc">
-            The model name as expected by your API endpoint.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="openaiCompatibleCorsProxyInput" data-ui-key="openaiCompatibleCorsProxyLabel">🔗 CORS Proxy URL</label>
-          <input id="openaiCompatibleCorsProxyInput" class="settings-select" placeholder="https://corsproxy.io/?" autocomplete="off" />
-          <div class="value-display" data-ui-desc="openaiCompatibleCorsProxyDesc">
-            Optional CORS proxy URL to prefix API requests. Leave empty if the API endpoint supports CORS directly.
-          </div>
-        </div>
-        </div>
-      </div>
-
-      <div id="group-model" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="modelSettingsTitle">🧩 Model Settings</h3>
-        </div>
-        <div class="settings-item">
-          <label for="modelSelectorContainer" data-ui-key="selectModelLabel">🎭 Select Model</label>
-          <div id="modelSelectorContainer">
-            <!-- Custom dropdown will be populated here by ui_manager.js -->
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="addCustomModelLabel">➕ Add Custom Model</label>
-          <input id="customModelName" class="settings-select" placeholder="Model name (optional)">
-          <input id="customModelUrl" class="settings-select" placeholder="Model .model3.json URL">
-          <input id="customModelImage" class="settings-select" placeholder="Thumbnail image URL (optional)">
-          <button id="addCustomModelBtn" data-ui-key="addModelBtn">Add Model</button>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="customModelsLabel">📂 Custom Models</label>
-          <select id="customModelsDropdown" class="settings-select"></select>
-        </div>
-        <div class="settings-item" id="customModelInfo"></div>
-        <div class="settings-item">
-          <button id="resetModelPositionBtn" data-ui-key="resetModelPositionBtn">♻️ Reset Model Position & Zoom</button>
-        </div>
-        <div class="settings-item">
-          <button id="clearAllModelsBtn" data-ui-key="clearAllModelsBtn">🗑️ Clear All Models</button>
-        </div>
-        <div class="settings-item">
-          <button id="openModelGalleryBtn" data-ui-key="openModelGalleryBtn">Open Model Gallery</button>
-        </div>
-        <div class="settings-item">
-          <button id="clearCustomModelsBtn" data-ui-key="clearCustomModelsBtn">🗑️ Clear Custom Models</button>
-        </div>
-      </div>
-
-      <div id="group-persona" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="personaSettingsTitle">🧠 Persona System Prompt</h3>
-        </div>
-        <div class="settings-item">
-          <label for="corePersonaPrompt" data-ui-key="corePersonaLabel">🆔 Core Identity</label>
-          <textarea id="corePersonaPrompt" class="settings-textarea" placeholder="Describe who you are fundamentally..."></textarea>
-        </div>
-        <div class="settings-item">
-          <label for="personaPrompt" data-ui-key="personaSystemPromptLabel">🎭 Custom Personality / Roleplay</label>
-          <textarea id="personaPrompt" class="settings-textarea" placeholder="e.g., You are a tsundere childhood friend who secretly has a crush on the user..."></textarea>
-        </div>
+    <section class="hero">
+        <h1>WaifuAI</h1>
+        <p>Your free AI companion with Live2D animations, voice synthesis, memory, and custom personalities. Open source, no login required.</p>
         
-        <div class="settings-item">
-          <div class="button-row">
-            <button id="savePersonaBtn" data-ui-key="savePersonaBtn">Save Persona Settings</button>
-            <button id="resetPersonaBtn" class="reset-button" data-ui-key="resetPersonaBtn">Reset Persona</button>
-          </div>
+        <div class="hero-buttons">
+            <a href="https://websim.com/@thewaifuai/vtuber1" class="btn btn-primary">Try It Now</a>
+            <a href="https://github.com/waifuai/waifu-companion" class="btn btn-secondary">GitHub</a>
+            <a href="https://waifuai.itch.io/waifu" class="btn btn-secondary">Download</a>
         </div>
-      </div>
+    </section>
 
-      <div id="group-memory" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="memorySettingsTitle">🧠 Memory Settings</h3>
+    <section class="features">
+        <div class="feature">
+            <div class="feature-icon">💬</div>
+            <h3>AI Chat</h3>
+            <p>Conversational AI with personality and memory. BYOK via OpenRouter.</p>
         </div>
-        <div class="settings-item">
-          <label for="memorySize" data-ui-key="conversationMemoryLabel">🧵 Conversation Memory Size</label>
-          <input type="range" id="memorySize" min="5" max="50" value="30" />
-          <div class="value-display" data-ui-desc="memorySize">
-            Current: <span id="memorySizeValue">30</span> messages
-          </div>
+        <div class="feature">
+            <div class="feature-icon">🎭</div>
+            <h3>Live2D</h3>
+            <p>Animated character with expressions and reactions.</p>
         </div>
+        <div class="feature">
+            <div class="feature-icon">🔊</div>
+            <h3>Voice</h3>
+            <p>Local TTS via Kokoro. Multiple voices and languages.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🆓</div>
+            <h3>Free & Open</h3>
+            <p>MIT licensed. No account, no tracking, no paywall.</p>
+        </div>
+    </section>
 
-        <div class="settings-item">
-          <label for="summaryTriggerCount" data-ui-key="summaryTriggerCountLabel">⏲️ Summary Trigger (Every N messages)</label>
-          <input type="range" id="summaryTriggerCount" min="5" max="50" step="1" value="30" />
-          <div class="value-display" data-ui-desc="summaryTriggerCount">
-            Trigger after: <span id="summaryTriggerCountValue">30</span> messages
-          </div>
+    <h2 class="section-title">Projects</h2>
+    <section class="projects">
+        <div class="project-card">
+            <h3><a href="https://github.com/waifuai/waifu-companion">Waifu Companion</a></h3>
+            <p>Browser-based AI companion with Live2D, OpenRouter LLM integration, and personality customization.</p>
         </div>
+        <div class="project-card">
+            <h3><a href="https://github.com/waifuai/waifu-sprites">Waifu Sprites</a></h3>
+            <p>Animated desktop companion sprites for Hermes Agent. Multi-pet support with live expressions.</p>
+        </div>
+        <div class="project-card">
+            <h3><a href="https://github.com/waifuai/hermes-waifu">Hermes Waifu</a></h3>
+            <p>Live2D display widget for Hermes Agent. 5 built-in models with drag/resize controls.</p>
+        </div>
+    </section>
 
-        <div class="settings-item">
-          <label for="summaryLengthPreference" data-ui-key="summaryLengthLabel">📏 Summary Target Length</label>
-          <select id="summaryLengthPreference" class="settings-select">
-            <option value="ultra-concise" data-ui-key="summaryLenUltraConcise">Ultra-Concise (1 sentence)</option>
-            <option value="concise" data-ui-key="summaryLenConcise" selected>Concise (Short paragraph)</option>
-            <option value="detailed" data-ui-key="summaryLenDetailed">Detailed (1-2 paragraphs)</option>
-            <option value="comprehensive" data-ui-key="summaryLenComprehensive">Comprehensive (In-depth)</option>
-          </select>
-        </div>
+    <section class="links">
+        <a href="https://github.com/waifuai">GitHub</a>
+        <a href="https://waifuai.itch.io/">itch.io</a>
+        <a href="https://www.youtube.com/@thewaifuai">YouTube</a>
+        <a href="https://x.com/thewaifuai">Twitter</a>
+        <a href="./app/docs/">Docs</a>
+        <a href="/llms.txt">llms.txt</a>
+    </section>
 
-        <div class="settings-item">
-          <label for="conversationSummary" data-ui-key="conversationSummaryLabel">📝 Conversation Summary</label>
-          <textarea id="conversationSummary" class="settings-textarea" placeholder="The AI will automatically update this every 10 messages, but you can edit it here..."></textarea>
-          <div class="button-row">
-            <button id="manualSummarizeBtn" data-ui-key="manualSummarizeBtn">Update Summary from Chat</button>
-          </div>
-        </div>
-      </div>
+    <footer class="footer">
+        Built by <a href="https://x.com/thewaifuai" style="color:#60a5fa;text-decoration:none">@thewaifuai</a> · Free & Open Source
+    </footer>
 
-      <div id="group-context" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="contextSettingsTitle">🧠 Context Settings</h3>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="includeTimeLabel">
-              <input type="checkbox" id="includeTimeCheckbox" />
-              ⏱️ Include current time in context
-          </label>
-          <div class="value-display" data-ui-desc="includeTimeDesc">
-              Provides the AI with the current date and time for context-aware responses.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="includeBatteryLabel">
-              <input type="checkbox" id="includeBatteryCheckbox" />
-              🔋 Include battery status in context
-          </label>
-          <div class="value-display" data-ui-desc="includeBatteryDesc">
-              Allows the AI to know your device's battery level and charging state.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="includeTutorialLabel">
-            <input type="checkbox" id="includeTutorialInContextCheckbox" /> 📖 Include Tutorial in AI Context
-          </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="allowAIModSettingsLabel">
-            <input type="checkbox" id="allowAIModSettingsCheckbox" /> 🤖 Allow AI to modify settings
-          </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="useJsonForEmotionLabel">
-            <input type="checkbox" id="useJsonForEmotionCheckbox" /> 📝 Use JSON Format for Emotion (Advanced)
-          </label>
-          <div class="value-display" data-ui-desc="useJsonForEmotionDesc">
-            Forces the AI to respond in JSON for emotional reactions, but may cause errors on weaker LLMs.
-          </div>
-        </div>
-      </div>
-
-      <div id="group-voice" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="voiceSettingsTitle">🔊 Voice Settings</h3>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="enableTikTokVoiceLabel">
-            <input type="checkbox" id="enableTikTokVoiceCheckbox" /> 🔈 Enable TikTok TTS
-          </label>
-          <div class="value-display" data-ui-desc="enableTikTokVoiceDesc">
-            Primary voice synthesis using TikTok's free TTS API.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="enableKokoroVoiceLabel">
-            <input type="checkbox" id="enableKokoroVoiceCheckbox" /> 🚀 Enable Local Voice (Kokoro)
-          </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="enableFallbackVoiceLabel">
-            <input type="checkbox" id="enableFallbackVoiceCheckbox" /> 🔄 Enable Fallback Voice (Browser)
-          </label>
-        </div>
-        <div class="settings-item" id="voiceControls">
-          <label for="voiceSelector" data-ui-key="voiceLabel">🎙️ Voice</label>
-          <select id="voiceSelector" class="settings-select"></select>
-          
-          <div style="margin-top: 15px;">
-            <label for="kokoroVoiceSelector" data-ui-key="kokoroVoiceLabel">🚀 Kokoro Voice</label>
-            <select id="kokoroVoiceSelector" class="settings-select"></select>
-            <div class="value-display" data-ui-desc="kokoroVoiceDesc">
-              High-quality local TTS. Preloaded in background for silent handoff.
-            </div>
-          </div>
-
-          <div style="margin-top: 15px;">
-            <label for="ttsFallbackVoiceSelector" data-ui-key="ttsFallbackVoiceLabel">🔄 Fallback Voice</label>
-            <select id="ttsFallbackVoiceSelector" class="settings-select"></select>
-            <div class="value-display" data-ui-desc="ttsFallbackVoiceDesc">
-              Used automatically if the primary voice provider fails (e.g. rate limit).
-            </div>
-          </div>
-          
-          <div style="margin-top: 15px;">
-            <label for="ttsChunkLimit" data-ui-key="ttsChunkLimitLabel">📏 TTS Chunk Character Limit</label>
-            <input type="range" id="ttsChunkLimit" min="50" max="1000" step="50" value="300" />
-            <div class="value-display" data-ui-desc="ttsChunkLimit">
-              Max Characters: <span id="ttsChunkLimitValue">300</span>
-            </div>
-          </div>
-
-          <div style="margin-top: 15px;">
-            <label for="ttsVolume" data-ui-key="ttsVolumeLabel">🔉 TTS Voice Volume</label>
-            <input type="range" id="ttsVolume" min="0" max="1" step="0.01" value="1" />
-            <div class="value-display" data-ui-desc="ttsVolume">
-              Volume: <span id="ttsVolumeValue">1.00</span>
-            </div>
-          </div>
-
-          <div class="button-row" style="margin-top: 15px;">
-            <button id="globalPlayTTSBtn" data-ui-key="playTTSBtn">Play</button>
-            <button id="globalPauseTTSBtn" data-ui-key="pauseTTSBtn">Pause</button>
-            <button id="globalStopTTSBtn" data-ui-key="stopTTSBtn">Stop</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="group-audio" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="audioSettingsTitle">🎧 Audio Settings</h3>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="radioStreamLabel">📻 Radio Stream</label>
-          <div class="radio-controls-inline">
-            <button id="radioToggleBtn" class="radio-toggle-button">
-              <svg id="radioPlayIcon" class="radio-icon" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-              <svg id="radioPauseIcon" class="radio-icon hidden" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-              </svg>
-            </button>
-            <div class="volume-control-inline">
-              <svg class="volume-icon" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.5 12C18.5 14.21 17.53 16.21 16 17.44V6.56C17.53 7.79 18.5 9.79 18.5 12M5 11V13H8L12 17V7L8 11H5Z" />
-              </svg>
-              <input type="range" id="radioVolumeSlider" min="0" max="1" step="0.01" value="0.25" aria-label="Radio volume">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="group-display" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="displaySettingsTitle">🖥️ Display Settings</h3>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="showClockLabel">
-            <input type="checkbox" id="showClockCheckbox" /> ⏰ Show Clock
-          </label>
-        </div>
-        <div class="settings-item">
-          <label for="chatboxOpacity" data-ui-key="chatboxOpacityLabel">🪟 Chatbox Opacity</label>
-          <input type="range" id="chatboxOpacity" min="0.1" max="1" step="0.05" value="0.9" />
-          <div class="value-display" data-ui-desc="chatboxOpacity">
-            Current: <span id="chatboxOpacityValue">0.9</span>
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="messageOpacity" data-ui-key="messageOpacityLabel">💬 Message Bubble Opacity</label>
-          <input type="range" id="messageOpacity" min="0.1" max="1" step="0.05" value="0.3" />
-          <div class="value-display" data-ui-desc="messageOpacity">
-            Current: <span id="messageOpacityValue">0.3</span>
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="bgOpacity" data-ui-key="bgOpacityLabel">🖼️ Background Image Opacity</label>
-          <input type="range" id="bgOpacity" min="0" max="1" step="0.05" value="1.0" />
-          <div class="value-display" data-ui-desc="bgOpacity">
-            Current: <span id="bgOpacityValue">1.0</span>
-          </div>
-        </div>
-      </div>
-
-      <div id="group-background" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="backgroundSettingsTitle">🖼️ Background Image</h3>
-        </div>
-        <div class="settings-item">
-          <label for="bgUrlInput" data-ui-key="bgUrlLabel">🌐 Custom Background URL</label>
-          <input id="bgUrlInput" class="settings-select" placeholder="https://example.com/image.jpg">
-          <button id="applyBgUrlBtn" data-ui-key="applyBgUrlBtn">Set Background</button>
-        </div>
-        <div class="settings-item">
-          <button id="clearBgBtn" data-ui-key="clearBgBtn">🧹 Clear Background</button>
-        </div>
-
-        <div class="settings-item">
-          <label data-ui-key="bgLibraryLabel">📚 Background Library</label>
-          <div id="bgLibrary"></div>
-          <div class="bg-lib-actions">
-            <button id="openBgViewerBtn" data-ui-key="openBgViewerBtn">Open Fullscreen Viewer</button>
-            <button id="toggleBgSelectBtn" data-ui-key="toggleBgSelectBtn">Select</button>
-            <button id="deleteBgSelectedBtn" disabled data-ui-key="deleteBgSelectedBtn">Delete Selected</button>
-            <button id="clearBgLibraryBtn" data-ui-key="clearBgLibraryBtn">Clear Library</button>
-          </div>
-        </div>
-
-        <div class="settings-item">
-          <label data-ui-key="bgFitLabel">📐 Background Fit</label>
-          <div class="bg-fit-group">
-            <button id="bgFitContainBtn" data-ui-key="bgFitContain">Contain</button>
-            <button id="bgFitCoverBtn" data-ui-key="bgFitCover">Cover</button>
-            <button id="bgFitStretchBtn" data-ui-key="bgFitStretch">Stretch</button>
-            <button id="bgFitCoverTopBtn" data-ui-key="bgFitCoverTop">Cover • Top</button>
-            <button id="bgFitCoverCenterBtn" data-ui-key="bgFitCoverCenter">Cover • Center</button>
-            <button id="bgFitCoverBottomBtn" data-ui-key="bgFitCoverBottom">Cover • Bottom</button>
-            <button id="bgFitContainTopBtn" data-ui-key="bgFitContainTop">Contain • Top</button>
-            <button id="bgFitContainCenterBtn" data-ui-key="bgFitContainCenter">Contain • Center</button>
-            <button id="bgFitContainBottomBtn" data-ui-key="bgFitContainBottom">Contain • Bottom</button>
-            <button id="bgFitFitWidthBtn" data-ui-key="bgFitFitWidth">Fit Width</button>
-            <button id="bgFitFitHeightBtn" data-ui-key="bgFitFitHeight">Fit Height</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="group-automation" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="automationSettingsTitle">🤖 Automation Settings</h3>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="enableUserMessageQueueLabel">
-            <input type="checkbox" id="enableUserMessageQueueCheckbox" checked /> 📬 User Message Queue
-          </label>
-          <div class="value-display" data-ui-desc="enableUserMessageQueueDesc">
-            When enabled, user messages queue instead of sending immediately while the AI is responding.
-          </div>
-        </div>
-        <div class="settings-item">
-          <button id="clearQueueBtn" data-ui-key="clearQueueBtn">🧹 Clear Message Queue</button>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="enableAmbientQueueLabel">
-            <input type="checkbox" id="enableAmbientQueueCheckbox" /> 🍃 Ambient Mode
-          </label>
-          <div class="value-display" data-ui-desc="enableAmbientQueueDesc">
-            The AI will speak unprompted after periods of silence.
-          </div>
-          <div id="ambientPromptContainer" style="margin-top: 10px;">
-            <label data-ui-key="ambientPromptLabel" style="font-size: 0.85em; opacity: 0.8; display: block; margin-bottom: 5px;"></label>
-            <textarea id="ambientPromptInput" rows="3" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 5px; font-size: 0.9em; resize: vertical;" data-ui-placeholder="ambientPromptPlaceholder"></textarea>
-          </div>
-        </div>
-        <div class="settings-item">
-          <label for="ambientDelay" data-ui-key="ambientDelayLabel">⏱️ Ambient Trigger Delay (seconds)</label>
-          <input type="range" id="ambientDelay" min="0" max="60" step="1" value="10" />
-          <div class="value-display" data-ui-desc="ambientDelay">
-            Trigger after: <span id="ambientDelayValue">10s</span>
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="ambientPreloadLabel">
-            <input type="checkbox" id="ambientPreloadCheckbox" /> ⚡ Ambient Preload
-          </label>
-          <div class="value-display" data-ui-desc="ambientPreloadDesc">
-            Pre-fetch the next ambient comment in the background for instant response.
-          </div>
-        </div>
-      </div>
-
-      <div id="group-preferences" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="preferencesTitle">⚙️ Preferences</h3>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="alwaysShowSettingsLabel">
-            <input type="checkbox" id="alwaysShowSettingsCheckbox" />
-            🪄 Always show Settings on page load
-          </label>
-          <div class="value-display" data-ui-desc="alwaysShowSettingsDesc">
-            If enabled, the settings panel opens on every load. Otherwise, it remembers your last open/closed state.
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="multipleModelsLabel">
-            <input type="checkbox" id="multipleModelsCheckbox" />
-            🧬 Load multiple models at once
-          </label>
-          <div class="value-display" data-ui-desc="multipleModelsDesc">When enabled, selecting a model adds it without removing existing ones.</div>
-        </div>
-      </div>
-
-      <div id="group-debug" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="debugSettingsTitle">🐞 Debug Settings</h3>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="enableDebuggerLabel">
-            <input type="checkbox" id="enableDebugger" /> 🧰 Enable Debug Panel
-          </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="autoScrollLabel">
-            <input type="checkbox" id="autoScroll" checked /> 📜 Auto-scroll Log
-          </label>
-        </div>
-        <div class="settings-item">
-          <button type="button" data-action="clear-debug-log" data-ui-key="clearDebugLogBtn">🧹 Clear Debug Log</button>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="showVerboseLogsLabel">
-            <input type="checkbox" id="showVerboseLogsCheckbox" checked /> 💬 Show Live2d Debug Logs
-          </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="showAIDebugLogsLabel">
-            <input type="checkbox" id="showAIDebugLogsCheckbox" checked /> 🧠 Show AI Debug Logs
-          </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="showTTSDebugLogsLabel">
-            <input type="checkbox" id="showTTSDebugLogsCheckbox" checked /> 🔊 Show TTS Debug Logs
-          </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="offlineModeLabel">
-            <input type="checkbox" id="forceOfflineCheckbox" /> 🔌 Offline Mode
-          </label>
-        </div>
-        <div class="settings-item">
-          <label for="offlineDuration" data-ui-key="offlineDurationLabel">⏱️ Offline Duration (seconds)</label>
-          <input type="range" id="offlineDuration" min="10" max="3610" step="10" value="300" />
-          <div class="value-display" data-ui-desc="offlineDuration">
-            Reset to Online in: <span id="offlineDurationValue">300s</span>
-          </div>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="showChatContextLabel">
-            <input type="checkbox" id="showChatContextCheckbox" /> 📄 Show Chat Context in Debug
-          </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="disableAutoOfflineLabel">
-            <input type="checkbox" id="disableAutoOfflineCheckbox" /> 🚫 Disable automatic Offline Mode
-          </label>
-          <div class="value-display" data-ui-desc="disableAutoOfflineDesc">
-            When enabled, the app will never switch itself into Offline Mode automatically after connection errors.
-          </div>
-        </div>
-      </div>
-
-
-
-      <div id="group-links" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3>🔗 Links</h3>
-        </div>
-        <div class="settings-item">
-          <div class="links-list">
-            <a class="link-item" href="https://waifuai.com/" target="_blank" rel="noopener">
-              <span class="link-icon">🏠</span>
-              <span class="link-name">Homepage</span>
-            </a>
-            <a class="link-item" href="https://waifuai.com/docs/" target="_blank" rel="noopener">
-              <span class="link-icon">📖</span>
-              <span class="link-name">Docs</span>
-            </a>
-            <a class="link-item" href="https://x.com/thewaifuai" target="_blank" rel="noopener">
-              <span class="link-icon">🐦</span>
-              <span class="link-name">Twitter/X</span>
-            </a>
-            <a class="link-item" href="https://github.com/waifuai" target="_blank" rel="noopener">
-              <span class="link-icon">🐱</span>
-              <span class="link-name">GitHub</span>
-            </a>
-            <a class="link-item" href="https://www.moltbook.com/u/WaifuAI" target="_blank" rel="noopener">
-              <span class="link-icon">📖</span>
-              <span class="link-name">Moltbook</span>
-            </a>
-            <a class="link-item" href="https://youtube.com/@thewaifuai" target="_blank" rel="noopener">
-              <span class="link-icon">▶️</span>
-              <span class="link-name">Youtube</span>
-            </a>
-            <a class="link-item" href="https://waifuai.blogspot.com/" target="_blank" rel="noopener">
-              <span class="link-icon">📰</span>
-              <span class="link-name">Blog</span>
-            </a>
-            <a class="link-item" href="https://openrouter.ai/apps?url=https://waifuai.com" target="_blank" rel="noopener">
-              <span class="link-icon">🌐</span>
-              <span class="link-name">OpenRouter</span>
-            </a>
-            <a class="link-item" href="https://waifuai.itch.io/waifu" target="_blank" rel="noopener">
-              <span class="link-icon">🎮</span>
-              <span class="link-name">itch.io</span>
-            </a>
-            <a class="link-item" href="https://sora.chatgpt.com/profile/thewaifuai" target="_blank" rel="noopener">
-              <span class="link-icon">▶️</span>
-              <span class="link-name">Sora</span>
-            </a>
-            <a class="link-item" href="https://www.sns.id/domain?domain=waifuai" target="_blank" rel="noopener">
-              <span class="link-icon">🔗</span>
-              <span class="link-name">waifuai.sol</span>
-            </a>
-            <a class="link-item" href="https://deepwiki.com/waifuai" target="_blank" rel="noopener">
-              <span class="link-icon">📚</span>
-              <span class="link-name">DeepWiki</span>
-            </a>
-            <a class="link-item" href="https://www.kaggle.com/waifuai" target="_blank" rel="noopener">
-              <span class="link-icon">📊</span>
-              <span class="link-name">Kaggle</span>
-            </a>
-            <a class="link-item" href="https://huggingface.co/WaifuAI" target="_blank" rel="noopener">
-              <span class="link-icon">🤗</span>
-              <span class="link-name">Hugging Face</span>
-            </a>
-            <a class="link-item" href="https://bsky.app/profile/waifuai.bsky.social" target="_blank" rel="noopener">
-              <span class="link-icon">☁️</span>
-              <span class="link-name">Bluesky</span>
-            </a>
-            <a class="link-item" href="https://paypal.com/donate/?hosted_button_id=BCF4QAGPYLCPY" target="_blank" rel="noopener">
-              <span class="link-icon">💸</span>
-              <span class="link-name">Donate (PayPal)</span>
-            </a>
-            <a class="link-item" href="https://cash.app/$thewaifuai" target="_blank" rel="noopener">
-              <span class="link-icon">💵</span>
-              <span class="link-name">Cash App</span>
-            </a>
-            <a class="link-item" href="https://www.tiktok.com/@waifuai" target="_blank" rel="noopener">
-              <span class="link-icon">🎵</span>
-              <span class="link-name">TikTok</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div id="group-help" class="settings-submenu">
-        <div class="submenu-header">
-          <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="helpTutorialTitle">❓ Help & Tutorial</h3>
-        </div>
-        <div id="settingsTutorialContent" class="settings-tutorial-content">
-          <div class="settings-item tutorial-doc-link-card">
-            <p>Open the full guide in the docs:</p>
-            <a class="link-item tutorial-doc-link" href="docs/help.html" target="_blank" rel="noopener">
-              <span class="link-icon">📖</span>
-              <span class="link-name">Help &amp; Tutorial Docs</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="nowtime">
-      <p id="time"></p>
-    </div>
-
-    <!-- Radio Stream Player -->
-    <div class="radio-container" style="display: none;">
-      <audio id="radioPlayer" src="https://listen.moe/stream" aria-label="Anime radio stream player" onerror="handleAudioError(this)">
-        Your browser does not support the audio element or the stream format.
-      </audio>
-    </div>
-
-    <!-- Model Selector -->
-    <div id="modelSelectorContainer_old" class="model-selector-container" style="display: none;">
-      <!-- Moved to settings panel -->
-    </div>
-
-    <!-- Language & Display Settings Container -->
-    <div id="languageDisplaySettingsContainer" class="language-display-settings-container" style="display: none;">
-      <!-- Moved to settings panel -->
-    </div>
-
-    <div id="chatSidebar" class="chat-sidebar">
-      <div class="chat-sidebar-header">
-        <span>Chat History</span>
-        <div class="chat-sidebar-header-actions">
-          <button class="chat-sidebar-action-btn" type="button" data-action="export-all-chats" title="Export All Chats">⬇</button>
-          <button class="chat-sidebar-close" type="button" data-action="toggle-chat-sidebar">✕</button>
-        </div>
-      </div>
-      <div id="chatList" class="chat-list"></div>
-    </div>
-
-    <div class="chat-container">
-      <div class="chat-header">
-        <button class="chat-sidebar-toggle" type="button" data-action="toggle-chat-sidebar" title="Chat History">☰</button>
-        <span id="chatTitle">Chat</span>
-        <span id="chat-status-indicator">OFFLINE</span>
-        <button id="goOnlineBtn" class="go-online-btn" type="button">Go Online</button>
-        <button class="regenerate-title-btn" type="button" data-action="regenerate-title" title="Regenerate Title">🔄</button>
-        <button class="new-chat-btn" type="button" data-action="new-chat" title="New Chat">＋</button>
-      </div>
-      <div class="chat-content">
-        <div class="chat-history" id="chatHistory"></div>
-        <div class="typing-indicator" id="typingIndicator"></div>
-        <div class="chat-input-status-bar" id="queueStatusContainer" style="display: none;">
-          <div class="queue-info">
-            <span id="queueLengthText">Queued: 0</span>
-            <div id="queuedMessagesList" class="queued-messages-list"></div>
-          </div>
-          <button id="clearQueueChatBtn" class="clear-queue-chat-btn" type="button" data-action="clear-queue">Clear</button>
-        </div>
-        <div class="chat-input">
-          <input type="text" id="messageInput" placeholder="Type your message..."/>
-          <button id="micBtn" class="mic-button" aria-label="Start voice input" title="Voice input">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-              <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v4a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 14 0h-2zM11 19h2v3h-2z"/>
-            </svg>
-          </button>
-          <button id="sendMessageBtn" type="button" data-action="send-message">Send</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="debug-panel" id="debugPanel">
-      <div class="debug-header" id="debugHeader">
-        <span class="debug-header-title">🧰 Debug Panel</span>
-        <div class="debug-header-buttons">
-          <button class="debug-header-btn" type="button" data-action="clear-debug-log" title="Clear debug log">🧹</button>
-          <button class="debug-header-btn" type="button" data-action="copy-debug-log" title="Copy debug log to clipboard">📋</button>
-          <button class="debug-header-btn debug-close-btn" type="button" data-action="toggle-debugger" title="Close debug panel">✕</button>
-        </div>
-      </div>
-      <div class="debug-content">
-        <div id="debugLog"></div>
-      </div>
-    </div>
-
-
-
-    <div id="bgViewerOverlay" class="bg-viewer-overlay" aria-hidden="true">
-      <button class="bg-viewer-close" id="bgViewerCloseBtn" aria-label="Close">×</button>
-      <button class="bg-viewer-nav prev" id="bgViewerPrevBtn" aria-label="Previous">‹</button>
-      <img id="bgViewerImage" alt="Background preview">
-      <button class="bg-viewer-nav next" id="bgViewerNextBtn" aria-label="Next">›</button>
-      <div id="bgViewerCounter" class="bg-viewer-counter"></div>
-    </div>
-    <div id="bgLayer" class="bg-layer"></div>
-
-
-    <div id="modelGalleryOverlay" class="model-gallery-overlay" aria-hidden="true">
-      <button class="model-gallery-close" id="modelGalleryCloseBtn" aria-label="Close">×</button>
-      <div class="model-gallery-grid" id="modelGalleryGrid"></div>
-    </div>
-
-    <script src="scripts/model_priority.js"></script>
-    <script src="scripts/ui_strings.js"></script>
-    <script src="scripts/ui_translator.js"></script>
-    <script src="scripts/global_state.js"></script>
-    <script src="scripts/storage.js"></script>
-    <script src="scripts/openrouter.js"></script>
-    <script src="scripts/groq.js"></script>
-    <script src="scripts/openai_compatible.js"></script>
-    <!-- Language data has been refactored into smaller pieces -->
-    <script src="scripts/languages_full_data.js"></script>
-    <script src="scripts/language_data_manager.js"></script>
-    <script src="scripts/language_config.js"></script>
-    <script src="scripts/voice_config.js"></script>
-    <script src="scripts/model_config.js"></script>
-    <script src="scripts/utils.js"></script>
-    <script src="scripts/debug.js"></script>
-    <script src="scripts/particle_system.js"></script>
-    <script src="scripts/animation_controller.js"></script>
-    <script src="scripts/interaction_handlers.js"></script>
-    <script src="scripts/model_controls.js"></script>
-    <script src="scripts/live2d_manager.js"></script>
-    <script src="scripts/audio_context_manager.js"></script>
-    <script src="scripts/sentence_processor.js"></script>
-    <script src="scripts/audio_preloader.js"></script>
-    <script src="scripts/audio_player.js"></script>
-    <script src="scripts/tts_queue_manager.js"></script>
-    <script src="scripts/ai_interface.js"></script>
-    <script src="scripts/ui_manager.js"></script>
-    <script src="scripts/settings_ui.js"></script>
-    <script src="scripts/settings_handlers.js"></script>
-    <script src="scripts/radio_controller.js"></script>
-    <script src="scripts/sound_manager.js"></script>
-    <script src="scripts/chat_manager.js"></script>
-    <script src="scripts/chat_controller.js"></script>
-    <script src="scripts/tutorial.js"></script>
-    <script src="scripts/stt_controller.js"></script>
-    <script src="scripts/local_fallback_engine.js"></script>
-    <script type="module" src="scripts/kokoro_manager.js"></script>
-    <script src="scripts/main.js"></script>
-    <script src="scripts/app_init.js"></script>
-    <script src="scripts/clock.js"></script>
-    <script src="scripts/model_gallery.js"></script>
-  </body>
+</body>
 </html>

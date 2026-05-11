@@ -1,0 +1,21 @@
+# WaifuAI
+
+> Free open-source AI companion with Live2D animations, voice synthesis, memory, and custom personas.
+
+## Main Projects
+
+- [Waifu Companion](https://github.com/waifuai/waifu-companion) — Browser-based AI companion with Live2D character rendering, LLM-powered conversation via OpenRouter, trait-based personality customization, and interactive visual expression system.
+- [Waifu Sprites](https://github.com/waifuai/waifu-sprites) — Animated desktop companion sprites for Hermes Agent with multi-pet support.
+- [Hermes Waifu](https://github.com/waifuai/hermes-waifu) — Live2D display widget for Hermes Agent with 5 built-in models and drag/resize controls.
+- [LLMs Full TXT](https://github.com/waifuai/llms-full-txt) — Generates llms-full.txt files aggregating documentation and source code into AI-optimized Markdown.
+
+## Try It
+
+- Web App: https://waifuai.com/app
+- Download: https://waifuai.itch.io/waifu
+- GitHub: https://github.com/waifuai
+
+## Links
+
+- YouTube: https://www.youtube.com/@thewaifuai
+- Twitter: https://x.com/thewaifuai
