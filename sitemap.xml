@@ -6,52 +6,52 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/index.html</loc>
+    <loc>https://waifuai.com/app/index.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/docs/index.html</loc>
+    <loc>https://waifuai.com/app/docs/index.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/docs/help.html</loc>
+    <loc>https://waifuai.com/app/docs/help.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/docs/memory.html</loc>
+    <loc>https://waifuai.com/app/docs/memory.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/docs/models.html</loc>
+    <loc>https://waifuai.com/app/docs/models.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/docs/openrouter.html</loc>
+    <loc>https://waifuai.com/app/docs/openrouter.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/docs/providers.html</loc>
+    <loc>https://waifuai.com/app/docs/providers.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/docs/settings.html</loc>
+    <loc>https://waifuai.com/app/docs/settings.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/docs/troubleshooting.html</loc>
+    <loc>https://waifuai.com/app/docs/troubleshooting.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://waifuai.com/apps/docs/voice.html</loc>
+    <loc>https://waifuai.com/app/docs/voice.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
