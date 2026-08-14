@@ -82,11 +82,14 @@ const OpenRouterAPI = {
       body.stream = true;
     }
 
+    // No per-model exceptions: a hardcoded list of models that don't support
+    // response_format is exactly the kind of thing that goes stale the
+    // moment a model is renamed or retired (see model_priority.js). If a
+    // model ignores this and returns plain text anyway, parseAIResponse in
+    // ai_interface.js already treats non-JSON output as a valid plain-text
+    // reply, so there's no failure mode to guard against here.
     if (json) {
-      const unsupportedModels = ['stepfun/step-3.5-flash:free', 'stepfun/step-1-flash'];
-      if (!unsupportedModels.includes(model)) {
-        body.response_format = { type: 'json_object' };
-      }
+      body.response_format = { type: 'json_object' };
     }
 
     return body;
