@@ -1,9 +1,11 @@
 /**
  * OpenRouter API Wrapper
- * 
+ *
  * Provides a compatible interface to OpenRouter's API for chat completions.
  * Supports configuration of API key and model through localStorage.
- * 
+ * Request/response handling for a single attempt lives in
+ * llm_provider_base.js; this file adds per-model fallback retry on top.
+ *
  * Model priority is defined in model_priority.js
  */
 
@@ -92,128 +94,49 @@ const OpenRouterAPI = {
 
   async requestCompletionWithFallback(options = {}) {
     const apiKey = this.getApiKey();
-
-    if (!apiKey) {
-      const err = new Error('OpenRouter API key not configured. Please set it in settings.');
-      debugError('[OpenRouter] request failed - no API key', err);
-      throw err;
-    }
+    requireConfigured(!!apiKey, 'OpenRouter', 'OpenRouter API key not configured. Please set it in settings.');
 
     const { messages, json, stream = false } = options;
     const modelsToTry = this.getCandidateModels();
-    const requestStart = Date.now();
     const failures = [];
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': this.SITE_URL,
+      'X-OpenRouter-Title': this.SITE_NAME,
+      'X-Title': this.SITE_NAME,
+      'X-OpenRouter-Categories': 'character-chat',
+    };
 
     for (let index = 0; index < modelsToTry.length; index++) {
       const model = modelsToTry[index];
       const attemptNumber = index + 1;
-      const attemptLabel = `${attemptNumber}/${modelsToTry.length}`;
+      const isLastAttempt = attemptNumber === modelsToTry.length;
       const body = this.buildRequestBody(model, messages, json, stream);
 
-      debugNet(stream ? 'OpenRouter stream request' : 'OpenRouter request', {
-        provider: 'openrouter',
-        method: 'POST',
-        model,
-        messageCount: messages.length,
-        jsonMode: !!json,
-        stream: !!stream,
-        attempt: attemptNumber,
-        totalAttempts: modelsToTry.length
-      });
-
-      let response;
       try {
-        response = await fetch(this.API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': this.SITE_URL,
-            'X-OpenRouter-Title': this.SITE_NAME,
-            'X-Title': this.SITE_NAME,
-            'X-OpenRouter-Categories': 'character-chat',
-          },
-          body: JSON.stringify(body),
-        });
-      } catch (fetchErr) {
-        failures.push(`${model}: ${fetchErr.message}`);
-        debugError(`[OpenRouter] ${stream ? 'stream ' : ''}fetch() failed`, fetchErr, {
-          model,
-          duration_ms: Date.now() - requestStart,
-          messageCount: messages.length,
+        const result = await performLLMRequest({
           url: this.API_URL,
-          attempt: attemptLabel
+          headers,
+          body,
+          stream,
+          providerLabel: 'OpenRouter',
+          providerSlug: 'openrouter',
+          extraLogContext: { attempt: `${attemptNumber}/${modelsToTry.length}` }
         });
-
-        if (attemptNumber < modelsToTry.length) {
-          debugLog(`[OpenRouter] Model ${model} failed to connect. Trying fallback model next.`, 'warn');
-          continue;
-        }
-
-        throw fetchErr;
-      }
-
-      const duration = Date.now() - requestStart;
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const err = new Error(errorData.error?.message || `API request failed with status ${response.status}`);
+        return { ...result, model };
+      } catch (err) {
         failures.push(`${model}: ${err.message}`);
-        debugNet(stream ? 'OpenRouter stream response error' : 'OpenRouter response error', {
-          provider: 'openrouter',
-          status: response.status,
-          statusText: response.statusText,
-          duration,
-          model,
-          errorType: 'HTTPError',
-          errorMsg: err.message,
-          attempt: attemptLabel
-        });
 
-        if (attemptNumber < modelsToTry.length) {
-          debugLog(`[OpenRouter] Model ${model} returned an error. Trying fallback model next.`, 'warn');
+        if (!isLastAttempt) {
+          const reason = err.status ? `returned an error (HTTP ${err.status})` : 'failed to connect';
+          debugLog(`[OpenRouter] Model ${model} ${reason}. Trying fallback model next.`, 'warn');
           continue;
         }
 
         err.failures = failures;
         throw err;
       }
-
-      if (stream) {
-        debugNet('OpenRouter stream connected', {
-          provider: 'openrouter',
-          status: response.status,
-          duration,
-          model,
-          attempt: attemptLabel
-        });
-
-        return {
-          stream: response.body,
-          response,
-          model
-        };
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || '';
-
-      debugNet('OpenRouter response ok', {
-        provider: 'openrouter',
-        status: response.status,
-        duration,
-        model,
-        responseSize: content.length,
-        promptTokens: data.usage?.prompt_tokens,
-        completionTokens: data.usage?.completion_tokens,
-        totalTokens: data.usage?.total_tokens,
-        attempt: attemptLabel
-      });
-
-      return {
-        content,
-        model
-      };
     }
 
     const aggregateError = new Error(`All OpenRouter models failed. ${failures.join(' | ')}`.trim());

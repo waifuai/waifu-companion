@@ -1,8 +1,9 @@
 /**
  * OpenAI-Compatible API Wrapper
- * 
+ *
  * Provides a compatible interface for any OpenAI-compatible API endpoint
- * with a user-configurable base URL.
+ * with a user-configurable base URL. Request/response handling lives in
+ * llm_provider_base.js — this file only resolves config and builds the body.
  */
 
 const OpenAICompatibleAPI = {
@@ -38,192 +39,37 @@ const OpenAICompatibleAPI = {
     return !!this.getBaseUrl() && !!this.getApiKey();
   },
 
-  async createCompletion(options) {
+  buildRequest(options, stream) {
     const apiKey = this.getApiKey();
     const baseUrl = this.getBaseUrl();
-
-    if (!baseUrl) {
-      const err = new Error('OpenAI Compatible API base URL not configured. Please set it in settings.');
-      debugError('[OpenAI Compatible] createCompletion failed - no base URL', err);
-      throw err;
-    }
-
-    if (!apiKey) {
-      const err = new Error('OpenAI Compatible API key not configured. Please set it in settings.');
-      debugError('[OpenAI Compatible] createCompletion failed - no API key', err);
-      throw err;
-    }
+    requireConfigured(!!baseUrl, 'OpenAI Compatible', 'OpenAI Compatible API base URL not configured. Please set it in settings.');
+    requireConfigured(!!apiKey, 'OpenAI Compatible', 'OpenAI Compatible API key not configured. Please set it in settings.');
 
     const model = this.getModel();
-    const apiUrl = this.getApiUrl();
     const { messages, json } = options;
-
-    const body = {
-      model: model,
-      messages: messages,
-    };
-
-    if (json) {
-      body.response_format = { type: 'json_object' };
-    }
-
-    const requestStart = Date.now();
-    debugNet('OpenAI Compatible request', {
-      provider: 'openai_compatible',
-      method: 'POST',
-      model: model,
-      messageCount: messages.length,
-      jsonMode: !!json,
-      url: apiUrl
-    });
-
-    let response;
-    try {
-      response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(body),
-      });
-    } catch (fetchErr) {
-      const duration = Date.now() - requestStart;
-      debugError('[OpenAI Compatible] fetch() failed', fetchErr, {
-        model: model,
-        duration_ms: duration,
-        messageCount: messages.length,
-        url: apiUrl
-      });
-      throw fetchErr;
-    }
-
-    const duration = Date.now() - requestStart;
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const err = new Error(errorData.error?.message || `API request failed with status ${response.status}`);
-      debugNet('OpenAI Compatible response error', {
-        provider: 'openai_compatible',
-        status: response.status,
-        statusText: response.statusText,
-        duration: duration,
-        model: model,
-        errorType: 'HTTPError',
-        errorMsg: err.message
-      });
-      throw err;
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
-
-    debugNet('OpenAI Compatible response ok', {
-      provider: 'openai_compatible',
-      status: response.status,
-      duration: duration,
-      model: model,
-      responseSize: content.length,
-      promptTokens: data.usage?.prompt_tokens,
-      completionTokens: data.usage?.completion_tokens,
-      totalTokens: data.usage?.total_tokens
-    });
+    const body = { model, messages };
+    if (stream) body.stream = true;
+    if (json) body.response_format = { type: 'json_object' };
 
     return {
-      content: content
+      url: this.getApiUrl(),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body,
+      stream,
+      providerLabel: 'OpenAI Compatible',
+      providerSlug: 'openai_compatible'
     };
   },
 
+  async createCompletion(options) {
+    return performLLMRequest(this.buildRequest(options, false));
+  },
+
   async createCompletionStream(options) {
-    const apiKey = this.getApiKey();
-    const baseUrl = this.getBaseUrl();
-
-    if (!baseUrl) {
-      const err = new Error('OpenAI Compatible API base URL not configured. Please set it in settings.');
-      debugError('[OpenAI Compatible] createCompletionStream failed - no base URL', err);
-      throw err;
-    }
-
-    if (!apiKey) {
-      const err = new Error('OpenAI Compatible API key not configured. Please set it in settings.');
-      debugError('[OpenAI Compatible] createCompletionStream failed - no API key', err);
-      throw err;
-    }
-
-    const model = this.getModel();
-    const apiUrl = this.getApiUrl();
-    const { messages, json } = options;
-
-    const body = {
-      model: model,
-      messages: messages,
-      stream: true
-    };
-
-    if (json) {
-      body.response_format = { type: 'json_object' };
-    }
-
-    const requestStart = Date.now();
-    debugNet('OpenAI Compatible stream request', {
-      provider: 'openai_compatible',
-      method: 'POST',
-      model: model,
-      messageCount: messages.length,
-      jsonMode: !!json,
-      stream: true,
-      url: apiUrl
-    });
-
-    let response;
-    try {
-      response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(body),
-      });
-    } catch (fetchErr) {
-      const duration = Date.now() - requestStart;
-      debugError('[OpenAI Compatible] stream fetch() failed', fetchErr, {
-        model: model,
-        duration_ms: duration,
-        messageCount: messages.length,
-        url: apiUrl
-      });
-      throw fetchErr;
-    }
-
-    const duration = Date.now() - requestStart;
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const err = new Error(errorData.error?.message || `API request failed with status ${response.status}`);
-      debugNet('OpenAI Compatible stream response error', {
-        provider: 'openai_compatible',
-        status: response.status,
-        statusText: response.statusText,
-        duration: duration,
-        model: model,
-        errorType: 'HTTPError',
-        errorMsg: err.message
-      });
-      throw err;
-    }
-
-    debugNet('OpenAI Compatible stream connected', {
-      provider: 'openai_compatible',
-      status: response.status,
-      duration: duration,
-      model: model
-    });
-
-    return {
-      stream: response.body,
-      response: response
-    };
+    return performLLMRequest(this.buildRequest(options, true));
   }
 };
 
