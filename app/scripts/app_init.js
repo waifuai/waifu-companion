@@ -373,7 +373,19 @@ function initProviders() {
   }
   if (openRouterModelInput) {
     const defaultModel = window.OpenRouterAPI?.DEFAULT_MODEL || MODEL_PRIORITY[0];
-    window.openRouterModel = AppStorage.getString(AppStorage.KEYS.OPEN_ROUTER_MODEL, defaultModel);
+    let storedModel = AppStorage.getString(AppStorage.KEYS.OPEN_ROUTER_MODEL, defaultModel);
+
+    // Discard a stored value if it's a superseded hardcoded default rather
+    // than something the user actually typed, so anyone still carrying an
+    // old default moves to the evergreen one. A model the user picked
+    // themselves is left untouched.
+    if (storedModel && (window.STALE_OPENROUTER_DEFAULTS || []).includes(storedModel)) {
+      debugLog(`Migrating superseded OpenRouter default "${storedModel}".`, 'info');
+      AppStorage.remove(AppStorage.KEYS.OPEN_ROUTER_MODEL);
+      storedModel = defaultModel;
+    }
+
+    window.openRouterModel = storedModel;
     openRouterModelInput.value = window.openRouterModel;
     openRouterModelInput.placeholder = defaultModel;
     openRouterModelInput.addEventListener('change', handleOpenRouterModelChange);
@@ -641,6 +653,9 @@ function makeElementDraggable(el, handle, storageKey) {
   };
   const drag = (e) => {
     if (!isDragging) return;
+    // touchmove is registered with {passive:false} so this is honoured:
+    // without it the page scrolls underneath while you drag a panel.
+    if (e.cancelable) e.preventDefault();
     const p = e.touches ? e.touches[0] : e;
     let currentX = p.clientX - initialX, currentY = p.clientY - initialY;
     const rect = el.getBoundingClientRect();

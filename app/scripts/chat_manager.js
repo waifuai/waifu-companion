@@ -7,16 +7,14 @@ const ACTIVE_CHAT_KEY = 'activeChatId';
 // --- Internal helpers ---
 
 function _getChatIndex() {
-  try {
-    return JSON.parse(localStorage.getItem(CHAT_INDEX_KEY) || '[]');
-  } catch (e) {
-    debugLog('ChatManager: Failed to parse chat index', 'error');
-    return [];
-  }
+  return AppStorage.getJSON(CHAT_INDEX_KEY, []);
 }
 
 function _saveChatIndex(index) {
-  localStorage.setItem(CHAT_INDEX_KEY, JSON.stringify(index));
+  // Routed through AppStorage so a full quota reclaims space and retries
+  // instead of throwing mid-write — this is the key that grows with every
+  // chat created, renamed, or touched.
+  AppStorage.setJSON(CHAT_INDEX_KEY, index);
 }
 
 function _generateId() {
@@ -24,16 +22,11 @@ function _generateId() {
 }
 
 function _getChatData(chatId) {
-  try {
-    return JSON.parse(localStorage.getItem('chatData_' + chatId) || 'null');
-  } catch (e) {
-    debugLog(`ChatManager: Failed to parse chat data for ${chatId}`, 'error');
-    return null;
-  }
+  return AppStorage.getJSON('chatData_' + chatId, null);
 }
 
 function _saveChatData(chatId, data) {
-  localStorage.setItem('chatData_' + chatId, JSON.stringify(data));
+  AppStorage.setJSON('chatData_' + chatId, data);
 }
 
 function _deleteChatData(chatId) {
@@ -123,6 +116,12 @@ function saveCurrentChat(chatId) {
 
 // Load a chat's data into the global state
 function loadChat(chatId) {
+  // Stop anything still running for the conversation being replaced. Without
+  // this, switching chats mid-reply left TTS speaking and isProcessing set
+  // for the PREVIOUS conversation, and a queued message could be sent into
+  // the chat that was just opened.
+  if (typeof window.resetConversationRuntime === 'function') window.resetConversationRuntime();
+
   const data = _getChatData(chatId);
   if (!data) {
     debugLog(`ChatManager: No data found for chat ${chatId}`, 'warn');
@@ -134,9 +133,9 @@ function loadChat(chatId) {
   window.messageCountSinceLastSummary = data.messageCountSinceLastSummary || 0;
 
   // Persist to legacy keys so existing code continues to work
-  localStorage.setItem('conversationContext', JSON.stringify(window.conversationContext));
-  localStorage.setItem('conversationSummary', window.conversationSummary);
-  localStorage.setItem('messageCountSinceLastSummary', window.messageCountSinceLastSummary.toString());
+  AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, window.conversationContext);
+  AppStorage.setString(AppStorage.KEYS.CONVERSATION_SUMMARY, window.conversationSummary);
+  AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, window.messageCountSinceLastSummary);
 
   setActiveChatId(chatId);
 
@@ -306,19 +305,20 @@ async function generateChatTitle(chatId, force = false) {
     .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.substring(0, 150)}`)
     .join('\n');
 
-  try {
-    let title = null;
+  if (window.isOfflineMode || window.forceOfflineMode) {
+    debugLog('ChatManager: Skipping title generation while offline.', 'info');
+    return;
+  }
 
-    if (window.GroqAPI && window.GroqAPI.isConfigured()) {
-      const result = await window.GroqAPI.createCompletion({
-        messages: [
-          { role: 'system', content: 'Generate a very short title (3-6 words) that summarizes the topic of this conversation. Reply with ONLY the title, no quotes or punctuation.' },
-          { role: 'user', content: contextText }
-        ]
-      });
-      title = result?.content;
-    } else if (window.OpenRouterAPI && window.OpenRouterAPI.isConfigured()) {
-      const result = await window.OpenRouterAPI.createCompletion({
+  try {
+    // Routed through resolveLLMProvider so this works with whichever of
+    // Groq / OpenRouter / OpenAI-compatible the user has configured — it used
+    // to only try Groq and OpenRouter, so OpenAI-compatible users never got
+    // auto-generated titles.
+    const provider = typeof resolveLLMProvider === 'function' ? resolveLLMProvider() : null;
+    let title = null;
+    if (provider) {
+      const result = await provider.api.createCompletion({
         messages: [
           { role: 'system', content: 'Generate a very short title (3-6 words) that summarizes the topic of this conversation. Reply with ONLY the title, no quotes or punctuation.' },
           { role: 'user', content: contextText }
@@ -358,6 +358,9 @@ function toggleChatSidebar() {
 // --- UI Event Handlers ---
 
 function handleNewChat() {
+  // Stop anything still running in the chat being left behind.
+  if (typeof window.resetConversationRuntime === 'function') window.resetConversationRuntime();
+
   // Save current chat first
   const currentId = getActiveChatId();
   if (currentId) {
@@ -370,17 +373,20 @@ function handleNewChat() {
   window.conversationContext = [];
   window.conversationSummary = '';
   window.messageCountSinceLastSummary = 0;
-  localStorage.setItem('conversationContext', '[]');
-  localStorage.setItem('conversationSummary', '');
-  localStorage.setItem('messageCountSinceLastSummary', '0');
+  AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, []);
+  AppStorage.setString(AppStorage.KEYS.CONVERSATION_SUMMARY, '');
+  AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
 
   // Clear chat UI
   if (window.chatHistory) window.chatHistory.innerHTML = '';
   const summaryEl = document.getElementById('conversationSummary');
   if (summaryEl) summaryEl.value = '';
 
-  // Update header
-  _updateChatHeader(name);
+  // Update header. This used to reference an undefined `name`, which resolves
+  // to window.name (a built-in cross-frame global, normally '""') instead of
+  // throwing — so the header silently went blank instead of showing the new
+  // chat's name.
+  _updateChatHeader('New Chat');
 
   renderChatList();
   debugLog('ChatManager: Started new chat', 'info');
@@ -392,7 +398,7 @@ function handleSwitchChat(chatId) {
 
   // Save current chat
   if (currentId) {
-    saveCurrentChat(chatId === currentId ? currentId : currentId);
+    saveCurrentChat(currentId);
   }
 
   // Load the target chat

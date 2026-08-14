@@ -15,24 +15,18 @@ function deleteMessage(messageElement, content, isUser) {
 
   // Remove from conversationContext
   const role = isUser ? 'user' : 'assistant';
-  // Use findLastIndex to target the specific instance if there are duplicates (more likely to delete the one clicked)
-  // However, simple findIndex is usually enough for most cases.
   const index = conversationContext.findIndex(m => m.content === content && m.role === role);
 
   if (index !== -1) {
     conversationContext.splice(index, 1);
-    try {
-      localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
+    if (AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext)) {
       debugLog(`Message deleted from context: "${content.substring(0, 30)}..."`, 'info');
       debugState('Conversation', 'message_deleted', { role: role, remainingContext: conversationContext.length });
 
-      // Save to chat manager
       if (window.ChatManager) {
         const activeId = window.ChatManager.getActiveChatId();
         if (activeId) window.ChatManager.saveCurrentChat(activeId);
       }
-    } catch (e) {
-      debugError('Failed to update localStorage after message deletion', e, { key: 'conversationContext' });
     }
   } else {
     debugLog('Message removed from UI, but not found in conversationContext (may have been a system/sample message).', 'info');
@@ -56,16 +50,19 @@ async function sendMessage() {
     debugLog(`Message queued: "${message}" (Queue length: ${userMessageQueue.length})`, 'info');
     updateQueueUI();
 
-    // If we are not currently waiting for the LLM to respond to the previous message, 
-    // we can start preloading this newly queued message immediately.
     if (!window.isWaitingForAIResponse) {
       preloadNextQueuedMessage();
     }
     return;
   }
 
-  // If already processing and queueing NOT enabled, ignore (default behavior)
-  if (isProcessing) return;
+  // If already processing and queueing NOT enabled, put the text back rather
+  // than silently discarding what the user typed.
+  if (isProcessing) {
+    messageInput.value = message;
+    debugLog('Busy and message queue disabled — message restored to the input box.', 'warn');
+    return;
+  }
 
   // Reset ambient timer and clear buffer on any user activity
   if (window.resetAmbientTimer) window.resetAmbientTimer();
@@ -74,7 +71,110 @@ async function sendMessage() {
   await sendMessageInternal(message);
 }
 
+// Tears down everything tied to the conversation that's being left behind.
+//
+// Switching or creating a chat used to be able to leave an in-flight reply
+// running: TTS kept speaking, isProcessing stayed set, and the queued
+// messages and ambient timer belonged to the previous conversation — so a
+// reply could land in, and be saved to, the chat the user had just opened.
+function resetConversationRuntime() {
+  // Clear the queue first: stopTTS releases the response, and a non-empty
+  // queue at that moment would immediately start sending into the new chat.
+  window.userMessageQueue = [];
+  window.preloadedQueuedResponse = null;
+  window.isPreloadingQueuedMessage = false;
+
+  if (typeof window.stopTTS === 'function') window.stopTTS();
+
+  isProcessing = false;
+  isAIResponding = false;
+  window.isWaitingForAIResponse = false;
+
+  window.ambientPreloadBuffer = null;
+  window.ambientPreloadTTSBuffer = null;
+  window.isAmbientPreloading = false;
+  window.isAmbientPreloadingTTS = false;
+  if (window.ambientTimer) {
+    clearTimeout(window.ambientTimer);
+    window.ambientTimer = null;
+  }
+
+  if (typeof updateQueueUI === 'function') updateQueueUI();
+  if (typeof showTypingIndicator === 'function') showTypingIndicator(false);
+  debugLog('Conversation runtime reset (TTS stopped, queues and timers cleared).', 'info');
+}
+window.resetConversationRuntime = resetConversationRuntime;
+
+// Drops the oldest messages once the context exceeds the memory size.
+function trimConversationContext() {
+  while (conversationContext.length > maxMemorySize) {
+    conversationContext.shift();
+  }
+}
+window.trimConversationContext = trimConversationContext;
+
+let isSummarizing = false;
+
+// Compresses the oldest slice of the conversation into the running summary.
+//
+// Messages are removed by identity, never by index. This used to capture
+// `slice(0, trigger)` and then, in a `.then()` that resolved much later, run
+// `splice(0, trigger)` against an array that had been shifted and appended to
+// in the meantime — deleting the wrong messages. It also deleted them even
+// when the summary request had failed, since summarizeConversation used to
+// swallow errors and return the previous summary.
+async function maybeSummarizeConversation() {
+  if (isSummarizing) return;
+  if (window.isOfflineMode || window.forceOfflineMode) return;
+
+  const trigger = window.summaryTriggerCount || 20;
+  if (window.messageCountSinceLastSummary < trigger) return;
+  if (conversationContext.length <= trigger) return;
+
+  const summarized = conversationContext.slice(0, trigger);
+  isSummarizing = true;
+  debugLog(`Message threshold (${trigger}) reached. Summarizing ${summarized.length} messages...`, 'info');
+
+  try {
+    const newSummary = await summarizeConversation(summarized, window.conversationSummary);
+
+    window.conversationSummary = newSummary;
+    AppStorage.setString(AppStorage.KEYS.CONVERSATION_SUMMARY, newSummary);
+
+    const summaryEl = document.getElementById('conversationSummary');
+    if (summaryEl) summaryEl.value = newSummary;
+
+    // Remove exactly the messages we summarized, wherever they sit now.
+    const removed = new Set(summarized);
+    const beforeSummarizeTrim = conversationContext.length;
+    conversationContext = conversationContext.filter(m => !removed.has(m));
+    AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
+    debugState('Conversation', 'summarize_trimmed', { before: beforeSummarizeTrim, after: conversationContext.length, removed: summarized.length });
+
+    window.messageCountSinceLastSummary = 0;
+    AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
+    debugLog('Conversation summarized and memory compressed.', 'info');
+    updateSummaryMarker();
+
+    if (window.ChatManager) {
+      const activeId = window.ChatManager.getActiveChatId();
+      if (activeId) window.ChatManager.saveCurrentChat(activeId);
+    }
+  } catch (e) {
+    // Keep every message. Losing history to a failed network call is far
+    // worse than carrying a slightly oversized context into the next request.
+    debugError('Summarization failed — conversation history preserved', e, { messageCount: summarized.length });
+  } finally {
+    isSummarizing = false;
+  }
+}
+window.maybeSummarizeConversation = maybeSummarizeConversation;
+
 async function sendMessageInternal(message, isAmbient = false, cachedResponse = null, ttsPreloadBuffer = null) {
+  let aiResponse = null;
+  let originalReply = '';
+  let messageId = null;
+
   if (typeof trackEvent === 'function' && !isAmbient) {
     trackEvent('chat_message_sent');
   }
@@ -83,8 +183,6 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
   isProcessing = true;
   isAIResponding = true;
 
-  // If ambient triggered, we already cleared the input (no-op)
-  // but if called from somewhere else, we ensure it's logged correctly.
   debugLog(`Processing ${isAmbient ? 'ambient' : 'new'} message: "${message}"`, 'info');
 
   try {
@@ -95,63 +193,29 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
 
       // Increment summary counter
       window.messageCountSinceLastSummary++;
-      localStorage.setItem('messageCountSinceLastSummary', window.messageCountSinceLastSummary.toString());
+      AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, window.messageCountSinceLastSummary);
 
-      // Check if it's time to summarize (every N messages, user defined)
-      const trigger = window.summaryTriggerCount || 20;
-      const canSummarize = !window.isOfflineMode && !window.forceOfflineMode;
+      // Runs in the background so it doesn't block the reply.
+      maybeSummarizeConversation();
 
-      if (canSummarize && window.messageCountSinceLastSummary >= trigger && conversationContext.length >= trigger) {
-        debugLog(`Message threshold (${trigger}) reached. Triggering conversation summarization...`, 'info');
-        const messagesToSummarize = conversationContext.slice(0, trigger);
-
-        // Perform summarization asynchronously so it doesn't block the reply
-        summarizeConversation(messagesToSummarize, window.conversationSummary).then(newSummary => {
-          window.conversationSummary = newSummary;
-          localStorage.setItem('conversationSummary', newSummary);
-
-          // Update UI if summary area exists
-          const summaryEl = document.getElementById('conversationSummary');
-          if (summaryEl) summaryEl.value = newSummary;
-
-          // Remove the summarized messages from context
-          const beforeSummarizeTrim = conversationContext.length;
-          conversationContext.splice(0, trigger);
-          localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
-          debugState('Conversation', 'summarize_trimmed', { before: beforeSummarizeTrim, after: conversationContext.length, removed: trigger });
-
-          // Reset counter
-          window.messageCountSinceLastSummary = 0;
-          localStorage.setItem('messageCountSinceLastSummary', '0');
-          debugLog('Conversation summarized and memory compressed.', 'info');
-          debugState('Conversation', 'summarized', { messagesRemoved: trigger, remainingContext: conversationContext.length });
-          updateSummaryMarker();
-
-          // Save to chat manager
-          if (window.ChatManager) {
-            const activeId = window.ChatManager.getActiveChatId();
-            if (activeId) window.ChatManager.saveCurrentChat(activeId);
-          }
-        });
-      }
-
-      while (conversationContext.length > maxMemorySize) {
-        conversationContext.shift();
-      }
-      localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
+      trimConversationContext();
+      AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
       debugLog('Saved user message to conversation context', 'info');
       debugState('Conversation', 'user_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
       updateSummaryMarker();
 
-      // Save to chat manager
       if (window.ChatManager) {
         const activeId = window.ChatManager.getActiveChatId();
         if (activeId) window.ChatManager.saveCurrentChat(activeId);
       }
     }
 
-    // Determine if we should use streaming (only with OpenRouter)
-    const useStreaming = window.useOpenRouter && window.openRouterApiKey && window.openRouterModel;
+    // Any configured provider (Groq, OpenRouter, OpenAI-compatible) streams —
+    // this used to gate the streaming UI on OpenRouter specifically, so Groq
+    // and OpenAI-compatible users got a plain typing indicator followed by an
+    // instant full message instead of the live streaming UI, even though the
+    // underlying request was already streaming.
+    const useStreaming = typeof resolveLLMProvider === 'function' && !!resolveLLMProvider();
 
     if (cachedResponse) {
       aiResponse = cachedResponse;
@@ -164,19 +228,19 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     } else {
       window.isWaitingForAIResponse = true;
       debugState('ChatController', 'waiting_for_ai', { isWaiting: true });
-      
+
       if (useStreaming) {
-        // ── STREAMING PATH (OpenRouter) ──
+        // ── STREAMING PATH ──
         const streamObj = createStreamingMessage(selectedLanguageCode);
         let streamingReplyText = '';
 
-        aiResponse = await getAIResponse(isAmbient ? message : message, selectedLanguageCode, {
+        aiResponse = await getAIResponse(message, selectedLanguageCode, {
           stream: true,
           onChunk: (text) => {
             streamingReplyText = text;
             updateStreamingMessage(streamObj, text);
           },
-          onComplete: (fullData) => {
+          onComplete: () => {
             debugLog('Streaming complete, full data received', 'info');
           }
         });
@@ -186,34 +250,32 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
           originalReply = streamingReplyText;
         }
 
-        let transliterationText = null;
-        const isErrorReply = originalReply === "Oh no... I'm having trouble connecting. Could we try again in a moment?";
+        // Finalize exactly once. Transliteration arrives later and is
+        // appended to the finished element — calling finalize a second time
+        // used to duplicate the action buttons and append a second text block.
+        messageId = finalizeStreamingMessage(streamObj, originalReply, selectedLanguageCode, null, null);
 
-        if (!isErrorReply && showTransliteration && (selectedLanguageCode === 'ja-JP' || selectedLanguageCode === 'ko-KR')) {
+        if (!aiResponse.isError && showTransliteration && (selectedLanguageCode === 'ja-JP' || selectedLanguageCode === 'ko-KR')) {
           getTransliteration(originalReply, selectedLanguageCode).then(trans => {
-            transliterationText = trans;
-            finalizeStreamingMessage(streamObj, originalReply, selectedLanguageCode, transliterationText, null);
+            if (trans && typeof appendTransliteration === 'function') appendTransliteration(streamObj.messageDiv, trans);
           });
         }
-
-        messageId = finalizeStreamingMessage(streamObj, originalReply, selectedLanguageCode, null, null);
       } else {
-        // ── NON-STREAMING PATH (WebSim / Offline) ──
+        // ── NON-STREAMING PATH (no provider configured / offline fallback) ──
         showTypingIndicator(true);
         aiResponse = await getAIResponse(message, selectedLanguageCode);
         showTypingIndicator(false);
 
         originalReply = aiResponse.reply;
         let transliterationText = null;
-        const isErrorReply = originalReply === "Oh no... I'm having trouble connecting. Could we try again in a moment?";
 
-        if (!isErrorReply && showTransliteration && (selectedLanguageCode === 'ja-JP' || selectedLanguageCode === 'ko-KR')) {
+        if (!aiResponse.isError && showTransliteration && (selectedLanguageCode === 'ja-JP' || selectedLanguageCode === 'ko-KR')) {
           transliterationText = await getTransliteration(originalReply, selectedLanguageCode);
         }
 
         messageId = addMessage(originalReply, false, null, transliterationText, selectedLanguageCode);
       }
-      
+
       window.isWaitingForAIResponse = false;
       debugState('ChatController', 'ai_responded', { isWaiting: false });
     }
@@ -225,37 +287,41 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       }
     }
 
-    const isErrorReply = originalReply === "Oh no... I'm having trouble connecting. Could we try again in a moment?";
+    // Flagged by getAIResponse rather than string-compared, so it survives
+    // translation and rewording of the connection-error text.
+    const isErrorReply = aiResponse.isError === true;
 
-    conversationContext.push({
-      role: "assistant",
-      content: originalReply,
-      id: messageId
-    });
-    // Trim again after assistant reply to respect memory size
-    const contextBeforeTrim = conversationContext.length;
-    while (conversationContext.length > maxMemorySize) {
-      conversationContext.shift();
-    }
-    if (contextBeforeTrim !== conversationContext.length) {
-      debugState('Conversation', 'context_trimmed', { before: contextBeforeTrim, after: conversationContext.length, maxMemory: maxMemorySize });
-    }
-    localStorage.setItem('conversationContext', JSON.stringify(conversationContext));
-    debugLog('Saved AI response to conversation context and trimmed.', 'info');
-    debugState('Conversation', 'assistant_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
-    updateSummaryMarker();
+    // A connection-error notice is UI feedback, not dialogue. Storing it
+    // meant feeding "I'm having trouble connecting" back to the model as its
+    // own turn.
+    if (!isErrorReply) {
+      conversationContext.push({
+        role: "assistant",
+        content: originalReply,
+        id: messageId
+      });
+      const contextBeforeTrim = conversationContext.length;
+      trimConversationContext();
+      if (contextBeforeTrim !== conversationContext.length) {
+        debugState('Conversation', 'context_trimmed', { before: contextBeforeTrim, after: conversationContext.length, maxMemory: maxMemorySize });
+      }
+      AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
+      debugLog('Saved AI response to conversation context and trimmed.', 'info');
+      debugState('Conversation', 'assistant_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
+      updateSummaryMarker();
 
-    // Save to chat manager
-    if (window.ChatManager) {
-      const activeId = window.ChatManager.getActiveChatId();
-      if (activeId) {
-        window.ChatManager.saveCurrentChat(activeId);
-        // Generate title from first message if chat is still named "New Chat"
-        const meta = window.ChatManager.getChatMeta(activeId);
-        if (meta && meta.name === 'New Chat' && meta.messageCount >= 2 && typeof generateChatTitle === 'function') {
-          generateChatTitle(activeId);
+      if (window.ChatManager) {
+        const activeId = window.ChatManager.getActiveChatId();
+        if (activeId) {
+          window.ChatManager.saveCurrentChat(activeId);
+          const meta = window.ChatManager.getChatMeta(activeId);
+          if (meta && meta.name === 'New Chat' && meta.messageCount >= 2 && typeof generateChatTitle === 'function') {
+            generateChatTitle(activeId);
+          }
         }
       }
+    } else {
+      debugLog('Connection-error reply shown to user but kept out of conversation context.', 'warn');
     }
 
     // Trigger preloading for next queued message if available
@@ -313,7 +379,11 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     // Initiate TTS playback
     if (window.enableVoice && !isErrorReply) {
       try {
-        playTTS(originalReply, selectedLanguageCode, messageId, 0, ttsPreloadBuffer);
+        // notifyOnComplete=true: this playback owns the response lifecycle
+        // and must release isProcessing when it drains. Manual per-message
+        // playback passes false so it can't advance the user message queue
+        // out of turn.
+        playTTS(originalReply, selectedLanguageCode, messageId, 0, ttsPreloadBuffer, true);
       } catch (e) {
         debugError('TTS call failed (playTTS threw)', e, {
           messageId: messageId,
@@ -326,7 +396,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     } else {
       if (!window.enableVoice) debugLog('TTS is disabled, skipping playback.', 'info');
       else if (isErrorReply) debugLog('TTS skipped for error message.', 'info');
-      
+
       onAIResponseFullyFinished(); // Trigger next task immediately if no TTS
     }
 
@@ -355,6 +425,14 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
 }
 
 function onAIResponseFullyFinished() {
+  // Idempotent: several paths can reach here for the same response (TTS
+  // drain, TTS error, the catch in sendMessageInternal). Without this guard a
+  // double call shifts two messages off the queue and only sends one of them.
+  if (!isProcessing && !isAIResponding) {
+    debugLog('AI response already finalized, ignoring duplicate completion.', 'info');
+    return;
+  }
+
   debugLog('AI response and TTS fully finished.', 'info');
   debugState('ChatController', 'processing_end', { isProcessing: isProcessing, isAIResponding: isAIResponding, queueRemaining: userMessageQueue.length });
   isProcessing = false;
@@ -364,8 +442,7 @@ function onAIResponseFullyFinished() {
   // Process next message from queue if available
   if (userMessageQueue.length > 0) {
     const nextMsg = userMessageQueue.shift();
-    
-    // Check if we have a preloaded response for this message
+
     if (window.preloadedQueuedResponse && window.preloadedQueuedResponse.message === nextMsg) {
       debugLog(`Using preloaded response for: "${nextMsg}"`, 'info');
       const cached = window.preloadedQueuedResponse.response;
@@ -378,28 +455,23 @@ function onAIResponseFullyFinished() {
       sendMessageInternal(nextMsg);
     }
   } else {
-    // If no queued messages, restart ambient timer
     if (window.resetAmbientTimer) window.resetAmbientTimer();
   }
 }
 
 async function preloadNextQueuedMessage() {
-  // If no queue, already preloading, or already have a preload, skip
   if (userMessageQueue.length === 0 || window.isPreloadingQueuedMessage || window.preloadedQueuedResponse) {
     return;
   }
 
   const nextMsg = userMessageQueue[0];
   debugLog(`Preloading next queued message: "${nextMsg}"`, 'info');
-  
+
   window.isPreloadingQueuedMessage = true;
-  
+
   try {
-    // Note: getAIResponse uses the global conversationContext which has already 
-    // been updated with the current assistant response.
     const response = await getAIResponse(nextMsg, selectedLanguageCode);
-    
-    // Double check queue hasn't changed or been cleared during await
+
     if (userMessageQueue.length > 0 && userMessageQueue[0] === nextMsg) {
       window.preloadedQueuedResponse = {
         message: nextMsg,
@@ -437,7 +509,6 @@ function updateSummaryMarker() {
     marker.innerHTML = `<span>${text}</span>`;
   }
 
-  // Find the insertion point: just before the first message currently in conversationContext
   if (window.conversationContext && window.conversationContext.length > 0) {
     const firstMsg = window.conversationContext[0];
     if (firstMsg.id) {
@@ -449,7 +520,6 @@ function updateSummaryMarker() {
     }
   }
 
-  // If no context, the marker sits at the bottom of the chat history (or doesn't exist)
   if (window.chatHistory.children.length > 0) {
     window.chatHistory.appendChild(marker);
   } else {
@@ -459,7 +529,6 @@ function updateSummaryMarker() {
 window.updateSummaryMarker = updateSummaryMarker;
 
 function initChatController() {
-  // Assumes messageInput is globally available (e.g., from config.js)
   if (window.messageInput) {
     messageInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.isComposing) {

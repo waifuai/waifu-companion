@@ -240,21 +240,15 @@ async function applyInterfaceLanguage(langCode) {
     if (elem && uiStrings[strKey]) elem.placeholder = uiStrings[strKey];
   });
 
-  // 4. Translate actual persona prompt text values
-  try {
-    const coreArea = document.getElementById('corePersonaPrompt');
-    if (coreArea && coreArea.value.trim()) {
-      coreArea.value = await translateInterfaceText(coreArea.value, langCode);
-      window.corePersonaPrompt = coreArea.value;
-    }
-    const personaArea = document.getElementById('personaPrompt');
-    if (personaArea && personaArea.value.trim()) {
-      personaArea.value = await translateInterfaceText(personaArea.value, langCode);
-      window.userPersonaPrompt = personaArea.value;
-    }
-  } catch (e) {
-    debugError('Failed to translate persona prompt values', e, { langCode: window.currentInterfaceLanguage });
-  }
+  // 4. The user's persona text is deliberately NOT translated here.
+  //
+  // This used to run corePersonaPrompt and userPersonaPrompt through the LLM
+  // and overwrite them in place. Because the result was written back over the
+  // source, every subsequent language change re-translated already-translated
+  // text, degrading it a little more each time, and switching back to English
+  // never restored the original (translateInterfaceText returns early for
+  // en-US). The persona is user-authored content and stays as written; the
+  // model is already instructed to reply in the target language.
 
   // 5. Re-render tutorial ONLY if it's currently open
   const tutorialOverlay = document.getElementById('tutorialOverlay');

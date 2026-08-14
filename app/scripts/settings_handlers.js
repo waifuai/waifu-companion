@@ -13,15 +13,20 @@ function updateMemorySize(value) {
   maxMemorySize = parseInt(value);
   if (valEl) valEl.textContent = value;
 
-  S.setNumber(K.MAX_MEMORY_SIZE, maxMemorySize);
-
-  // Trim conversation context if needed
-  while (conversationContext.length > maxMemorySize) {
-    conversationContext.shift();
-  }
-  // Save potentially trimmed context
-  S.setJSON(K.CONVERSATION_CONTEXT, conversationContext);
-  debugLog(`Memory size updated to ${maxMemorySize} and context trimmed.`, 'info');
+  // The trim is irreversible, and this runs on every `input` tick while the
+  // slider is dragged: sliding 30 -> 5 -> 30 permanently discarded 25
+  // messages on the way past 5. Wait for the drag to settle before touching
+  // anything destructive; the label above still updates immediately.
+  debounced('memorySize', () => {
+    S.setNumber(K.MAX_MEMORY_SIZE, maxMemorySize);
+    if (typeof trimConversationContext === 'function') {
+      trimConversationContext();
+    } else {
+      while (conversationContext.length > maxMemorySize) conversationContext.shift();
+    }
+    S.setJSON(K.CONVERSATION_CONTEXT, conversationContext);
+    debugLog(`Memory size updated to ${maxMemorySize} and context trimmed.`, 'info');
+  });
 }
 
 function handleLanguageChange(event) {
@@ -118,7 +123,7 @@ function handleShowTransliterationChange(event) {
     const val = event.target.checked;
     showTransliteration = val;
     S.setBoolean(K.SHOW_TRANSLITERATION, showTransliteration);
-    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'show_transliteration', value: val });
+    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'show_transliteration', setting_value: val });
     debugLog(`Show transliteration changed to: ${showTransliteration}`, 'info');
 }
 
@@ -130,7 +135,7 @@ function handleShowClockChange(event) {
     if (clockContainer) {
         clockContainer.classList.toggle('visible', showClock);
     }
-    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'show_clock', value: val });
+    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'show_clock', setting_value: val });
     debugLog(`Show clock changed to: ${showClock}`, 'info');
 }
 
@@ -140,7 +145,7 @@ function handleChatboxOpacityChange(event) {
     const valEl = document.getElementById('chatboxOpacityValue');
     if (valEl) valEl.textContent = val;
     S.setString(K.CHATBOX_OPACITY, val);
-    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'chatbox_opacity', value: val });
+    debounced('visual:chatbox_opacity', () => trackEvent('visual_settings_updated', { setting: 'chatbox_opacity', setting_value: val }));
 }
 
 function handleMessageOpacityChange(event) {
@@ -149,7 +154,7 @@ function handleMessageOpacityChange(event) {
     const valEl = document.getElementById('messageOpacityValue');
     if (valEl) valEl.textContent = val;
     S.setString(K.MESSAGE_OPACITY, val);
-    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'message_opacity', value: val });
+    debounced('visual:message_opacity', () => trackEvent('visual_settings_updated', { setting: 'message_opacity', setting_value: val }));
 }
 
 function handleBgOpacityChange(event) {
@@ -158,14 +163,14 @@ function handleBgOpacityChange(event) {
     const valEl = document.getElementById('bgOpacityValue');
     if (valEl) valEl.textContent = val;
     S.setString(K.BG_IMAGE_OPACITY, val);
-    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'bg_opacity', value: val });
+    debounced('visual:bg_opacity', () => trackEvent('visual_settings_updated', { setting: 'bg_opacity', setting_value: val }));
 }
 
 function handleIncludeTimeChange(event) {
     const val = event.target.checked;
     includeTimeInContext = val;
     S.setBoolean(K.INCLUDE_TIME_IN_CONTEXT, includeTimeInContext);
-    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'include_time', value: val });
+    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'include_time', setting_value: val });
     debugLog(`Include time in context changed to: ${includeTimeInContext}`, 'info');
 }
 
@@ -173,7 +178,7 @@ function handleIncludeBatteryChange(event) {
     const val = event.target.checked;
     includeBatteryInContext = val;
     S.setBoolean(K.INCLUDE_BATTERY_IN_CONTEXT, includeBatteryInContext);
-    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'include_battery', value: val });
+    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'include_battery', setting_value: val });
     debugLog(`Include battery in context changed to: ${includeBatteryInContext}`, 'info');
 }
 
@@ -211,7 +216,7 @@ function handleTranslateUIChange(event) {
     const val = event.target.checked;
     window.translateUI = val;
     S.setBoolean(K.TRANSLATE_UI, val);
-    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'translate_ui', value: val });
+    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'translate_ui', setting_value: val });
     debugLog(`Translate User Interface changed to: ${val}`, 'info');
     
     // If turned on and current language is not English, trigger translation now
@@ -236,7 +241,7 @@ function handleAllowAIModSettingsChange(event) {
     const val = event.target.checked;
     window.allowAIModSettings = val;
     S.setBoolean(K.ALLOW_AI_MOD_SETTINGS, val);
-    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'allow_ai_mod_settings', value: val });
+    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'allow_ai_mod_settings', setting_value: val });
     debugLog(`Allow AI to modify settings changed to: ${val}`, 'info');
 }
 
@@ -640,7 +645,7 @@ function handleSummaryTriggerCountChange(event) {
     const valEl = document.getElementById('summaryTriggerCountValue');
     if (valEl) valEl.textContent = val;
     S.setNumber(K.SUMMARY_TRIGGER_COUNT, val);
-    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_trigger_count', value: val });
+    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_trigger_count', setting_value: val });
     debugLog(`Summary trigger count changed to ${val}`, 'info');
 }
 
@@ -648,7 +653,7 @@ function handleSummaryLengthPreferenceChange(event) {
     const val = event.target.value;
     window.summaryLengthPreference = val;
     S.setString(K.SUMMARY_LENGTH_PREFERENCE, val);
-    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_length_preference', value: val });
+    if (typeof trackEvent === 'function') trackEvent('context_settings_updated', { setting: 'summary_length_preference', setting_value: val });
     debugLog(`Summary length preference changed to ${val}`, 'info');
 }
 
@@ -959,26 +964,13 @@ function stepBgViewer(dir){
   document.getElementById('bgViewerCounter').textContent = `${bgViewerIndex+1} / ${list.length}`;
 }
 
-function applyBackgroundFit(mode){
-  if (typeof window.applyBackgroundFit === 'function' && window.applyBackgroundFit !== applyBackgroundFit) {
-    return window.applyBackgroundFit(mode);
-  }
-  // minimal fallback
-  const m = (mode==='contain'||mode==='stretch') ? mode : 'cover-center';
-  const bgLayer = document.getElementById('bgLayer');
-  if (bgLayer) {
-    bgLayer.style.backgroundRepeat='no-repeat';
-    bgLayer.style.backgroundSize = m==='contain' ? 'contain' : (m==='stretch' ? '100% 100%' : 'cover');
-    bgLayer.style.backgroundPosition = 'center center';
-  }
-}
-function setActiveBgFitButton(mode){
-  const ids=['bgFitContainBtn','bgFitCoverBtn','bgFitStretchBtn'];
-  ids.forEach(id=>document.getElementById(id)?.classList.remove('active'));
-  if(mode==='contain') document.getElementById('bgFitContainBtn')?.classList.add('active');
-  else if(mode==='stretch') document.getElementById('bgFitStretchBtn')?.classList.add('active');
-  else document.getElementById('bgFitCoverBtn')?.classList.add('active');
-}
+// applyBackgroundFit / setActiveBgFitButton live in settings_ui.js, which
+// supports all 11 fit modes. Duplicate stubs used to live here; because a
+// top-level `function f(){}` in a classic script overwrites window.f, and
+// settings_handlers.js loads after settings_ui.js, these stubs won the
+// binding — and their `window.applyBackgroundFit !== applyBackgroundFit`
+// guard could never be true (same binding). Every fit button collapsed to
+// one of three behaviours and the real implementation was unreachable.
 
 /**
  * Applies settings changes requested by the AI.
@@ -1221,18 +1213,33 @@ function updateQueueUI() {
   }
 }
 
+// Minimum gap between ambient messages. A delay of 0 (reachable from the
+// slider) or NaN (from a corrupt localStorage value) made setTimeout fire
+// immediately, turning ambient mode into an unbounded loop of API calls.
+const MIN_AMBIENT_DELAY_SECONDS = 3;
+
+function normalizedAmbientDelay() {
+  const raw = Number(window.ambientDelay);
+  if (!Number.isFinite(raw)) return 10;
+  return Math.max(MIN_AMBIENT_DELAY_SECONDS, raw);
+}
+window.normalizedAmbientDelay = normalizedAmbientDelay;
+
 function resetAmbientTimer() {
   if (window.ambientTimer) clearTimeout(window.ambientTimer);
   if (!window.isAmbientQueueEnabled) return;
-  
+
   window.ambientTimer = setTimeout(() => {
     triggerAmbientPrompt();
-  }, window.ambientDelay * 1000);
+  }, normalizedAmbientDelay() * 1000);
 }
 
 async function triggerAmbientPrompt() {
-  if (window.isAIResponding || !window.isAmbientQueueEnabled) return;
-  
+  // isProcessing must be checked too: it stays true through TTS playback
+  // after isAIResponding clears, and firing here would run a second
+  // concurrent sendMessageInternal.
+  if (window.isAIResponding || window.isProcessing || !window.isAmbientQueueEnabled) return;
+
   debugLog('Triggering ambient AI comment...', 'info');
   const ambientPrompt = window.ambientPrompt || "(Continue the conversation naturally as Haru. Share a thought, a feeling, or ask me something relevant to our discussion to keep things moving. 1-2 sentences. Speak directly to me.)";
 
@@ -1284,18 +1291,17 @@ async function preloadNextAmbientMessage() {
  * Pre-generates the first chunk of Kokoro TTS audio for the buffered ambient message.
  */
 async function preloadAmbientTTS(text) {
-  if (!window.enableKokoro || !window.isKokoroReady || !text || window.isAmbientPreloadingTTS) return;
+  if (!text || window.isAmbientPreloadingTTS) return;
   if (window.ambientPreloadTTSBuffer) return; // Already pre-loaded
 
   window.isAmbientPreloadingTTS = true;
   debugLog('Pre-loading next ambient TTS chunk in background...', 'info');
 
   try {
-    const emojiRegex = /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2000-\u329F]|\uD83E[\uDD00-\uDFFF])/g;
-    const cleanText = String(text || '').replace(/\*/g, '').replace(emojiRegex, '').trim();
+    const cleanText = (typeof stripForTTS === 'function') ? stripForTTS(text) : String(text || '').trim();
     const sentences = (typeof splitIntoSentences === 'function') ? splitIntoSentences(cleanText) : [cleanText];
     const limit = window.ttsChunkLimit || 300;
-    
+
     let firstChunkText = '';
     for (const s of sentences) {
       const sTrim = s.trim();
@@ -1306,14 +1312,20 @@ async function preloadAmbientTTS(text) {
 
     if (firstChunkText && typeof window.fetchTTSBuffer === 'function') {
       debugLog(`TTS: Pre-fetching first ambient chunk: "${firstChunkText.substring(0, 30)}..."`, 'info');
-      const buffer = await window.fetchTTSBuffer(firstChunkText, window.selectedKokoroVoiceId || 'af_heart');
-      if (buffer && buffer !== '__SPEECH_SYNTHESIS_PLAYED__') {
-        window.ambientPreloadTTSBuffer = buffer;
+      // Must use the same voice id the queue manager will use, so provider
+      // resolution matches. Passing a Kokoro id here (this codebase's
+      // fetchTTSBuffer resolves provider by looking up a voiceId in the
+      // `voices` list) sent it down the wrong provider path entirely.
+      const voiceId = (typeof window.selectedVoiceId === 'string' && window.selectedVoiceId) || 'en-female';
+      const resolved = await window.fetchTTSBuffer(firstChunkText, voiceId);
+      if (resolved) {
+        // fetchTTSBuffer never plays; a 'browser' descriptor is inert until played.
+        window.ambientPreloadTTSBuffer = resolved;
         debugLog('TTS: Success pre-loading first ambient chunk.', 'info');
       }
     }
   } catch (err) {
-    debugLog(`TTS: Failed to pre-load ambient TTS: ${err.message}`, 'warn');
+    debugError('TTS: Failed to pre-load ambient TTS', err);
   } finally {
     window.isAmbientPreloadingTTS = false;
   }

@@ -38,12 +38,20 @@ if (radioToggleBtn) {
 
 // Add event listener for the volume slider
 if (radioVolumeSlider) {
+    // Sync the actual element volume to what the slider already shows. The
+    // slider defaults to 0.25 in the markup but the audio element defaults to
+    // 1.0, so the radio played at full volume until the slider was touched.
+    if (radioPlayer) {
+        const initialVolume = parseFloat(radioVolumeSlider.value);
+        if (Number.isFinite(initialVolume)) radioPlayer.volume = initialVolume;
+    }
+
     radioVolumeSlider.addEventListener('input', (e) => {
         // Assumes radioPlayer is accessible
         if (radioPlayer) {
             const val = parseFloat(e.target.value);
             radioPlayer.volume = val;
-            if (typeof trackEvent === 'function') trackEvent('radio_volume_changed', { value: val });
+            if (typeof trackEvent === 'function') debounced('radio_volume', () => trackEvent('radio_volume_changed', { volume: val }));
             debugLog(`Radio volume set to: ${radioPlayer.volume.toFixed(2)}`, 'info');
         }
     });

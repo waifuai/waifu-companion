@@ -54,11 +54,10 @@ function setupDragging(model) {
   }
 }
 
-function setupZooming(model) {
-  // Zooming via mouse wheel remains disabled as per previous request.
-}
+// setupZooming lives in model_controls.js. A no-op stub used to be declared
+// here as well; both files declared it at top level, so whichever script
+// loaded last silently won the binding.
 
 // Export functions
 window.setupModelInteractions = setupModelInteractions;
 window.setupDragging = setupDragging;
-window.setupZooming = setupZooming;

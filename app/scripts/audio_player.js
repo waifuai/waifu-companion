@@ -1,196 +1,190 @@
-// Modified to play from cached buffer
-async function playCachedAudioBuffer(audioBuffer, text) {
-  if (!audioBuffer || !text) return;
-  
-  debugLog(`TTS: Playing cached audio for: "${text.substring(0, 50)}..."`, 'info');
+// TTS playback.
+//
+// Provider resolution and playback are kept strictly separate:
+//   fetchTTSBuffer()  decides the provider and fetches audio, but NEVER plays.
+//                     It returns a descriptor: {kind:'buffer'} or {kind:'browser'}.
+//   playResolvedChunk() is the only thing that makes noise.
+// This split matters for the look-ahead preload in tts_queue_manager.js:
+// preloading a browser-TTS chunk used to speak it immediately, over the top
+// of the chunk that was already playing, because fetchTTSBuffer used to both
+// resolve AND play for the browser provider.
 
+// Connects an AudioBuffer to the TTS graph, drives the Live2D mouth from the
+// analyser, and resolves when playback ends. Rejects on playback timeout.
+function playAudioBuffer(audioBuffer, label = '') {
   const audioContext = getTTSAudioContext();
-  let source = null;
+  const source = audioContext.createBufferSource();
+  source.buffer = audioBuffer;
+  currentAudio = source;
 
-  try {
-    source = audioContext.createBufferSource();
-    currentAudio = source; // Store current source for external stop capability
+  let animationFrameId = null;
 
-    const audioBufferSource = source;
-    audioBufferSource.buffer = audioBuffer;
+  const resetMouth = () => {
+    const core = currentModel && currentModel.internalModel && currentModel.internalModel.coreModel;
+    if (!core) return;
+    core.setParameterValueById("ParamMouthOpenY", 0);
+    core.setParameterValueById("ParamMouthForm", 0);
+  };
 
-    let animationFrameId = null;
-    if (currentModel) {
-      const analyserNode = getTTSAnalyser(); 
-      audioBufferSource.connect(analyserNode); 
+  if (currentModel) {
+    const analyserNode = getTTSAnalyser();
+    source.connect(analyserNode);
 
-      const bufferLength = analyserNode.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      let lastVolume = 0;
-      const smoothingFactor = 0.3; 
+    const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+    let lastVolume = 0;
+    const smoothingFactor = 0.3;
 
-      const updateMouth = () => {
-        if (currentAudio !== source || !currentModel) { 
-          cancelAnimationFrame(animationFrameId);
-          if (currentModel && source.buffer) {
-            if (!currentAudio || currentAudio.context.state === 'closed') {
-              currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", 0);
-              currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", 0);
-            }
-          }
-          return;
-        }
-        analyserNode.getByteFrequencyData(dataArray);
-        const vocalRange = dataArray.slice(10, 100); 
-        const volume = vocalRange.reduce((acc, val) => acc + val, 0) / vocalRange.length;
-        const smoothedVolume = lastVolume + (volume - lastVolume) * smoothingFactor;
-        lastVolume = smoothedVolume;
-        const normalizedVolume = Math.min(smoothedVolume / 128, 1); 
-
-        currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", normalizedVolume * 1.5);
-        currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", normalizedVolume * 0.5 - 0.25);
-        animationFrameId = requestAnimationFrame(updateMouth);
-      };
-      updateMouth(); 
-    } else {
-      const gain = typeof getTTSGainNode === 'function' ? getTTSGainNode() : audioContext.destination;
-      audioBufferSource.connect(gain);
-    }
-    
-    await new Promise((resolve, reject) => {
-      const audioDurationMs = audioBuffer.duration * 1000;
-      const timeoutMs = Math.max(8000, audioDurationMs + 4000); 
-
-      const timeoutId = setTimeout(() => {
-        debugLog(`TTS: Playback timeout for cached audio after ${timeoutMs.toFixed(0)}ms`, 'warn');
+    const updateMouth = () => {
+      // Stop as soon as this source is no longer the active one.
+      if (currentAudio !== source || !currentModel) {
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        
-        if (currentModel && currentAudio === source) { 
-          currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", 0);
-          currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", 0);
-        }
-        try {
-          if (source && (source.playbackState === source.PLAYING_STATE || source.playbackState === source.SCHEDULED_STATE)) {
-            source.stop();
-          }
-        } catch(e) {
-          debugLog("TTS: Error stopping source on timeout: " + e.message, "warn", true);
-        }
-        source.onended = null;
-        reject(new Error(`TTS playback timeout for cached audio`));
-      }, timeoutMs);
+        resetMouth();
+        return;
+      }
+      analyserNode.getByteFrequencyData(dataArray);
+      const vocalRange = dataArray.slice(10, 100);
+      const volume = vocalRange.reduce((acc, val) => acc + val, 0) / vocalRange.length;
+      lastVolume = lastVolume + (volume - lastVolume) * smoothingFactor;
+      const normalizedVolume = Math.min(lastVolume / 128, 1);
 
-      audioBufferSource.onended = () => {
-        clearTimeout(timeoutId);
-        debugLog(`TTS: Cached audio playback finished`, 'info');
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        if (currentModel && currentAudio === source) { 
-          currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", 0);
-          currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", 0);
-        }
-        resolve();
-      };
-      audioBufferSource.start();
-      debugLog(`TTS: Cached audio playback started. Duration: ${audioDurationMs.toFixed(0)}ms`, 'info');
-    });
-
-  } catch (err) {
-    debugLog(`TTS: Error playing cached audio: ${err.message}`, 'error');
-  } finally {
-    if (currentAudio === source) { 
-      currentAudio = null; 
-    }
-    if (source) {
-      try { source.disconnect(); } catch (e) { /* ignore */ }
-    }
+      currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", normalizedVolume * 1.5);
+      currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", normalizedVolume * 0.5 - 0.25);
+      animationFrameId = requestAnimationFrame(updateMouth);
+    };
+    updateMouth();
+  } else {
+    const gain = typeof getTTSGainNode === 'function' ? getTTSGainNode() : audioContext.destination;
+    source.connect(gain);
   }
+
+  const playback = new Promise((resolve, reject) => {
+    const audioDurationMs = audioBuffer.duration * 1000;
+    const timeoutMs = Math.max(8000, audioDurationMs + 4000);
+
+    const timeoutId = setTimeout(() => {
+      debugLog(`TTS: Playback timeout after ${timeoutMs.toFixed(0)}ms${label ? ` for "${label}"` : ''}`, 'warn');
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (currentAudio === source) resetMouth();
+      source.onended = null; // prevent a late onended from resolving after we reject
+      try { source.stop(); } catch (e) { /* already stopped */ }
+      reject(new Error(`TTS playback timeout${label ? `: ${label}` : ''}`));
+    }, timeoutMs);
+
+    source.onended = () => {
+      clearTimeout(timeoutId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (currentAudio === source) resetMouth();
+      resolve();
+    };
+
+    source.start();
+    debugLog(`TTS: Playback started (${audioDurationMs.toFixed(0)}ms)${label ? `: "${label}"` : ''}`, 'info');
+  });
+
+  return playback.finally(() => {
+    if (currentAudio === source) currentAudio = null;
+    try { source.disconnect(); } catch (e) { /* ignore */ }
+  });
+}
+window.playAudioBuffer = playAudioBuffer;
+
+// Picks a concrete SpeechSynthesisVoice for the requested voice config.
+function selectBrowserVoice(voiceId) {
+  const available = speechSynthesis.getVoices();
+  const voiceConfig = voices.find(v => v.id === voiceId);
+  const targetLang = (voiceConfig && voiceConfig.language) || 'en-US';
+  const targetGender = (voiceConfig && voiceConfig.gender) || 'female';
+
+  const baseLang = targetLang.split('-')[0];
+  const langVoices = available.filter(v => v.lang.startsWith(baseLang));
+
+  if (langVoices.length > 0) {
+    const femaleKeywords = ['female', 'woman', 'girl', 'zira', 'hazel', 'susan', 'samantha', 'karen', 'moira', 'tessa', 'fiona', 'kate', 'victoria', 'princess', 'alice'];
+    const maleKeywords = ['male', 'man', 'boy', 'david', 'mark', 'james', 'daniel', 'thomas', 'george', 'alex', 'fred', 'ralph'];
+    const keywords = targetGender === 'female' ? femaleKeywords : maleKeywords;
+    const genderMatch = langVoices.find(v => keywords.some(kw => v.name.toLowerCase().includes(kw)));
+    return { voice: genderMatch || langVoices[0], lang: targetLang };
+  }
+  return { voice: available[0] || null, lang: targetLang };
 }
 
-// Browser SpeechSynthesis provider - uses built-in browser TTS
-// Plays audio directly through speakers (cannot capture as AudioBuffer)
-async function browserSpeechSynthesisPlay(textChunk, voiceId) {
+// Waits (bounded) for the browser to populate its voice list.
+async function waitForBrowserVoices(timeoutMs = 3000) {
+  if (speechSynthesis.getVoices().length > 0) return;
+  debugLog('TTS: Waiting for browser voices to load...', 'info');
+  await new Promise((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      clearInterval(pollId);
+      clearTimeout(timeoutId);
+      resolve();
+    };
+    const pollId = setInterval(() => {
+      if (speechSynthesis.getVoices().length > 0) done();
+    }, 100);
+    const timeoutId = setTimeout(done, timeoutMs);
+  });
+}
+
+// Speaks text through the browser's SpeechSynthesis and resolves when done.
+// Always resolves within a bounded time: previously there was no timeout at
+// all, only utterance.onend/onerror — a stalled utterance (a known Chrome
+// behaviour on long text) hung the whole TTS pipeline forever.
+async function speakViaBrowser(textChunk, voiceId) {
   if (!window.speechSynthesis) {
     debugLog('TTS: Browser SpeechSynthesis not available', 'error');
-    return null;
+    return;
   }
-
   if (window.enableFallbackVoice === false) {
     debugLog('TTS: Browser SpeechSynthesis blocked because fallback voice is disabled', 'info');
-    return null;
+    return;
   }
 
-  // Ensure voices are loaded
-  let availableVoices = speechSynthesis.getVoices();
-  if (availableVoices.length === 0) {
-    debugLog('TTS: Waiting for browser voices to load...', 'info');
-    await new Promise((resolve) => {
-      const wait = () => {
-        availableVoices = speechSynthesis.getVoices();
-        if (availableVoices.length > 0) {
-          resolve();
-        } else {
-          setTimeout(wait, 100);
-        }
-      };
-      wait();
-      // Safety timeout
-      setTimeout(resolve, 3000);
-    });
-  }
+  await waitForBrowserVoices();
+  debugLog(`TTS: Speaking via browser SpeechSynthesis: "${textChunk.substring(0, 50)}..."`, 'info');
 
-  debugLog(`TTS: Using browser SpeechSynthesis for: "${textChunk.substring(0, 50)}..."`, 'info');
-
-  return new Promise((resolve) => {
+  await new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(textChunk);
-
-    // Determine language and gender from voice config
-    const voiceConfig = voices.find(v => v.id === voiceId);
-    const targetLang = voiceConfig ? (voiceConfig.language || 'en-US') : 'en-US';
-    const targetGender = voiceConfig ? (voiceConfig.gender || 'female') : 'female';
-    utterance.lang = targetLang;
-
-    // Refresh voices after potential wait
-    availableVoices = speechSynthesis.getVoices();
-    const baseLang = targetLang.split('-')[0];
-    
-    // Filter voices matching the language
-    const langVoices = availableVoices.filter(v => v.lang.startsWith(baseLang));
-    
-    if (langVoices.length > 0) {
-      // Try to find a voice matching the requested gender by checking name keywords
-      const femaleKeywords = ['female', 'woman', 'girl', 'zira', 'hazel', 'susan', 'samantha', 'karen', 'moira', 'tessa', 'fiona', 'kate', 'victoria', 'princess', 'alice'];
-      const maleKeywords = ['male', 'man', 'boy', 'david', 'mark', 'james', 'daniel', 'thomas', 'george', 'alex', 'fred', 'ralph'];
-      
-      const keywords = targetGender === 'female' ? femaleKeywords : maleKeywords;
-      const genderMatch = langVoices.find(v => 
-        keywords.some(kw => v.name.toLowerCase().includes(kw))
-      );
-      
-      utterance.voice = genderMatch || langVoices[0];
-      debugLog(`TTS: Selected browser voice: "${utterance.voice.name}" (lang: ${utterance.voice.lang})`, 'info');
-    } else if (availableVoices.length > 0) {
-      // No language match, just use first available
-      utterance.voice = availableVoices[0];
-      debugLog(`TTS: No lang match, using default browser voice: "${utterance.voice.name}"`, 'warn');
+    const { voice, lang } = selectBrowserVoice(voiceId);
+    utterance.lang = lang;
+    if (voice) {
+      utterance.voice = voice;
+      debugLog(`TTS: Selected browser voice: "${voice.name}" (lang: ${voice.lang})`, 'info');
     }
-
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
-    utterance.onend = () => {
-      debugLog('TTS: Browser SpeechSynthesis playback finished', 'info');
-      resolve('__SPEECH_SYNTHESIS_PLAYED__');
-    };
-    utterance.onerror = (e) => {
-      debugLog(`TTS: Browser SpeechSynthesis error: ${e.error}`, 'error');
-      resolve(null);
+    let settled = false;
+    const done = (reason) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(watchdogId);
+      if (reason) debugLog(`TTS: Browser SpeechSynthesis ${reason}`, reason === 'finished' ? 'info' : 'warn');
+      resolve();
     };
 
-    if (window.enableFallbackVoice === false) {
-      debugLog('TTS: Browser SpeechSynthesis canceled before playback started', 'info');
-      resolve(null);
-      return;
-    }
+    // ~12 chars/sec is a conservative floor for speech rate; pad generously.
+    const estimatedMs = (textChunk.length / 12) * 1000;
+    const watchdogId = setTimeout(() => {
+      try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+      done('timed out');
+    }, Math.max(10000, estimatedMs + 8000));
+
+    utterance.onend = () => done('finished');
+    utterance.onerror = (e) => done(`error: ${e.error}`);
 
     speechSynthesis.speak(utterance);
   });
 }
+window.speakViaBrowser = speakViaBrowser;
 
+// Resolves a chunk to a playable descriptor WITHOUT producing any sound.
+// Returns {kind:'buffer', buffer} | {kind:'browser', text, voiceId} | null.
+// Throws on primary-provider errors (with err.status set where known) so the
+// queue manager can see rate limits and pause instead of silently dropping
+// the chunk.
 async function fetchTTSBuffer(textChunk, voiceId) {
   if (!textChunk.trim()) return null;
 
@@ -201,295 +195,142 @@ async function fetchTTSBuffer(textChunk, voiceId) {
   const voiceConfig = voices.find(v => v.id === voiceId);
   const provider = voiceConfig ? voiceConfig.provider : 'tiktok';
   debugLog(`TTS: Resolved provider: "${provider}" for voiceId: "${voiceId}"`, 'info');
-  debugLog(`TTS: Voice config found: ${voiceConfig ? JSON.stringify(voiceConfig) : 'NOT FOUND'}`, 'info');
-  
+
   const audioContext = getTTSAudioContext();
-  debugLog(`TTS: AudioContext state: ${audioContext.state}`, 'info');
+  let primaryError = null;
+  // True once the primary provider was tried and failed, so analytics/logging
+  // can tell "user chose browser TTS" apart from "primary is down".
+  let fellBack = false;
 
-  let primaryFailed = false;
-  let tiktokBuffer = null;
-
+  // 1. TikTok TTS (primary provider by default). Called directly — the API
+  // sends Access-Control-Allow-Origin: * on its own, no proxy needed.
   if (provider === 'tiktok' && window.enablePrimaryVoice !== false) {
-    // Called directly, no CORS proxy. ottsy.weilbyte.dev already sends
-    // Access-Control-Allow-Origin: * on both the preflight and the real
-    // response, so it doesn't need one. It used to be routed through
-    // corsproxy.io, which returns 403 for this request and fails with
-    // "TypeError: Failed to fetch" before the API is ever reached — verified
-    // from an actual waifuai.com browser session, where the direct call
-    // returns 200 with valid audio and the proxied call throws. Every
-    // request on this path was silently falling through to Kokoro/browser
-    // TTS instead of using the voice the user picked.
     const apiUrl = "https://ottsy.weilbyte.dev/api/generation";
     debugLog(`TTS: === TikTok TTS Flow START ===`, 'info');
-    debugLog(`TTS: API URL: ${apiUrl}`, 'info');
-
     try {
-      const fetchOptions = {
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: textChunk, voice: voiceId })
-      };
-      debugLog(`TTS: Request options: method=${fetchOptions.method}, body=${JSON.stringify(fetchOptions.body).substring(0, 100)}...`, 'info');
-      const response = await fetch(apiUrl, fetchOptions);
-
+      });
       debugLog(`TTS: Response status: ${response.status}`, 'info');
-      debugLog(`TTS: Response headers: ${JSON.stringify([...response.headers.entries()].reduce((acc, [k,v]) =>{acc[k]=v; return acc;}, {}))}`, 'info');
 
       if (!response.ok) {
-        const errorText = await response.text();
-        debugLog(`TTS: TikTok TTS error response: ${errorText.slice(0, 200)}`, 'error');
-        primaryFailed = true;
-      } else {
-        const json = await response.json();
-        debugLog(`TTS: TikTok TTS response JSON: ${JSON.stringify(json).substring(0, 200)}`, 'info');
-        if (json.success === false) {
-          debugLog(`TTS: TikTok API returned error: ${json.error || 'Unknown error'}`, 'warn');
-          primaryFailed = true;
-        } else {
-          const audioData = json.data || json.audio || json;
-          if (!audioData) {
-            debugLog(`TTS: TikTok TTS returned no audio data`, 'error');
-            primaryFailed = true;
-          } else {
-            try {
-              const binaryString = atob(audioData);
-              const bytes = new Uint8Array(binaryString.length);
-              for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-              }
-              tiktokBuffer = await audioContext.decodeAudioData(bytes.buffer);
-              debugLog(`TTS: TikTok TTS audio decoded successfully, duration: ${tiktokBuffer.duration.toFixed(2)}s`, 'info');
-            } catch (decodeErr) {
-              debugError('TTS: TikTok TTS audio decode failed', decodeErr, {
-                voiceId: voiceId,
-                textLen: textChunk.length,
-                audioDataLen: audioData?.length
-              });
-              primaryFailed = true;
-            }
-          }
-        }
+        const errorText = await response.text().catch(() => '');
+        const err = new Error(`TikTok TTS HTTP ${response.status}: ${errorText.slice(0, 200)}`);
+        err.status = response.status;
+        throw err;
       }
-    } catch (fetchErr) {
-      debugError('TTS: Proxy fetch failed', fetchErr, {
-        provider: 'tiktok',
-        voiceId: voiceId,
-        textLen: textChunk.length,
-        apiUrl: apiUrl
-      });
-      primaryFailed = true;
-    }
 
-    if (tiktokBuffer) return tiktokBuffer;
-  }
-
-  // 1. Try Primary Voice if Enabled (non-tiktok providers)
-  if (!primaryFailed && provider !== 'tiktok' && window.enablePrimaryVoice !== false) {
-    try {
-      if (provider === 'browser') {
-        return await browserSpeechSynthesisPlay(textChunk, voiceId);
+      const json = await response.json();
+      if (json.success === false) {
+        throw new Error(`TikTok TTS API error: ${json.error || 'Unknown error'}`);
       }
-      primaryFailed = true;
+      const audioData = json.data || json.audio || json;
+      if (!audioData) throw new Error('TikTok TTS returned no audio data');
+
+      const binaryString = atob(audioData);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+      const buffer = await audioContext.decodeAudioData(bytes.buffer);
+      debugLog(`TTS: TikTok TTS audio decoded successfully, duration: ${buffer.duration.toFixed(2)}s`, 'info');
+      return { kind: 'buffer', buffer, provider: 'tiktok', fellBack: false };
     } catch (err) {
-      debugLog(`TTS: Primary API failed or rate limit: ${err.message}.`, 'warn');
-      primaryFailed = true;
+      debugError('TTS: TikTok TTS failed', err, { voiceId, textLen: textChunk.length });
+      primaryError = err;
+      fellBack = true;
     }
-  } else if (!primaryFailed && provider === 'tiktok') {
-    // tiktok already handled above
+  } else if (provider === 'browser' && window.enablePrimaryVoice !== false) {
+    return { kind: 'browser', text: textChunk, voiceId, provider: 'browser', fellBack: false };
   } else if (window.enablePrimaryVoice === false) {
-    debugLog(`TTS: Primary voice disabled.`, 'info');
-    primaryFailed = true;
+    debugLog('TTS: Primary voice disabled.', 'info');
+    fellBack = true;
   }
 
-  // 2. Try Kokoro if primary failed or was disabled
-  if (primaryFailed) {
-    if (window.enableKokoro && window.isKokoroReady && typeof window.generateKokoroAudioBuffer === 'function') {
-      try {
-        debugLog(`TTS: Local Kokoro taking over for: "${textChunk.substring(0, 50)}..."`, 'info');
-        const kokoroBuffer = await window.generateKokoroAudioBuffer(textChunk, window.selectedKokoroVoiceId || "af_heart");
-        if (kokoroBuffer) return kokoroBuffer;
-      } catch (kokoroErr) {
-        debugLog(`TTS: Local Kokoro generation failed: ${kokoroErr.message}`, 'error');
-      }
-    } else if (window.enableKokoro && !window.isKokoroReady) {
-      debugLog("TTS: Local Kokoro is still preloading in the background. Skipping to browser TTS safety net.", "info");
+  // 2. Local Kokoro.
+  if (window.enableKokoro && window.isKokoroReady && typeof window.generateKokoroAudioBuffer === 'function') {
+    try {
+      const kokoroBuffer = await window.generateKokoroAudioBuffer(textChunk, window.selectedKokoroVoiceId || 'af_heart');
+      if (kokoroBuffer) return { kind: 'buffer', buffer: kokoroBuffer, provider: 'kokoro', fellBack };
+    } catch (kokoroErr) {
+      debugLog(`TTS: Local Kokoro generation failed: ${kokoroErr.message}`, 'error');
+      fellBack = true;
     }
-
-    // 3. Fallback if Kokoro failed, wasn't ready, or was disabled
-    if (window.enableFallbackVoice === false) {
-      debugLog(`TTS: Fallback voice disabled. Skipping playback.`, 'warn');
-      return null;
-    }
-
-    debugLog(`TTS: Falling back to browser SpeechSynthesis...`, 'info');
-    const fallbackId = window.ttsFallbackVoiceId || 'browser-female';
-    return await browserSpeechSynthesisPlay(textChunk, fallbackId);
+  } else if (window.enableKokoro && !window.isKokoroReady) {
+    debugLog('TTS: Local Kokoro still preloading. Falling through to browser TTS.', 'info');
   }
 
-  return null;
+  // 3. Browser fallback.
+  if (window.enableFallbackVoice === false) {
+    debugLog('TTS: Fallback voice disabled.', 'warn');
+    // Surface a rate limit rather than silently going quiet, so the queue can pause.
+    if (primaryError && primaryError.status === 429) throw primaryError;
+    return null;
+  }
+
+  debugLog('TTS: Falling back to browser SpeechSynthesis.', 'info');
+  return {
+    kind: 'browser',
+    text: textChunk,
+    voiceId: window.ttsFallbackVoiceId || 'browser-female',
+    provider: 'browser',
+    fellBack
+  };
 }
 window.fetchTTSBuffer = fetchTTSBuffer;
 
-
-async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloadedBuffer = null) {
-    const MAX_SPLIT_ATTEMPTS = 5;
-    if (attempt > MAX_SPLIT_ATTEMPTS) {
-        debugLog(`TTS: Chunk too long after splits: "${textChunk.substring(0,30)}..."`, 'error');
-        return;
-    }
-
-    if (!textChunk.trim()) return;
-    
-    debugLog(`TTS: Attempting to play chunk (attempt ${attempt + 1}): "${textChunk.substring(0, 100)}..." with voice ${voiceId}`, 'info');
-
-    const audioContext = getTTSAudioContext();
-    let source = null; 
-
-    try {
-        let audioBuffer = preloadedBuffer;
-        
-        if (!audioBuffer) {
-            audioBuffer = await fetchTTSBuffer(textChunk, voiceId);
-        }
-
-        // If browser SpeechSynthesis was used as fallback, it already played directly
-        if (audioBuffer === '__SPEECH_SYNTHESIS_PLAYED__') {
-            debugLog(`TTS: Chunk played via browser SpeechSynthesis, skipping AudioBuffer playback`, 'info');
-            return;
-        }
-
-        if (!audioBuffer) {
-            debugLog(`TTS: fetchTTSBuffer returned null, skipping chunk: "${textChunk.substring(0,30)}..."`, 'warn');
-            return;
-        }
-
-        source = audioContext.createBufferSource();
-        currentAudio = source; // Store current source for external stop capability
-
-        const audioBufferSource = source;
-        audioBufferSource.buffer = audioBuffer;
-
-        let animationFrameId = null;
-        if (currentModel) {
-            const analyserNode = getTTSAnalyser(); 
-            audioBufferSource.connect(analyserNode); 
-            // analyserNode is already connected to destination by getTTSAnalyser if it was (re)created.
-
-            const bufferLength = analyserNode.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            let lastVolume = 0;
-            const smoothingFactor = 0.3; 
-
-            const updateMouth = () => {
-                // Check if this specific source is still the one playing AND the model exists
-                if (currentAudio !== source || !currentModel) { 
-                    cancelAnimationFrame(animationFrameId);
-                    // Optionally reset mouth here if this was the active source
-                    if (currentModel && source.buffer) { // Check source.buffer to ensure it was a playing source
-                         // Check if this was the last playing audio for this model instance
-                        if (!currentAudio || currentAudio.context.state === 'closed') {
-                           currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", 0);
-                           currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", 0);
-                        }
-                    }
-                    return;
-                }
-                analyserNode.getByteFrequencyData(dataArray);
-                const vocalRange = dataArray.slice(10, 100); 
-                const volume = vocalRange.reduce((acc, val) => acc + val, 0) / vocalRange.length;
-                const smoothedVolume = lastVolume + (volume - lastVolume) * smoothingFactor;
-                lastVolume = smoothedVolume;
-                const normalizedVolume = Math.min(smoothedVolume / 128, 1); 
-
-                currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", normalizedVolume * 1.5);
-                currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", normalizedVolume * 0.5 - 0.25);
-                animationFrameId = requestAnimationFrame(updateMouth);
-            };
-            updateMouth(); 
-        } else {
-            const gainNode = typeof getTTSGainNode === 'function' ? getTTSGainNode() : audioContext.destination;
-            audioBufferSource.connect(gainNode);
-        }
-        
-        await new Promise((resolve, reject) => {
-            const audioDurationMs = audioBuffer.duration * 1000; // duration is in seconds
-            const timeoutMs = Math.max(8000, audioDurationMs + 4000); 
-
-            const timeoutId = setTimeout(() => {
-                debugLog(`TTS: Playback timeout for chunk after ${timeoutMs.toFixed(0)}ms. Stopping source. Chunk: "${textChunk.substring(0,30)}..."`, 'warn');
-                if (animationFrameId) cancelAnimationFrame(animationFrameId);
-                
-                if (currentModel && currentAudio === source) { 
-                    currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", 0);
-                    currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", 0);
-                }
-                try {
-                  if (source && (source.playbackState === source.PLAYING_STATE || source.playbackState === source.SCHEDULED_STATE)) {
-                    source.stop();
-                  }
-                } catch(e) {
-                  debugLog("TTS: Error stopping source on timeout: " + e.message, "warn", true);
-                }
-                source.onended = null; // Prevent late firing of onended
-                // currentAudio is cleared in finally
-                reject(new Error(`TTS playback timeout for chunk: ${textChunk.substring(0,30)}...`));
-            }, timeoutMs);
-
-            audioBufferSource.onended = () => {
-                clearTimeout(timeoutId);
-                debugLog(`TTS: Playback of chunk finished (onended): "${textChunk.substring(0,30)}..."`, 'info');
-                if (animationFrameId) cancelAnimationFrame(animationFrameId);
-                if (currentModel && currentAudio === source) { 
-                    currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", 0);
-                    currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", 0);
-                }
-                // currentAudio is cleared in the finally block after this promise resolves
-                resolve();
-            };
-            audioBufferSource.start();
-            debugLog(`TTS: Playback of chunk started. Estimated duration: ${audioDurationMs.toFixed(0)}ms. Timeout set for ${timeoutMs.toFixed(0)}ms. Chunk: "${textChunk.substring(0,30)}..."`, 'info');
-        });
-
-    } catch (err) {
-        debugError('TTS: Error playing chunk', err, {
-          textPreview: textChunk.substring(0, 80),
-          voiceId: voiceId,
-          attempt: attempt,
-          textLen: textChunk.length
-        });
-        // Check if error is due to text length and we haven't exhausted attempts
-        // This specific check for "text too long" in err.message is a fallback, 
-        // primary check is via API response status 500 earlier.
-        if (err.message && err.message.toLowerCase().includes("text too long") && attempt < MAX_SPLIT_ATTEMPTS) {
-            debugLog(`TTS: Caught 'Text too long' error during processing. Splitting chunk. Attempt ${attempt + 1}`, 'warn');
-            const halfPoint = Math.floor(textChunk.length / 2);
-            let splitPoint = textChunk.lastIndexOf(' ', halfPoint);
-            if (splitPoint === -1 || splitPoint === 0) splitPoint = halfPoint;
-
-            const firstHalf = textChunk.substring(0, splitPoint);
-            const secondHalf = textChunk.substring(splitPoint).trim();
-            
-            // Clean up current source before recursive call if it exists
-            if (source) { try { source.disconnect(); } catch(e){} }
-            if (currentAudio === source) currentAudio = null;
-
-
-            if (firstHalf) await tryPlaySingleChunk(firstHalf, voiceId, attempt + 1);
-            if (secondHalf) await tryPlaySingleChunk(secondHalf, voiceId, attempt + 1);
-            return;
-        }
-        // For other errors or if max attempts reached, the error propagates up allowing playTTS to continue
-    } finally {
-        if (currentAudio === source) { 
-            currentAudio = null; 
-        }
-        if (source) { // Disconnect the source node as it's one-time use
-            try { source.disconnect(); } catch (e) { /* ignore */ }
-        }
-        // Do not close the shared audioContext here
-    }
+// Plays an already-resolved chunk descriptor.
+async function playResolvedChunk(resolved, label = '') {
+  if (!resolved) {
+    debugLog(`TTS: Nothing to play, skipping chunk: "${label.substring(0, 30)}..."`, 'warn');
+    return;
+  }
+  if (resolved.kind === 'browser') {
+    await speakViaBrowser(resolved.text, resolved.voiceId);
+    return;
+  }
+  await playAudioBuffer(resolved.buffer, label);
 }
+window.playResolvedChunk = playResolvedChunk;
 
-// Export functions to window for global access
-window.playCachedAudioBuffer = playCachedAudioBuffer;
+// Fetches (if needed) and plays a single chunk. Returns the descriptor that
+// actually served the audio, so the caller can report which provider was used
+// without having to resolve the chunk itself.
+//
+// Errors propagate so the queue manager can handle 429s and show the retry
+// button; the one exception is the "text too long" split-and-retry path.
+// Previously every error here was swallowed (caught, logged, then the
+// function just fell into `finally` and returned undefined), so the 429
+// handling in tts_queue_manager.js was unreachable dead code.
+async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = null) {
+  const MAX_SPLIT_ATTEMPTS = 5;
+  if (attempt > MAX_SPLIT_ATTEMPTS) {
+    debugLog(`TTS: Chunk too long after splits: "${textChunk.substring(0, 30)}..."`, 'error');
+    return null;
+  }
+  if (!textChunk.trim()) return null;
+
+  debugLog(`TTS: Playing chunk (attempt ${attempt + 1}): "${textChunk.substring(0, 100)}..." with voice ${voiceId}`, 'info');
+
+  try {
+    const resolved = preloaded || await fetchTTSBuffer(textChunk, voiceId);
+    await playResolvedChunk(resolved, textChunk.substring(0, 30));
+    return resolved;
+  } catch (err) {
+    if (err.message && err.message.toLowerCase().includes('text too long') && attempt < MAX_SPLIT_ATTEMPTS) {
+      debugLog(`TTS: 'Text too long' — splitting chunk. Attempt ${attempt + 1}`, 'warn');
+      const halfPoint = Math.floor(textChunk.length / 2);
+      let splitPoint = textChunk.lastIndexOf(' ', halfPoint);
+      if (splitPoint <= 0) splitPoint = halfPoint;
+
+      const firstHalf = textChunk.substring(0, splitPoint);
+      const secondHalf = textChunk.substring(splitPoint).trim();
+      const a = firstHalf ? await tryPlaySingleChunk(firstHalf, voiceId, attempt + 1) : null;
+      const b = secondHalf ? await tryPlaySingleChunk(secondHalf, voiceId, attempt + 1) : null;
+      return a || b;
+    }
+    debugError('TTS: Error playing chunk', err, { textPreview: textChunk.substring(0, 80), voiceId, attempt });
+    throw err;
+  }
+}
 window.tryPlaySingleChunk = tryPlaySingleChunk;

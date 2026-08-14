@@ -10,7 +10,10 @@ window.preloadKokoroInBackground = async function () {
     const isSlowNetwork = navigator.connection &&
         (navigator.connection.effectiveType === '2g' || navigator.connection.effectiveType === '3g');
 
-    if (window.enableKokoro === false || isLowRAM || isSlowNetwork) {
+    // Fails closed. A strict `=== false` check would let an undefined value
+    // fall through and start a large model download unprompted — the wrong
+    // direction to be wrong for anyone on a mobile or metered connection.
+    if (!window.enableKokoro || isLowRAM || isSlowNetwork) {
         let reason = isLowRAM ? "Low RAM" : (isSlowNetwork ? "Slow Network" : "Opted out");
         if (typeof debugLog === 'function') {
             debugLog(`[Voice Engine] Kokoro TTS disabled (${reason}). Falling back to standard browser TTS.`, 'info');

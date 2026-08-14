@@ -1,7 +1,48 @@
+// Monotonic counter so ids stay unique when many messages are created inside a
+// single millisecond — replaying history from localStorage used to collide
+// often enough to break TTS highlighting and the summary marker.
+let _msgIdCounter = 0;
+function nextMessageId() {
+  _msgIdCounter += 1;
+  return `msg-${Date.now()}-${_msgIdCounter}`;
+}
+window.nextMessageId = nextMessageId;
+
+// Appends transliteration text to an already-rendered message, replacing any
+// previous one. Used by the streaming path, where the transliteration request
+// resolves after the message has been finalized.
+function appendTransliteration(messageDiv, transliterationText) {
+  if (!messageDiv || !transliterationText) return;
+  const existing = messageDiv.querySelector('.message-transliteration-text');
+  if (existing) existing.remove();
+  const span = document.createElement('span');
+  span.className = 'message-transliteration-text';
+  span.textContent = `(${transliterationText})`;
+  messageDiv.appendChild(span);
+}
+window.appendTransliteration = appendTransliteration;
+
+// Splits text into per-sentence spans so TTS can highlight along as it
+// speaks. Shared by addMessage and finalizeStreamingMessage — streamed
+// replies used to render as one flat text node, so sentence highlighting
+// silently did nothing on the streaming path.
+function renderSentenceSpans(container, text) {
+  container.textContent = '';
+  const sentences = (typeof splitIntoSentences === 'function') ? splitIntoSentences(text) : [text];
+  sentences.forEach((sentence, idx) => {
+    const span = document.createElement('span');
+    span.className = 'sentence-chunk';
+    span.dataset.index = idx;
+    span.textContent = sentence + ' ';
+    container.appendChild(span);
+  });
+}
+window.renderSentenceSpans = renderSentenceSpans;
+
 function addMessage(originalText, isUser, translationText = null, transliterationText = null, languageCode = 'en-US') {
   // Assumes chatHistory is accessible
   const messageDiv = document.createElement("div");
-  messageDiv.id = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  messageDiv.id = nextMessageId();
   messageDiv.className = `message ${isUser ? "user-message" : "model-message"}`;
   
   // Stagger entry for multiple messages if needed
@@ -74,15 +115,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   originalSpan.className = 'message-original-text';
   
   if (!isUser) {
-    // Wrap sentences in spans for highlighting
-    const sentences = typeof splitIntoSentences === 'function' ? splitIntoSentences(originalText) : [originalText];
-    sentences.forEach((sentence, idx) => {
-      const sentenceSpan = document.createElement('span');
-      sentenceSpan.className = 'sentence-chunk';
-      sentenceSpan.dataset.index = idx;
-      sentenceSpan.textContent = sentence + ' ';
-      originalSpan.appendChild(sentenceSpan);
-    });
+    renderSentenceSpans(originalSpan, originalText);
   } else {
     originalSpan.textContent = originalText;
   }
@@ -182,15 +215,19 @@ function clearChatHistory() {
   // Assumes chatHistory, conversationContext, debugLog are accessible
   debugLog('Clearing chat history', 'info');
 
+  // Stop any reply still in flight, or its TTS keeps speaking over an empty
+  // transcript and its result is written back after the clear.
+  if (typeof window.resetConversationRuntime === 'function') window.resetConversationRuntime();
+
   // Reset current chat data in-place
   chatHistory.innerHTML = '';
   conversationContext = [];
   window.conversationSummary = '';
   window.messageCountSinceLastSummary = 0;
 
-  localStorage.setItem('conversationContext', '[]');
-  localStorage.setItem('conversationSummary', '');
-  localStorage.setItem('messageCountSinceLastSummary', '0');
+  AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, []);
+  AppStorage.setString(AppStorage.KEYS.CONVERSATION_SUMMARY, '');
+  AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
 
   // Save the cleared state to the active chat
   if (window.ChatManager) {
@@ -203,17 +240,14 @@ function clearChatHistory() {
 
   const summaryEl = document.getElementById('conversationSummary');
   if (summaryEl) summaryEl.value = '';
+
+  if (typeof updateSummaryMarker === 'function') updateSummaryMarker();
 }
 
-function populateModelSelector() {
-  // Populate the dropdown list
-  function modelComparator(a,b){const an=a.name||'',bn=b.name||'';const ai=/^\d+$/.test(an)?parseInt(an,10):null;const bi=/^\d+$/.test(bn)?parseInt(bn,10):null;if(ai===null&&bi===null)return an.localeCompare(bn);if(ai===null)return -1;if(bi===null)return 1;const ab=ai<10?0:1;const bb=bi<10?0:1;return ab!==bb?ab-bb:ai-bi;}
-  availableModels.slice().sort(modelComparator).forEach(model => {
-    const listItem = document.createElement('li');
-    listItem.textContent = model.name;
-    modelSelector.appendChild(listItem);
-  });
-}
+// populateModelSelector lives in settings_ui.js. A second implementation used
+// to be declared here that appended to an undefined `modelSelector` global;
+// it would have thrown on the first call and was saved only by settings_ui.js
+// loading later and overwriting the binding.
 
 /**
  * Create a streaming message element for real-time updates
@@ -225,7 +259,7 @@ function populateModelSelector() {
  */
 function createStreamingMessage(languageCode = 'en-US') {
   const messageDiv = document.createElement("div");
-  messageDiv.id = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  messageDiv.id = nextMessageId();
   messageDiv.className = `message model-message streaming-message`;
   
   // Stagger entry animation
@@ -324,7 +358,12 @@ function finalizeStreamingMessage(streamObj, originalText, languageCode = 'en-US
   // Remove streaming class
   messageDiv.classList.remove('streaming-message');
   messageDiv.classList.add('model-message');
-  
+
+  // Re-render the accumulated plain text as sentence spans now that the
+  // reply is complete, so highlightSentence has something to target.
+  textContainer.classList.remove('streaming-text');
+  renderSentenceSpans(textContainer, originalText);
+
   // Enable action buttons
   playBtn.style.opacity = '1';
   pauseBtn.style.opacity = '1';

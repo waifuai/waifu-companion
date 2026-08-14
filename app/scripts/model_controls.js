@@ -34,12 +34,16 @@ function zoomModel(direction) {
   if (window.currentModelUrl) saveModelZoom(window.currentModelUrl, newScale);
 }
 
+// Bound once. loadModel calls this on every model load, so without the guard
+// each switch added another resize handler.
+let __resizeBound = false;
 function setupWindowResize() {
+  if (__resizeBound) return;
+  __resizeBound = true;
   window.addEventListener("resize", () => {
     app.renderer.resize(window.innerWidth, window.innerHeight);
-    if (currentModel) {
-      currentModel.position.set(window.innerWidth / 2, window.innerHeight / 2);
-    }
+    // Deliberately does NOT re-centre the model: that discarded the position
+    // the user had dragged it to (and their saved position) on every resize.
   });
 }
 
@@ -70,24 +74,32 @@ function resetCurrentModelPosition(){
   } catch(e){ debugError('Reset model position persist failed', e); }
 }
 
-function setupZooming(model) {
+// Bound once against app.view, and always acts on whichever model is current.
+//
+// This used to add a fresh wheel listener per loadModel() call and close over
+// that specific `model`, so after switching models N times a single scroll
+// applied N zoom steps — to N different models, including destroyed ones.
+let __zoomBound = false;
+function setupZooming() {
+  if (__zoomBound) return;
+  __zoomBound = true;
+
   const zoomFactor = 0.1;
-  const minScale = 0.1;
-  const maxScale = 2.0;
   app.view.addEventListener('wheel', (event) => {
-    event.preventDefault(); 
-    if (!currentModel) return; 
-    const direction = event.deltaY < 0 ? 1 : -1; 
-    const oldScale = model.scale.x; 
+    event.preventDefault();
+    if (!currentModel) return;
+    const direction = event.deltaY < 0 ? 1 : -1;
+    const oldScale = currentModel.scale.x;
     let newScale = oldScale * (1 + direction * zoomFactor);
     newScale = Math.max(minScale, Math.min(maxScale, newScale));
-    if (newScale !== oldScale) {
-      if (window.playSound) window.playSound('zoom', direction === 1 ? 'C4' : 'G3', '16n');
+    if (newScale !== oldScale && window.playSound) {
+      window.playSound('zoom', direction === 1 ? 'C4' : 'G3', '16n');
     }
-    model.scale.set(newScale);
+    currentModel.scale.set(newScale);
     if (window.currentModelUrl) saveModelZoom(window.currentModelUrl, newScale);
-  }, { passive: false }); 
+  }, { passive: false });
 }
+window.setupZooming = setupZooming;
 
 function saveModelZoom(url, scale){
   try {

@@ -128,15 +128,89 @@
     }
   }
 
+  function isQuotaError(e) {
+    if (!e) return false;
+    return e.name === 'QuotaExceededError'
+      || e.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+      || e.code === 22 || e.code === 1014;
+  }
+
+  // Frees space by dropping regenerable caches only. Deliberately never
+  // evicts conversation data (chatData_*, CONVERSATION_CONTEXT) — silently
+  // deleting a user's chats to make room for the next write is a worse
+  // failure than the write itself failing.
+  function reclaimSpace() {
+    try {
+      const uiCacheKeys = Object.keys(localStorage).filter(k => k.startsWith('uiStrings_'));
+      if (uiCacheKeys.length > 0) {
+        uiCacheKeys.forEach(k => localStorage.removeItem(k));
+        if (typeof debugLog === 'function') {
+          debugLog(`Storage: cleared ${uiCacheKeys.length} cached UI translation(s) to free space.`, 'warn');
+        }
+        return true;
+      }
+    } catch (e) { /* keep going */ }
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.BG_LIBRARY);
+      const list = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(list) && list.length > 10) {
+        localStorage.setItem(STORAGE_KEYS.BG_LIBRARY, JSON.stringify(list.slice(0, 10)));
+        if (typeof debugLog === 'function') {
+          debugLog(`Storage: trimmed background library from ${list.length} to 10 entries.`, 'warn');
+        }
+        return true;
+      }
+    } catch (e) { /* keep going */ }
+
+    return false;
+  }
+
+  let quotaWarningShown = false;
+  function notifyStorageFull() {
+    if (quotaWarningShown) return;
+    quotaWarningShown = true;
+    if (typeof addMessage === 'function') {
+      addMessage(
+        "I'm running out of browser storage, so I can't save new messages right now. " +
+        "Deleting an old chat from the sidebar will free some space.",
+        false
+      );
+    }
+    if (typeof trackError === 'function') trackError('storage', 0);
+  }
+
+  // Writes to localStorage, reclaiming space and retrying once on quota
+  // failure. This is the single choke point every AppStorage.set* call goes
+  // through, so every caller — chat history, settings, model lists — gets
+  // quota handling for free instead of throwing mid-write.
   function safeSet(key, value) {
     if (!isStorageAvailable()) return false;
     try {
       localStorage.setItem(key, value);
       return true;
     } catch (e) {
-      if (typeof debugLog === 'function') {
-        debugLog(`Storage write error for key "${key}": ${e.message}`, 'error');
+      if (!isQuotaError(e)) {
+        if (typeof debugLog === 'function') {
+          debugLog(`Storage write error for key "${key}": ${e.message}`, 'error');
+        }
+        return false;
       }
+
+      if (typeof debugLog === 'function') {
+        debugLog(`Storage quota exceeded writing "${key}". Attempting to reclaim space.`, 'warn');
+      }
+      if (reclaimSpace()) {
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch (e2) { /* fall through */ }
+      }
+
+      if (typeof debugLog === 'function') {
+        debugLog(`Storage: could not free enough space for "${key}". This change will not persist.`, 'error');
+      }
+      notifyStorageFull();
       return false;
     }
   }
