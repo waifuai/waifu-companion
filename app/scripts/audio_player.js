@@ -206,25 +206,19 @@ async function fetchTTSBuffer(textChunk, voiceId) {
   const audioContext = getTTSAudioContext();
   debugLog(`TTS: AudioContext state: ${audioContext.state}`, 'info');
 
-  const CORS_PROXY = 'https://corsproxy.io/?';
-  
-  async function fetchWithProxy(apiUrl, options) {
-    try {
-      const url = CORS_PROXY + encodeURIComponent(apiUrl);
-      debugLog(`TTS: Using proxy: ${CORS_PROXY}`, 'info');
-      const response = await fetch(url, options);
-      debugLog(`TTS: Proxy responded with status: ${response.status}`, 'info');
-      return response;
-    } catch (err) {
-      debugLog(`TTS: Proxy failed: ${err.name} - ${err.message}`, 'warn');
-      throw err;
-    }
-  }
-
   let primaryFailed = false;
   let tiktokBuffer = null;
 
   if (provider === 'tiktok' && window.enablePrimaryVoice !== false) {
+    // Called directly, no CORS proxy. ottsy.weilbyte.dev already sends
+    // Access-Control-Allow-Origin: * on both the preflight and the real
+    // response, so it doesn't need one. It used to be routed through
+    // corsproxy.io, which returns 403 for this request and fails with
+    // "TypeError: Failed to fetch" before the API is ever reached — verified
+    // from an actual waifuai.com browser session, where the direct call
+    // returns 200 with valid audio and the proxied call throws. Every
+    // request on this path was silently falling through to Kokoro/browser
+    // TTS instead of using the voice the user picked.
     const apiUrl = "https://ottsy.weilbyte.dev/api/generation";
     debugLog(`TTS: === TikTok TTS Flow START ===`, 'info');
     debugLog(`TTS: API URL: ${apiUrl}`, 'info');
@@ -236,7 +230,7 @@ async function fetchTTSBuffer(textChunk, voiceId) {
         body: JSON.stringify({ text: textChunk, voice: voiceId })
       };
       debugLog(`TTS: Request options: method=${fetchOptions.method}, body=${JSON.stringify(fetchOptions.body).substring(0, 100)}...`, 'info');
-      const response = await fetchWithProxy(apiUrl, fetchOptions);
+      const response = await fetch(apiUrl, fetchOptions);
 
       debugLog(`TTS: Response status: ${response.status}`, 'info');
       debugLog(`TTS: Response headers: ${JSON.stringify([...response.headers.entries()].reduce((acc, [k,v]) =>{acc[k]=v; return acc;}, {}))}`, 'info');
