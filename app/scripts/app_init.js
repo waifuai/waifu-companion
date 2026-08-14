@@ -226,7 +226,6 @@ async function initModels() {
   try {
     const userModels = AppStorage.getJSON(AppStorage.KEYS.USER_MODELS, []);
     if (Array.isArray(userModels) && userModels.length) availableModels.push(...userModels);
-    function modelComparator(a,b){const an=a.name||'',bn=b.name||'';const ai=/^\d+$/.test(an)?parseInt(an,10):null;const bi=/^\d+$/.test(bn)?parseInt(bn,10):null;if(ai===null&&bi===null)return an.localeCompare(bn);if(ai===null)return -1;if(bi===null)return 1;const ab=ai<10?0:1;const bb=bi<10?0:1;return ab!==bb?ab-bb:ai-bi;}
     availableModels.sort(modelComparator);
     debugLog(`Loaded ${userModels.length || 0} user models. Total models: ${availableModels.length}`, 'info');
   } catch(e) { debugLog('Failed to load user models.', 'warn'); }

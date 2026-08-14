@@ -689,7 +689,6 @@ function handleAddCustomModel() {
   userModels.push(entry);
   S.setJSON(K.USER_MODELS, userModels);
   availableModels.push(entry);
-  function modelComparator(a,b){const an=a.name||'',bn=b.name||'';const ai=/^\d+$/.test(an)?parseInt(an,10):null;const bi=/^\d+$/.test(bn)?parseInt(bn,10):null;if(ai===null&&bi===null)return an.localeCompare(bn);if(ai===null)return -1;if(bi===null)return 1;const ab=ai<10?0:1;const bb=bi<10?0:1;return ab!==bb?ab-bb:ai-bi;}
   availableModels.sort(modelComparator);
   // Persist and reflect selection immediately in UI
   S.setString(K.SELECTED_MODEL_URL, url);
@@ -719,7 +718,6 @@ function handleRemoveCustomModel(url) {
   // Remove from availableModels
   const idx = availableModels.findIndex(m => m.url === url);
   if (idx !== -1) availableModels.splice(idx, 1);
-  function modelComparator(a,b){const an=a.name||'',bn=b.name||'';const ai=/^\d+$/.test(an)?parseInt(an,10):null;const bi=/^\d+$/.test(bn)?parseInt(bn,10):null;if(ai===null&&bi===null)return an.localeCompare(bn);if(ai===null)return -1;if(bi===null)return 1;const ab=ai<10?0:1;const bb=bi<10?0:1;return ab!==bb?ab-bb:ai-bi;}
   availableModels.sort(modelComparator);
   debugLog(`Removed custom model. Before: ${beforeLen}, After: ${userModels.length}`, 'info');
   // If currently selected model is removed, fallback to default

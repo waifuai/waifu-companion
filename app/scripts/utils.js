@@ -1,3 +1,20 @@
+// Sorts models by name, ordering purely numeric names numerically (and
+// single-digit names before multi-digit ones) with named models first.
+// Was copy-pasted verbatim into three call sites (app_init.js,
+// settings_handlers.js x2).
+function modelComparator(a, b) {
+  const an = a.name || '', bn = b.name || '';
+  const ai = /^\d+$/.test(an) ? parseInt(an, 10) : null;
+  const bi = /^\d+$/.test(bn) ? parseInt(bn, 10) : null;
+  if (ai === null && bi === null) return an.localeCompare(bn);
+  if (ai === null) return -1;
+  if (bi === null) return 1;
+  const ab = ai < 10 ? 0 : 1;
+  const bb = bi < 10 ? 0 : 1;
+  return ab !== bb ? ab - bb : ai - bi;
+}
+window.modelComparator = modelComparator;
+
 function formatSeconds(seconds) {
   // Calculate days, hours, minutes, and remaining seconds
   const days = Math.floor(seconds / (60 * 60 * 24));
