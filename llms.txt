@@ -11,7 +11,8 @@
 
 ## Try It
 
-- Web App: https://waifuai.com/app
+- Hosted App (free LLM and voice included, no sign-up): https://websim.com/@thewaifuai/vtuber1
+- Web App (bring your own API key): https://waifuai.com/app
 - Download: https://waifuai.itch.io/waifu
 - GitHub: https://github.com/waifuai
 
