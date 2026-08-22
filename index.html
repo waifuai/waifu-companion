@@ -122,6 +122,20 @@
 
         /* Hero screenshot — intrinsic width/height on the img prevents layout shift */
         .shot { margin: 0 auto 1.35rem; }
+        .shot a {
+            display: block;
+            text-decoration: none;
+            cursor: pointer;
+            border-radius: 14px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .shot a:hover {
+            transform: translateY(-2px);
+        }
+        .shot a:hover img {
+            border-color: #c084fc;
+            box-shadow: 0 20px 50px rgba(192, 132, 252, 0.3);
+        }
         .shot img {
             width: 100%;
             height: auto;
@@ -130,6 +144,7 @@
             border-radius: 14px;
             background: #10101f;
             box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
         .shot figcaption {
             margin-top: 0.6rem;
@@ -286,8 +301,8 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .cta-primary, .project-card { transition: none; }
-            .cta-primary:hover { transform: none; }
+            .cta-primary, .project-card, .shot a, .shot img { transition: none; }
+            .cta-primary:hover, .shot a:hover { transform: none; }
         }
     </style>
 </head>
@@ -298,13 +313,17 @@
         <p class="tagline">An animated Live2D character that talks back, remembers you, and has a personality you choose. No sign-up, no install, no paywall.</p>
 
         <figure class="shot">
-            <picture>
-                <source media="(max-width: 600px)" srcset="./assets/hero-app-mobile.webp" type="image/webp" width="800" height="1000">
-                <source media="(max-width: 600px)" srcset="./assets/hero-app-mobile.jpg" type="image/jpeg" width="800" height="1000">
-                <source srcset="./assets/hero-app.webp" type="image/webp" width="1280" height="720">
-                <img src="./assets/hero-app.jpg" width="1280" height="720" fetchpriority="high" decoding="async"
-                     alt="The WaifuAI app running: an animated Live2D anime character with a live chat conversation and voice input below her.">
-            </picture>
+            <a href="https://websim.com/@thewaifuai/vtuber1" rel="noopener" data-cta="hero_image"
+               onclick="gtag('event','cta_click',{cta_location:'hero_image',cta_target:'websim'})"
+               aria-label="Open WaifuAI Web App">
+                <picture>
+                    <source media="(max-width: 600px)" srcset="./assets/hero-app-mobile.webp" type="image/webp" width="800" height="1000">
+                    <source media="(max-width: 600px)" srcset="./assets/hero-app-mobile.jpg" type="image/jpeg" width="800" height="1000">
+                    <source srcset="./assets/hero-app.webp" type="image/webp" width="1280" height="720">
+                    <img src="./assets/hero-app.jpg" width="1280" height="720" fetchpriority="high" decoding="async"
+                         alt="The WaifuAI app running: an animated Live2D anime character with a live chat conversation and voice input below her.">
+                </picture>
+            </a>
             <figcaption>This is the actual app — Live2D character, live chat, and voice.</figcaption>
         </figure>
 
