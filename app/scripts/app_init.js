@@ -415,7 +415,12 @@ function initProviders() {
   const openRouterFallbackModel1Input = document.getElementById('openRouterFallbackModel1Input');
   if (openRouterFallbackModel1Input) {
     const defaultFallback1 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[0] || MODEL_PRIORITY[1];
-    window.openRouterFallbackModel1 = AppStorage.getString(AppStorage.KEYS.OPEN_ROUTER_FALLBACK_MODEL_1, defaultFallback1);
+    let storedFallback1 = AppStorage.getString(AppStorage.KEYS.OPEN_ROUTER_FALLBACK_MODEL_1, defaultFallback1);
+    if (!storedFallback1 || (window.STALE_OPENROUTER_DEFAULTS || []).includes(storedFallback1)) {
+      AppStorage.remove(AppStorage.KEYS.OPEN_ROUTER_FALLBACK_MODEL_1);
+      storedFallback1 = defaultFallback1;
+    }
+    window.openRouterFallbackModel1 = storedFallback1;
     openRouterFallbackModel1Input.value = window.openRouterFallbackModel1;
     openRouterFallbackModel1Input.placeholder = defaultFallback1;
     openRouterFallbackModel1Input.addEventListener('change', handleOpenRouterFallbackModel1Change);
@@ -430,7 +435,12 @@ function initProviders() {
   const openRouterFallbackModel2Input = document.getElementById('openRouterFallbackModel2Input');
   if (openRouterFallbackModel2Input) {
     const defaultFallback2 = window.OpenRouterAPI?.DEFAULT_FALLBACK_MODELS?.[1] || MODEL_PRIORITY[2];
-    window.openRouterFallbackModel2 = AppStorage.getString(AppStorage.KEYS.OPEN_ROUTER_FALLBACK_MODEL_2, defaultFallback2);
+    let storedFallback2 = AppStorage.getString(AppStorage.KEYS.OPEN_ROUTER_FALLBACK_MODEL_2, defaultFallback2);
+    if (!storedFallback2 || (window.STALE_OPENROUTER_DEFAULTS || []).includes(storedFallback2)) {
+      AppStorage.remove(AppStorage.KEYS.OPEN_ROUTER_FALLBACK_MODEL_2);
+      storedFallback2 = defaultFallback2;
+    }
+    window.openRouterFallbackModel2 = storedFallback2;
     openRouterFallbackModel2Input.value = window.openRouterFallbackModel2;
     openRouterFallbackModel2Input.placeholder = defaultFallback2;
     openRouterFallbackModel2Input.addEventListener('change', handleOpenRouterFallbackModel2Change);
