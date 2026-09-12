@@ -19,10 +19,9 @@ const WaifuProxyAPI = {
 
   buildRequest(options, stream) {
     const model = this.getModel();
-    const { messages, json } = options;
+    const { messages } = options;
     const body = { model, messages };
     if (stream) body.stream = true;
-    if (json) body.response_format = { type: 'json_object' };
 
     return {
       url: this.API_URL,

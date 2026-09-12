@@ -141,32 +141,10 @@ Your response MUST be in ${targetLanguageName}. If the user asks in a different 
 If ${targetLanguageName} is Japanese, ensure your entire response is in Japanese characters (Hiragana, Katakana, Kanji). If you need to use a foreign word, use its Katakana representation or a Japanese equivalent.
 ${contextInfo.join('\n\n')}
 
-Respond ONLY with a JSON object matching this TypeScript interface:
-interface Response {
-    reply: string;
-    emotion: "happy" | "sad" | "surprised" | "neutral" | "thoughtful" | "excited";
-    gesture?: string;
-    settingsUpdate?: {
-        responseLanguage?: string;
-        enableVoice?: boolean;
-        voiceId?: string;
-        memorySize?: number;
-        showTransliteration?: boolean;
-        showClock?: boolean;
-        chatboxOpacity?: number;
-        messageOpacity?: number;
-        bgOpacity?: number;
-        includeTime?: boolean;
-        includeBattery?: boolean;
-        summaryTrigger?: number;
-        summaryLength?: "ultra-concise" | "concise" | "detailed" | "comprehensive";
-    };
-}
-
+Respond naturally and directly in conversation. You can reply with plain conversational text, or optionally format as a JSON object:
 {
     "reply": "(${targetLanguageName} example reply based on user input and emotion)",
-    "emotion": "thoughtful",
-    "gesture": "head_tilt"
+    "emotion": "thoughtful"
 }`;
 }
 
@@ -202,11 +180,11 @@ async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '')
 // "surprised" (which also tested '!') effectively unreachable.
 function inferEmotion(text) {
   const lower = (text || '').toLowerCase();
-  if (lower.includes('😢') || lower.includes('sad') || lower.includes('sorry')) return 'sad';
-  if (lower.includes('😮') || lower.includes('surprised') || lower.includes('?')) return 'surprised';
-  if (lower.includes('excited') || lower.includes('amazing') || lower.includes('wow')) return 'excited';
-  if (lower.includes('think') || lower.includes('hmm') || lower.includes('...')) return 'thoughtful';
-  if (lower.includes('😊') || lower.includes('😀') || lower.includes('happy') || lower.includes('joy') || lower.includes('!')) return 'happy';
+  if (lower.includes('😢') || lower.includes('😭') || lower.includes('sad') || lower.includes('sorry') || lower.includes('حزين') || lower.includes('آسف')) return 'sad';
+  if (lower.includes('😮') || lower.includes('😲') || lower.includes('surprised') || lower.includes('?') || lower.includes('؟')) return 'surprised';
+  if (lower.includes('🎉') || lower.includes('✨') || lower.includes('excited') || lower.includes('amazing') || lower.includes('wow') || lower.includes('رائع') || lower.includes('حماس')) return 'excited';
+  if (lower.includes('🤔') || lower.includes('think') || lower.includes('hmm') || lower.includes('...') || lower.includes('أعتقد')) return 'thoughtful';
+  if (lower.includes('😊') || lower.includes('😀') || lower.includes('happy') || lower.includes('joy') || lower.includes('!') || lower.includes('جميل') || lower.includes('شكرا') || lower.includes('مرحبا') || lower.includes('أهلا')) return 'happy';
   return 'neutral';
 }
 
@@ -233,12 +211,9 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
   }
 
   if (!data) {
-    debugError('AI returned plain text or unkeyed JSON', null, {
-      responsePreview: raw.substring(0, 200),
-      responseLength: raw.length
-    });
     const text = (plainTextFallback || raw).trim();
     data = { reply: text, emotion: inferEmotion(text) };
+    debugLog(`AI returned natural plain text response, inferred emotion: ${data.emotion}`, 'info');
   }
 
   if (!data.reply || data.reply.trim() === '') {
@@ -489,26 +464,43 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     let buffer = '';
     let fullContent = '';
     let inReply = false;
+    let isPlainText = false;
     let replyText = '';
     let replyStartIndex = -1;
 
-    // Incrementally surfaces the `reply` field while the JSON is still arriving.
+    // Incrementally surfaces the `reply` field while the JSON or plain text is arriving.
     const emitProgress = () => {
-      if (!inReply) {
-        const replyMatch = fullContent.match(/"reply"\s*:\s*"/);
-        if (!replyMatch) return;
-        inReply = true;
-        replyStartIndex = replyMatch.index + replyMatch[0].length;
+      const trimmed = fullContent.trimStart();
+      if (!isPlainText && !inReply) {
+        if (trimmed.startsWith('{') || trimmed.includes('"reply"')) {
+          const replyMatch = fullContent.match(/"reply"\s*:\s*"/);
+          if (replyMatch) {
+            inReply = true;
+            replyStartIndex = replyMatch.index + replyMatch[0].length;
+          }
+        } else if (trimmed.length > 5) {
+          // Model is responding in natural plain text
+          isPlainText = true;
+        }
       }
-      const afterKey = fullContent.slice(replyStartIndex);
-      const closeQuoteIndex = findUnescapedQuote(afterKey);
-      if (closeQuoteIndex !== -1) {
-        replyText = afterKey.slice(0, closeQuoteIndex);
-        inReply = false;
-      } else {
-        replyText = afterKey;
+
+      if (isPlainText) {
+        replyText = fullContent;
+        if (onChunk) onChunk(replyText);
+        return;
       }
-      if (onChunk) onChunk(replyText);
+
+      if (inReply) {
+        const afterKey = fullContent.slice(replyStartIndex);
+        const closeQuoteIndex = findUnescapedQuote(afterKey);
+        if (closeQuoteIndex !== -1) {
+          replyText = afterKey.slice(0, closeQuoteIndex);
+          inReply = false;
+        } else {
+          replyText = afterKey;
+        }
+        if (onChunk) onChunk(replyText);
+      }
     };
 
     const consumeSSELine = (line) => {
