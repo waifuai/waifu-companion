@@ -203,6 +203,19 @@
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
           <h3 data-ui-key="llmSettingsTitle">🤖 LLM Provider</h3>
         </div>
+        <div class="provider-section" style="border-left: 3px solid #6366f1; padding-left: 12px; margin-bottom: 16px;">
+          <div class="provider-section-header">
+            <h4>✨ WaifuAI Cloud (Default)</h4>
+          </div>
+          <div class="settings-item">
+            <div class="value-display" style="margin-top: 4px; color: #cbd5e1;">
+              <strong>Active automatically for all guests.</strong> Powered by WaifuAI Cloud. No API key required!
+            </div>
+            <div class="value-display" style="margin-top: 4px; font-size: 0.85em; opacity: 0.75;">
+              To bring your own API key instead, simply check one of the custom providers below.
+            </div>
+          </div>
+        </div>
         <div class="provider-section">
           <div class="provider-section-header">
             <h4 data-ui-key="openRouterSectionTitle">OpenRouter</h4>
@@ -972,6 +985,7 @@
     <script src="scripts/openrouter.js"></script>
     <script src="scripts/groq.js"></script>
     <script src="scripts/openai_compatible.js"></script>
+    <script src="scripts/waifu_proxy.js"></script>
     <!-- Language data has been refactored into smaller pieces -->
     <script src="scripts/languages_full_data.js"></script>
     <script src="scripts/language_data_manager.js"></script>

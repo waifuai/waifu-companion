@@ -19,6 +19,9 @@ function resolveLLMProvider() {
   if (window.OpenRouterAPI && window.OpenRouterAPI.isConfigured()) {
     return { name: 'openrouter', api: window.OpenRouterAPI, model: window.OpenRouterAPI.getModel() };
   }
+  if (window.WaifuProxyAPI && window.WaifuProxyAPI.isConfigured()) {
+    return { name: 'waifu_proxy', api: window.WaifuProxyAPI, model: window.WaifuProxyAPI.getModel() };
+  }
   return null;
 }
 window.resolveLLMProvider = resolveLLMProvider;
