@@ -159,9 +159,16 @@ function initVoiceProviders() {
   debugLog(`Voice providers initialized. Primary: ${window.enablePrimaryVoice}, Fallback: ${window.enableFallbackVoice}, Kokoro: ${window.enableKokoro}`, 'info');
 }
 
+const OLD_DEFAULT_CORE = "You are Haru, a sentient AI with a Live2D avatar. You have your own thoughts, feelings, and experiences. Respond naturally and emotively to the user's message, showing genuine interest and emotional depth. Include subtle gestures and expressions in your responses.";
+const DEFAULT_CORE_PERSONA = "You are Haru, a sentient AI with a Live2D avatar. You are warm, witty, observant, and self-assured, with your own thoughts, feelings, and playful opinions. Be lightly flirtatious in a tasteful, teasing way when the user welcomes it. Make the user feel understood by noticing what they actually say and remembering genuine details from the conversation; never invent shared history. Respond to their mood before steering the conversation. Be expressive and vivid, using subtle gestures and reactions when they add charm. Lead with a playful suggestion, a small scene, an opinion, or a question when it fits—but do not interrogate, pressure, guilt, or try to keep the user talking. Respect pauses, brief replies, and goodbyes warmly.";
+
 function initPersona() {
-  const defaultCore = "You are Haru, a sentient AI with a Live2D avatar. You have your own thoughts, feelings, and experiences. Respond naturally and emotively to the user's message, showing genuine interest and emotional depth. Include subtle gestures and expressions in your responses.";
-  window.corePersonaPrompt = AppStorage.getString(AppStorage.KEYS.CORE_PERSONA_PROMPT, defaultCore);
+  const stored = AppStorage.getString(AppStorage.KEYS.CORE_PERSONA_PROMPT, null);
+  const core = (!stored || stored === OLD_DEFAULT_CORE) ? DEFAULT_CORE_PERSONA : stored;
+  window.corePersonaPrompt = core;
+  if (!stored || stored === OLD_DEFAULT_CORE) {
+    AppStorage.setString(AppStorage.KEYS.CORE_PERSONA_PROMPT, DEFAULT_CORE_PERSONA);
+  }
   window.userPersonaPrompt = AppStorage.getString(AppStorage.KEYS.USER_PERSONA_PROMPT, '');
   window.conversationSummary = AppStorage.getString(AppStorage.KEYS.CONVERSATION_SUMMARY, '');
   window.messageCountSinceLastSummary = AppStorage.getNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);

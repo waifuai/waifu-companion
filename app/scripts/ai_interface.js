@@ -206,7 +206,7 @@ function inferEmotion(text) {
   if (lower.includes('😮') || lower.includes('surprised') || lower.includes('?')) return 'surprised';
   if (lower.includes('excited') || lower.includes('amazing') || lower.includes('wow')) return 'excited';
   if (lower.includes('think') || lower.includes('hmm') || lower.includes('...')) return 'thoughtful';
-  if (lower.includes('😊') || lower.includes('happy') || lower.includes('joy') || lower.includes('!')) return 'happy';
+  if (lower.includes('😊') || lower.includes('😀') || lower.includes('happy') || lower.includes('joy') || lower.includes('!')) return 'happy';
   return 'neutral';
 }
 
@@ -217,15 +217,23 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
 
   let data = null;
   try {
+    let parsed = null;
     if (raw.startsWith('{')) {
-      data = JSON.parse(raw);
+      parsed = JSON.parse(raw);
     } else {
       const match = raw.match(/\{[\s\S]*\}/);
-      if (match) data = JSON.parse(match[0]);
-      else throw new Error('No JSON found in response');
+      if (match) parsed = JSON.parse(match[0]);
+    }
+    if (parsed && typeof parsed === 'object' && 'reply' in parsed && typeof parsed.reply === 'string' && parsed.reply.trim() !== '') {
+      data = parsed;
+      if (!data.emotion) data.emotion = 'neutral';
     }
   } catch (parseError) {
-    debugError('AI returned plain text instead of JSON', parseError, {
+    data = null;
+  }
+
+  if (!data) {
+    debugError('AI returned plain text or unkeyed JSON', null, {
       responsePreview: raw.substring(0, 200),
       responseLength: raw.length
     });
