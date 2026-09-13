@@ -20,8 +20,7 @@ const WaifuProxyAPI = {
   buildRequest(options, stream) {
     const model = this.getModel();
     const { messages } = options;
-    const body = { model, messages, max_tokens: 2500 };
-    if (stream) body.stream = true;
+    const body = { model, messages, max_tokens: 2500, stream: Boolean(stream) };
 
     return {
       url: this.API_URL,
