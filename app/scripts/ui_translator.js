@@ -256,6 +256,10 @@ async function applyInterfaceLanguage(langCode) {
     window.rerenderTutorial();
   }
 
+  if (typeof window.updateAmbientMaxConsecutiveDisplay === 'function') {
+    window.updateAmbientMaxConsecutiveDisplay();
+  }
+
   debugLog(`Interface language changed and settings panel translated to: ${langCode}`, 'info');
 }
 

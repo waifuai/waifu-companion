@@ -1248,16 +1248,15 @@ function updateAmbientMaxConsecutiveDisplay() {
   const provider = typeof resolveLLMProvider === 'function' ? resolveLLMProvider() : null;
   const isCloud = !provider || provider.name === 'waifu_proxy';
 
-  if (rawVal >= 50) {
-    if (isCloud) {
-      valEl.innerHTML = `Unlimited (∞) <span style="font-size:0.85em; opacity:0.75; display:block; margin-top:2px;">⚠️ Clamped to 10 on Free Cloud — add custom key to unlock</span>`;
-    } else {
-      valEl.textContent = 'Unlimited (∞)';
-    }
-  } else if (rawVal > 10 && isCloud) {
-    valEl.innerHTML = `${rawVal} <span style="font-size:0.85em; opacity:0.75; display:block; margin-top:2px;">⚠️ Clamped to 10 on Free Cloud — add custom key to unlock</span>`;
+  const settingText = rawVal >= 50 ? 'Unlimited (∞)' : `${rawVal} messages`;
+
+  if (isCloud && rawVal > 10) {
+    valEl.innerHTML = `<strong>${settingText}</strong> <span style="color:#f59e0b; font-weight:600;">(Clamped to 10 on Free Cloud)</span>` +
+      `<span style="font-size:0.83em; color:#fbbf24; display:block; margin-top:3px; opacity:0.9;">⚠️ Free Cloud proxy is capped at 10 consecutive thoughts — add your own API key to unlock up to ${rawVal >= 50 ? 'Unlimited' : rawVal}.</span>`;
+  } else if (!isCloud && rawVal > 10) {
+    valEl.innerHTML = `<strong>${settingText}</strong> <span style="color:#4ade80; font-weight:600;">(Custom API Key Active)</span>`;
   } else {
-    valEl.textContent = String(rawVal);
+    valEl.innerHTML = `<strong>${settingText}</strong>`;
   }
 }
 window.updateAmbientMaxConsecutiveDisplay = updateAmbientMaxConsecutiveDisplay;

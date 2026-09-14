@@ -691,8 +691,11 @@
         <div class="settings-item">
           <label for="ambientMaxConsecutive" data-ui-key="ambientMaxConsecutiveLabel">🔢 Max Consecutive Thoughts</label>
           <input type="range" id="ambientMaxConsecutive" min="1" max="50" step="1" value="10" />
-          <div class="value-display" data-ui-desc="ambientMaxConsecutiveDesc">
+          <div class="value-display">
             Pause after: <span id="ambientMaxConsecutiveValue">10</span>
+          </div>
+          <div class="value-display" data-ui-desc="ambientMaxConsecutiveDesc" style="font-size: 0.82em; opacity: 0.75; margin-top: 3px;">
+            Pause unprompted thoughts after this many unreplied messages (1-50 or Unlimited; clamped to 10 on Free Cloud).
           </div>
         </div>
         <div class="settings-item">
