@@ -1216,9 +1216,18 @@ function updateQueueUI() {
 // slider) or NaN (from a corrupt localStorage value) made setTimeout fire
 // immediately, turning ambient mode into an unbounded loop of API calls.
 const MIN_AMBIENT_DELAY_SECONDS = 3;
-// Cap consecutive ambient messages without user interaction to prevent overnight runaway loops
-const MAX_CONSECUTIVE_AMBIENT = 10;
 window.consecutiveAmbientCount = 0;
+
+// Dynamic ambient cap: unlimited for users bringing their own API key (Groq, OpenRouter, OpenAI-compatible),
+// capped at 10 for free WaifuAI Cloud proxy to prevent runaway token exhaustion.
+function getMaxConsecutiveAmbient() {
+  const provider = typeof resolveLLMProvider === 'function' ? resolveLLMProvider() : null;
+  if (provider && provider.name !== 'waifu_proxy') {
+    return Infinity;
+  }
+  return 10;
+}
+window.getMaxConsecutiveAmbient = getMaxConsecutiveAmbient;
 
 function normalizedAmbientDelay() {
   const raw = Number(window.ambientDelay);
@@ -1233,8 +1242,9 @@ function resetAmbientTimer(fromUser = false) {
   }
   if (window.ambientTimer) clearTimeout(window.ambientTimer);
   if (!window.isAmbientQueueEnabled) return;
-  if ((window.consecutiveAmbientCount || 0) >= MAX_CONSECUTIVE_AMBIENT) {
-    debugLog(`Ambient mode paused: reached maximum limit of ${MAX_CONSECUTIVE_AMBIENT} consecutive thoughts without user reply.`, 'info');
+  const maxLimit = getMaxConsecutiveAmbient();
+  if ((window.consecutiveAmbientCount || 0) >= maxLimit) {
+    debugLog(`Ambient mode paused: reached limit of ${maxLimit} consecutive thoughts without user reply.`, 'info');
     return;
   }
 
@@ -1248,13 +1258,15 @@ async function triggerAmbientPrompt() {
   // after isAIResponding clears, and firing here would run a second
   // concurrent sendMessageInternal.
   if (window.isAIResponding || window.isProcessing || !window.isAmbientQueueEnabled) return;
-  if ((window.consecutiveAmbientCount || 0) >= MAX_CONSECUTIVE_AMBIENT) {
-    debugLog(`Ambient mode reached limit of ${MAX_CONSECUTIVE_AMBIENT} consecutive thoughts. Pausing until user speaks.`, 'info');
+  const maxLimit = getMaxConsecutiveAmbient();
+  if ((window.consecutiveAmbientCount || 0) >= maxLimit) {
+    debugLog(`Ambient mode reached limit of ${maxLimit} consecutive thoughts. Pausing until user speaks.`, 'info');
     return;
   }
 
   window.consecutiveAmbientCount = (window.consecutiveAmbientCount || 0) + 1;
-  debugLog(`Triggering ambient AI comment (${window.consecutiveAmbientCount}/${MAX_CONSECUTIVE_AMBIENT})...`, 'info');
+  const limitLabel = Number.isFinite(maxLimit) ? `${window.consecutiveAmbientCount}/${maxLimit}` : `${window.consecutiveAmbientCount}/∞`;
+  debugLog(`Triggering ambient AI comment (${limitLabel})...`, 'info');
   const ambientPrompt = window.ambientPrompt || "(Continue the conversation naturally as Haru. Share a thought, a feeling, or ask me something relevant to our discussion to keep things moving. 1-2 sentences. Speak directly to me.)";
 
   // Use pre-loaded buffer if available
