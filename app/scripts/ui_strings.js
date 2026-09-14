@@ -163,6 +163,8 @@ window.UI_STRINGS = {
     ambientPromptLabel: '💭 Ambient Prompt',
     ambientPromptPlaceholder: 'Instructions for Haru\'s unprompted thoughts...',
     ambientDelayLabel: '⏱️ Ambient Trigger Delay (seconds)',
+    ambientMaxConsecutiveLabel: '🔢 Max Consecutive Thoughts',
+    ambientMaxConsecutiveDesc: 'Pause unprompted thoughts after this many unreplied messages (1-50 or Unlimited; clamped to 10 on Free Cloud).',
     ambientPreloadLabel: '⚡ Ambient Preload',
     ambientPreloadDesc: 'Pre-fetch the next ambient comment in the background for instant response.',
     clearQueueBtn: '🧹 Clear Message Queue',

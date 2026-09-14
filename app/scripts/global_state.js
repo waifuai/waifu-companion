@@ -174,6 +174,7 @@ AppState.userMessageQueue = [];
 AppState.isUserMessageQueueEnabled = true;
 AppState.isAmbientQueueEnabled = false;
 AppState.ambientDelay = 10;
+AppState.ambientMaxConsecutive = 10;
 AppState.ambientTimer = null;
 AppState.isAIResponding = false;
 AppState.isAmbientPreloadEnabled = false;
@@ -316,6 +317,7 @@ Object.defineProperty(window, 'userMessageQueue', { get: () => AppState.userMess
 Object.defineProperty(window, 'isUserMessageQueueEnabled', { get: () => AppState.isUserMessageQueueEnabled, set: v => { AppState.isUserMessageQueueEnabled = v; } });
 Object.defineProperty(window, 'isAmbientQueueEnabled', { get: () => AppState.isAmbientQueueEnabled, set: v => { AppState.isAmbientQueueEnabled = v; } });
 Object.defineProperty(window, 'ambientDelay', { get: () => AppState.ambientDelay, set: v => { AppState.ambientDelay = v; } });
+Object.defineProperty(window, 'ambientMaxConsecutive', { get: () => AppState.ambientMaxConsecutive, set: v => { AppState.ambientMaxConsecutive = v; } });
 Object.defineProperty(window, 'ambientTimer', { get: () => AppState.ambientTimer, set: v => { AppState.ambientTimer = v; } });
 Object.defineProperty(window, 'isAIResponding', { get: () => AppState.isAIResponding, set: v => { AppState.isAIResponding = v; } });
 Object.defineProperty(window, 'isAmbientPreloadEnabled', { get: () => AppState.isAmbientPreloadEnabled, set: v => { AppState.isAmbientPreloadEnabled = v; } });

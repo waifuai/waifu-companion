@@ -352,6 +352,17 @@ function initAutomation() {
     ambientDelaySlider.addEventListener('input', window.handleAmbientDelayChange);
   }
 
+  const ambientMaxConsecutiveSlider = document.getElementById('ambientMaxConsecutive');
+  const savedAmbientMax = AppStorage.getNumber(AppStorage.KEYS.AMBIENT_MAX_CONSECUTIVE, NaN);
+  if (!Number.isNaN(savedAmbientMax)) window.ambientMaxConsecutive = savedAmbientMax;
+  if (ambientMaxConsecutiveSlider) {
+    ambientMaxConsecutiveSlider.value = window.ambientMaxConsecutive;
+    if (typeof window.updateAmbientMaxConsecutiveDisplay === 'function') {
+      window.updateAmbientMaxConsecutiveDisplay();
+    }
+    ambientMaxConsecutiveSlider.addEventListener('input', window.handleAmbientMaxConsecutiveChange);
+  }
+
   const ambientPromptInput = document.getElementById('ambientPromptInput');
   const savedAmbientPrompt = AppStorage.getString(AppStorage.KEYS.AMBIENT_PROMPT, '');
   if (savedAmbientPrompt) window.ambientPrompt = savedAmbientPrompt;

@@ -270,6 +270,7 @@ function handleUseOpenRouterChange(event) {
     window.useOpenRouter = val;
     S.setBoolean(K.USE_OPEN_ROUTER, val);
     if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openrouter: val });
+    if (typeof updateAmbientMaxConsecutiveDisplay === 'function') updateAmbientMaxConsecutiveDisplay();
     debugLog(`Use OpenRouter set to: ${val}`, 'info');
 }
 
@@ -277,6 +278,7 @@ function handleOpenRouterApiKeyChange(event) {
     const value = event.target.value.trim();
     window.openRouterApiKey = value;
     S.setString(K.OPEN_ROUTER_API_KEY, value);
+    if (typeof updateAmbientMaxConsecutiveDisplay === 'function') updateAmbientMaxConsecutiveDisplay();
     debugLog(`OpenRouter API key updated (length=${value.length}).`, 'info');
 }
 
@@ -343,6 +345,7 @@ function handleUseGroqChange(event) {
     window.useGroq = val;
     S.setBoolean(K.USE_GROQ, val);
     if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_groq: val });
+    if (typeof updateAmbientMaxConsecutiveDisplay === 'function') updateAmbientMaxConsecutiveDisplay();
     debugLog(`Use Groq set to: ${val}`, 'info');
 }
 
@@ -350,6 +353,7 @@ function handleGroqApiKeyChange(event) {
     const value = event.target.value.trim();
     window.groqApiKey = value;
     S.setString(K.GROQ_API_KEY, value);
+    if (typeof updateAmbientMaxConsecutiveDisplay === 'function') updateAmbientMaxConsecutiveDisplay();
     debugLog(`Groq API key updated (length=${value.length}).`, 'info');
 }
 
@@ -366,6 +370,7 @@ function handleUseOpenAICompatibleChange(event) {
     window.useOpenAICompatible = val;
     S.setBoolean(K.USE_OPENAI_COMPATIBLE, val);
     if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openai_compatible: val });
+    if (typeof updateAmbientMaxConsecutiveDisplay === 'function') updateAmbientMaxConsecutiveDisplay();
     debugLog(`Use OpenAI Compatible API set to: ${val}`, 'info');
 }
 
@@ -380,6 +385,7 @@ function handleOpenAICompatibleApiKeyChange(event) {
     const value = event.target.value.trim();
     window.openaiCompatibleApiKey = value;
     S.setString(K.OPENAI_COMPATIBLE_API_KEY, value);
+    if (typeof updateAmbientMaxConsecutiveDisplay === 'function') updateAmbientMaxConsecutiveDisplay();
     debugLog(`OpenAI Compatible API key updated (length=${value.length}).`, 'info');
 }
 
@@ -1218,16 +1224,52 @@ function updateQueueUI() {
 const MIN_AMBIENT_DELAY_SECONDS = 3;
 window.consecutiveAmbientCount = 0;
 
-// Dynamic ambient cap: unlimited for users bringing their own API key (Groq, OpenRouter, OpenAI-compatible),
-// capped at 10 for free WaifuAI Cloud proxy to prevent runaway token exhaustion.
+// Dynamic ambient cap: reads user preference from slider (1-50, where 50 = Unlimited).
+// Free WaifuAI Cloud proxy is safely clamped to 10 to protect shared quota,
+// while custom API keys (Groq, OpenRouter, OpenAI-compatible) honor up to Unlimited.
 function getMaxConsecutiveAmbient() {
   const provider = typeof resolveLLMProvider === 'function' ? resolveLLMProvider() : null;
-  if (provider && provider.name !== 'waifu_proxy') {
-    return Infinity;
+  const userSetting = Number(window.ambientMaxConsecutive);
+  const target = (!Number.isFinite(userSetting) || userSetting <= 0) ? 10 : userSetting;
+  const desiredLimit = target >= 50 ? Infinity : target;
+
+  if (!provider || provider.name === 'waifu_proxy') {
+    return Math.min(desiredLimit, 10);
   }
-  return 10;
+  return desiredLimit;
 }
 window.getMaxConsecutiveAmbient = getMaxConsecutiveAmbient;
+
+function updateAmbientMaxConsecutiveDisplay() {
+  const valEl = document.getElementById('ambientMaxConsecutiveValue');
+  if (!valEl) return;
+  const slider = document.getElementById('ambientMaxConsecutive');
+  const rawVal = slider ? parseInt(slider.value, 10) : Number(window.ambientMaxConsecutive || 10);
+  const provider = typeof resolveLLMProvider === 'function' ? resolveLLMProvider() : null;
+  const isCloud = !provider || provider.name === 'waifu_proxy';
+
+  if (rawVal >= 50) {
+    if (isCloud) {
+      valEl.innerHTML = `Unlimited (∞) <span style="font-size:0.85em; opacity:0.75; display:block; margin-top:2px;">⚠️ Clamped to 10 on Free Cloud — add custom key to unlock</span>`;
+    } else {
+      valEl.textContent = 'Unlimited (∞)';
+    }
+  } else if (rawVal > 10 && isCloud) {
+    valEl.innerHTML = `${rawVal} <span style="font-size:0.85em; opacity:0.75; display:block; margin-top:2px;">⚠️ Clamped to 10 on Free Cloud — add custom key to unlock</span>`;
+  } else {
+    valEl.textContent = String(rawVal);
+  }
+}
+window.updateAmbientMaxConsecutiveDisplay = updateAmbientMaxConsecutiveDisplay;
+
+function handleAmbientMaxConsecutiveChange(event) {
+  const val = parseInt(event.target.value, 10);
+  window.ambientMaxConsecutive = val;
+  S.setNumber(K.AMBIENT_MAX_CONSECUTIVE, val);
+  updateAmbientMaxConsecutiveDisplay();
+  debugLog(`Ambient max consecutive messages set to: ${val >= 50 ? 'Unlimited' : val}`, 'info');
+}
+window.handleAmbientMaxConsecutiveChange = handleAmbientMaxConsecutiveChange;
 
 function normalizedAmbientDelay() {
   const raw = Number(window.ambientDelay);
@@ -1375,6 +1417,8 @@ function handleEnableAmbientPreloadChange(event) {
 window.handleEnableUserMessageQueueChange = handleEnableUserMessageQueueChange;
 window.handleEnableAmbientQueueChange = handleEnableAmbientQueueChange;
 window.handleAmbientDelayChange = handleAmbientDelayChange;
+window.handleAmbientMaxConsecutiveChange = handleAmbientMaxConsecutiveChange;
+window.updateAmbientMaxConsecutiveDisplay = updateAmbientMaxConsecutiveDisplay;
 window.handleEnableAmbientPreloadChange = handleEnableAmbientPreloadChange;
 window.handleAmbientPromptChange = handleAmbientPromptChange;
 window.preloadNextAmbientMessage = preloadNextAmbientMessage;

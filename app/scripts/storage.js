@@ -56,6 +56,7 @@
     AMBIENT_DELAY: 'ambientDelay',
     AMBIENT_PROMPT: 'ambientPrompt',
     IS_AMBIENT_PRELOAD_ENABLED: 'isAmbientPreloadEnabled',
+    AMBIENT_MAX_CONSECUTIVE: 'ambientMaxConsecutive',
 
     // Debug & logging
     SHOW_VERBOSE_LOGS: 'showVerboseLogs',
