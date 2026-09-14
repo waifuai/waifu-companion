@@ -1242,22 +1242,34 @@ window.getMaxConsecutiveAmbient = getMaxConsecutiveAmbient;
 
 function updateAmbientMaxConsecutiveDisplay() {
   const valEl = document.getElementById('ambientMaxConsecutiveValue');
-  if (!valEl) return;
+  const statusEl = document.getElementById('ambientMaxConsecutiveStatus');
   const slider = document.getElementById('ambientMaxConsecutive');
   const rawVal = slider ? parseInt(slider.value, 10) : Number(window.ambientMaxConsecutive || 10);
   const provider = typeof resolveLLMProvider === 'function' ? resolveLLMProvider() : null;
   const isCloud = !provider || provider.name === 'waifu_proxy';
+  const label = rawVal >= 50 ? 'Unlimited (∞)' : String(rawVal);
 
-  const settingText = rawVal >= 50 ? 'Unlimited (∞)' : `${rawVal} messages`;
+  // Update the value number (just text, no HTML)
+  if (valEl) valEl.textContent = label;
 
-  if (isCloud && rawVal > 10) {
-    valEl.innerHTML = `<strong>${settingText}</strong> <span style="color:#f59e0b; font-weight:600;">(Clamped to 10 on Free Cloud)</span>` +
-      `<span style="font-size:0.83em; color:#fbbf24; display:block; margin-top:3px; opacity:0.9;">⚠️ Free Cloud proxy is capped at 10 consecutive thoughts — add your own API key to unlock up to ${rawVal >= 50 ? 'Unlimited' : rawVal}.</span>`;
-  } else if (!isCloud && rawVal > 10) {
-    valEl.innerHTML = `<strong>${settingText}</strong> <span style="color:#4ade80; font-weight:600;">(Custom API Key Active)</span>`;
-  } else {
-    valEl.innerHTML = `<strong>${settingText}</strong>`;
+  // Update the status badge (separate div, block-level, always visible)
+  if (statusEl) {
+    if (isCloud && rawVal > 10) {
+      statusEl.innerHTML =
+        '<span style="color:#f59e0b; font-weight:600;">⚠️ Clamped to 10 on Free Cloud</span>' +
+        '<br><span style="color:#fbbf24; opacity:0.85;">Add your own API key (Groq / OpenRouter / OpenAI Compatible) to unlock up to ' +
+        (rawVal >= 50 ? 'Unlimited' : rawVal) + '.</span>';
+      statusEl.style.display = '';
+    } else if (!isCloud && rawVal > 10) {
+      statusEl.innerHTML = '<span style="color:#4ade80; font-weight:600;">✅ Custom API Key Active — full limit honored</span>';
+      statusEl.style.display = '';
+    } else {
+      statusEl.innerHTML = '';
+      statusEl.style.display = 'none';
+    }
   }
+
+  debugLog(`[ambient-display] rawVal=${rawVal}, provider=${provider?.name || 'null'}, isCloud=${isCloud}`, 'info');
 }
 window.updateAmbientMaxConsecutiveDisplay = updateAmbientMaxConsecutiveDisplay;
 
