@@ -541,6 +541,10 @@ function initProviders() {
     disableAutoOfflineCheckbox.checked = window.disableAutoOfflineMode;
     disableAutoOfflineCheckbox.addEventListener('change', handleDisableAutoOfflineChange);
   }
+
+  if (typeof window.updateAmbientMaxConsecutiveDisplay === 'function') {
+    window.updateAmbientMaxConsecutiveDisplay();
+  }
   debugLog('Providers initialized.', 'info');
 }
 

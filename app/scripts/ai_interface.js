@@ -10,13 +10,13 @@
 // ---------------------------------------------------------------------------
 
 function resolveLLMProvider() {
-  if (window.useGroq && window.groqApiKey && window.groqModel) {
-    return { name: 'groq', api: window.GroqAPI, model: window.groqModel };
+  if (window.useGroq && window.GroqAPI && window.GroqAPI.isConfigured()) {
+    return { name: 'groq', api: window.GroqAPI, model: window.groqModel || window.GroqAPI.getModel() };
   }
-  if (window.OpenAICompatibleAPI && window.OpenAICompatibleAPI.isConfigured()) {
+  if (window.useOpenAICompatible && window.OpenAICompatibleAPI && window.OpenAICompatibleAPI.isConfigured()) {
     return { name: 'openai_compatible', api: window.OpenAICompatibleAPI, model: window.OpenAICompatibleAPI.getModel() };
   }
-  if (window.OpenRouterAPI && window.OpenRouterAPI.isConfigured()) {
+  if (window.useOpenRouter && window.OpenRouterAPI && window.OpenRouterAPI.isConfigured()) {
     return { name: 'openrouter', api: window.OpenRouterAPI, model: window.OpenRouterAPI.getModel() };
   }
   if (window.WaifuProxyAPI && window.WaifuProxyAPI.isConfigured()) {

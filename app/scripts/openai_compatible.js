@@ -36,7 +36,7 @@ const OpenAICompatibleAPI = {
   },
 
   isConfigured() {
-    return !!this.getBaseUrl() && !!this.getApiKey();
+    return Boolean(window.useOpenAICompatible && this.getBaseUrl() && this.getApiKey());
   },
 
   buildRequest(options, stream) {

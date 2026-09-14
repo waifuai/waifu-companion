@@ -148,7 +148,7 @@ const OpenRouterAPI = {
   },
 
   isConfigured() {
-    return !!this.getApiKey() && this.getCandidateModels().length > 0;
+    return Boolean(window.useOpenRouter && this.getApiKey() && this.getCandidateModels().length > 0);
   },
 
   async createCompletion(options) {

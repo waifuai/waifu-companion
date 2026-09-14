@@ -20,7 +20,7 @@ const GroqAPI = {
   },
 
   isConfigured() {
-    return !!this.getApiKey();
+    return Boolean(window.useGroq && this.getApiKey());
   },
 
   buildRequest(options, stream) {
