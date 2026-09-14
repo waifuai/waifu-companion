@@ -159,7 +159,7 @@ window.UI_STRINGS = {
     enableUserMessageQueueLabel: '📬 User Message Queue',
     enableUserMessageQueueDesc: 'Queue messages instead of sending immediately while the AI is responding.',
     enableAmbientQueueLabel: '🍃 Ambient Mode',
-    enableAmbientQueueDesc: 'The AI will share thoughts or follow-up questions unprompted after periods of silence.',
+    enableAmbientQueueDesc: 'The AI will share thoughts or follow-up questions unprompted after periods of silence (pauses after 10 unreplied messages).',
     ambientPromptLabel: '💭 Ambient Prompt',
     ambientPromptPlaceholder: 'Instructions for Haru\'s unprompted thoughts...',
     ambientDelayLabel: '⏱️ Ambient Trigger Delay (seconds)',
