@@ -64,8 +64,8 @@ async function sendMessage() {
     return;
   }
 
-  // Reset ambient timer and clear buffer on any user activity
-  if (window.resetAmbientTimer) window.resetAmbientTimer();
+  // Reset ambient timer, reset consecutive ambient count, and clear buffer on any user activity
+  if (window.resetAmbientTimer) window.resetAmbientTimer(true);
   window.ambientPreloadBuffer = null;
 
   await sendMessageInternal(message);
@@ -89,6 +89,7 @@ function resetConversationRuntime() {
   isProcessing = false;
   isAIResponding = false;
   window.isWaitingForAIResponse = false;
+  window.consecutiveAmbientCount = 0;
 
   window.ambientPreloadBuffer = null;
   window.ambientPreloadTTSBuffer = null;
@@ -188,6 +189,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
   try {
     let userMsgId = null;
     if (!isAmbient) {
+      window.consecutiveAmbientCount = 0;
       userMsgId = addMessage(message, true, null, null, 'en-US');
       conversationContext.push({ role: "user", content: message, id: userMsgId });
 
