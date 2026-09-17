@@ -60,11 +60,20 @@ function initSettingsPanel() {
   }
 
   let initialSettingsVisible = false;
+  const isSmallScreen = window.innerWidth <= 768;
   const lastOpenRaw = AppStorage.getString(AppStorage.KEYS.SETTINGS_PANEL_LAST_OPEN, '');
   const hasLastOpenState = lastOpenRaw !== '';
-  if (alwaysShowSettings) initialSettingsVisible = true;
-  else if (!hasLastOpenState) initialSettingsVisible = true;
-  else initialSettingsVisible = (lastOpenRaw === 'true');
+  if (alwaysShowSettings) {
+    initialSettingsVisible = true;
+  } else if (isSmallScreen) {
+    // Keep settings closed on mobile so it doesn't obstruct the avatar and chat
+    initialSettingsVisible = false;
+  } else if (!hasLastOpenState) {
+    // Default closed on first visit for a clean initial experience
+    initialSettingsVisible = false;
+  } else {
+    initialSettingsVisible = (lastOpenRaw === 'true');
+  }
   setSettingsPanelVisible(initialSettingsVisible);
   debugLog('Settings panel initialized.', 'info');
 }

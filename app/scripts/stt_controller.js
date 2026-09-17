@@ -4,13 +4,17 @@
   window.sttFinalTranscript = '';
 
   function getRecognition() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return null;
-    const rec = new SR();
-    rec.continuous = true; // Enable continuous mode for longer inputs
-    rec.interimResults = true;
-    rec.maxAlternatives = 1;
-    return rec;
+    try {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return null;
+      const rec = new SR();
+      rec.continuous = true; // Enable continuous mode for longer inputs
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      return rec;
+    } catch (e) {
+      return null;
+    }
   }
 
   window.initSTT = function() {
@@ -19,9 +23,8 @@
 
     recognition = getRecognition();
     if (!recognition) {
-      micBtn.disabled = true;
-      micBtn.title = 'Voice input not supported in this browser';
-      debugLog('STT: Web Speech API not supported.', 'warn');
+      micBtn.style.display = 'none';
+      debugLog('STT: Web Speech API not supported in this browser. Hiding mic button.', 'info');
       return;
     }
 
@@ -40,12 +43,19 @@
       debugLog('STT: Recognition started.', 'info');
     };
     recognition.onerror = (e) => {
+      recognizing = false;
+      micBtn.classList.remove('active');
       debugError('STT error', e, {
         errorCode: e.error,
         errorMessage: e.message || 'N/A',
         lang: recognition?.lang,
         wasRecognizing: recognizing
       });
+      // If the browser lacks Google Speech backend (e.g. CEF / VRChat / non-Chrome), hide the button
+      if (e.error === 'service-not-allowed') {
+        micBtn.style.display = 'none';
+        debugLog('STT: Service not allowed / unavailable. Hiding mic button.', 'warn');
+      }
     };
     recognition.onend = () => {
       recognizing = false;
