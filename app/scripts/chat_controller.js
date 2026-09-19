@@ -115,6 +115,8 @@ function trimConversationContext() {
 window.trimConversationContext = trimConversationContext;
 
 let isSummarizing = false;
+let lastSummarizeFailureTime = 0;
+const SUMMARIZE_FAILURE_COOLDOWN_MS = 120000; // 2 minutes cooldown after a failed attempt
 
 // Compresses the oldest slice of the conversation into the running summary.
 //
@@ -126,6 +128,7 @@ let isSummarizing = false;
 // swallow errors and return the previous summary.
 async function maybeSummarizeConversation() {
   if (isSummarizing) return;
+  if (Date.now() - lastSummarizeFailureTime < SUMMARIZE_FAILURE_COOLDOWN_MS) return;
   if (window.isOfflineMode || window.forceOfflineMode) return;
 
   const trigger = window.summaryTriggerCount || 20;
@@ -154,6 +157,7 @@ async function maybeSummarizeConversation() {
 
     window.messageCountSinceLastSummary = 0;
     AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
+    lastSummarizeFailureTime = 0; // Reset failure timer on success
     debugLog('Conversation summarized and memory compressed.', 'info');
     updateSummaryMarker();
 
@@ -164,6 +168,7 @@ async function maybeSummarizeConversation() {
   } catch (e) {
     // Keep every message. Losing history to a failed network call is far
     // worse than carrying a slightly oversized context into the next request.
+    lastSummarizeFailureTime = Date.now(); // Start 2-minute cooldown before retrying
     debugError('Summarization failed — conversation history preserved', e, { messageCount: summarized.length });
   } finally {
     isSummarizing = false;
