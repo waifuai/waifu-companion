@@ -243,6 +243,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
 
         aiResponse = await getAIResponse(message, selectedLanguageCode, {
           stream: true,
+          purpose: isAmbient ? 'ambient' : 'chat',
           onChunk: (text) => {
             streamingReplyText = text;
             updateStreamingMessage(streamObj, text);

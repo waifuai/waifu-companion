@@ -22,11 +22,16 @@ const WaifuProxyAPI = {
     const { messages } = options;
     const body = { model, messages, max_tokens: 2500, stream: Boolean(stream) };
 
+    const purpose = typeof options.purpose === 'string' ? options.purpose : 'chat';
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (purpose !== 'chat') {
+      headers['X-Waifu-Purpose'] = purpose;
+    }
+
     return {
       url: this.API_URL,
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers,
       body,
       stream,
       providerLabel: 'WaifuAI Cloud',

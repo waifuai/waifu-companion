@@ -32,7 +32,7 @@ function sanitizeMessages(msgs) {
 }
 
 // Non-streaming completion through whichever provider is configured.
-async function callConfiguredLLM(messages, eventPrefix) {
+async function callConfiguredLLM(messages, eventPrefix, purpose = 'chat') {
   const provider = resolveLLMProvider();
   if (!provider) throw new Error('LLMNotConfigured');
 
@@ -42,7 +42,11 @@ async function callConfiguredLLM(messages, eventPrefix) {
   }
 
   try {
-    const completion = await provider.api.createCompletion({ messages: sanitizeMessages(messages), json: true });
+    const completion = await provider.api.createCompletion({
+      messages: sanitizeMessages(messages),
+      json: true,
+      purpose
+    });
     if (eventPrefix && typeof trackEvent === 'function') {
       trackEvent(`${eventPrefix}_completed`, { provider: provider.name, model: provider.model, response_time_ms: Date.now() - startTime });
     }
@@ -363,7 +367,7 @@ ${lengthInstruction} that combines the previous summary and these new messages. 
   const completion = await callConfiguredLLM([
     { role: 'system', content: 'You summarize conversations concisely.' },
     { role: 'user', content: prompt }
-  ], 'llm_summarize');
+  ], 'llm_summarize', 'summary');
 
   const summary = completion && completion.content && completion.content.trim();
   if (!summary) throw new Error('Summarization returned an empty summary');
@@ -452,7 +456,11 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     }
 
     debugLog(`Starting streaming request to ${provider.name}`, 'info');
-    const { stream, response } = await provider.api.createCompletionStream({ messages: sanitizeMessages(messages), json: true });
+    const { stream, response } = await provider.api.createCompletionStream({
+      messages: sanitizeMessages(messages),
+      json: true,
+      purpose: options.purpose === 'ambient' ? 'ambient' : 'chat'
+    });
 
     if (typeof trackEvent === 'function') {
       trackEvent('llm_stream_started', { provider: provider.name, model: provider.model, time_to_first_chunk_ms: Date.now() - streamRequestStartTime });

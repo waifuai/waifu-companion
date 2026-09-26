@@ -322,7 +322,8 @@ async function generateChatTitle(chatId, force = false) {
         messages: [
           { role: 'system', content: 'Generate a very short title (3-6 words) that summarizes the topic of this conversation. Reply with ONLY the title, no quotes or punctuation.' },
           { role: 'user', content: contextText }
-        ]
+        ],
+        purpose: 'title'
       });
       title = result?.content;
     }
