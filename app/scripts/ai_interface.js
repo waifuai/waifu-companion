@@ -142,7 +142,6 @@ Current Application Settings:
   return `${coreIdentity}${customPersona}${summaryContext}${currentSettingsContext}
 
 Respond in the language the user writes in.
-If ${targetLanguageName} is Japanese, ensure your entire response is in Japanese characters (Hiragana, Katakana, Kanji). If you need to use a foreign word, use its Katakana representation or a Japanese equivalent.
 ${contextInfo.join('\n\n')}
 
 Respond naturally and directly in conversation. You can reply with plain conversational text, or optionally format as a JSON object:
