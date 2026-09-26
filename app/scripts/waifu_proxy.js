@@ -5,6 +5,38 @@
  * Request/response handling lives in llm_provider_base.js.
  */
 
+function getSessionId() {
+  try {
+    const KEY = 'waifuSessionId';
+    let id = sessionStorage.getItem(KEY);
+    if (!id) {
+      id = (crypto.randomUUID && crypto.randomUUID())
+        || ('s-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10));
+      sessionStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch (e) {
+    // Blocked storage must not break the chat.
+    return null;
+  }
+}
+
+function getVisitorId() {
+  try {
+    const KEY = 'waifuVisitorId';
+    let id = localStorage.getItem(KEY);
+    if (!id) {
+      id = (crypto.randomUUID && crypto.randomUUID())
+        || ('v-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10));
+      localStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch (e) {
+    // Blocked storage must not break the chat.
+    return null;
+  }
+}
+
 const WaifuProxyAPI = {
   API_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/chat/completions',
   DEFAULT_MODEL: 'waifuai-v1',
@@ -27,6 +59,11 @@ const WaifuProxyAPI = {
     const headers = { 'Content-Type': 'application/json' };
     if (purpose !== 'chat') {
       headers['X-Waifu-Purpose'] = purpose;
+    } else {
+      const sid = getSessionId();
+      if (sid) headers['x-session-id'] = sid;
+      const vid = getVisitorId();
+      if (vid) headers['x-visitor-id'] = vid;
     }
 
     return {
