@@ -141,7 +141,7 @@ Current Application Settings:
 
   return `${coreIdentity}${customPersona}${summaryContext}${currentSettingsContext}
 
-Your response MUST be in ${targetLanguageName}. If the user asks in a different language, still respond in ${targetLanguageName}.
+Respond in the language the user writes in.
 If ${targetLanguageName} is Japanese, ensure your entire response is in Japanese characters (Hiragana, Katakana, Kanji). If you need to use a foreign word, use its Katakana representation or a Japanese equivalent.
 ${contextInfo.join('\n\n')}
 
