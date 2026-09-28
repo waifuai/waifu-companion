@@ -11,6 +11,40 @@
 
 // Connects an AudioBuffer to the TTS graph, drives the Live2D mouth from the
 // analyser, and resolves when playback ends. Rejects on playback timeout.
+
+// Target mouth shape computed by the analyser loop in playAudioBuffer and
+// applied to the model by attachMouthDriver.
+const mouthState = { open: 0, form: 0, active: false, needsReset: false };
+
+// Writing mouth parameters from requestAnimationFrame does not stick: the
+// framework's own per-frame update (motions, idle expressions) re-writes the
+// mouth parameters afterwards and renders those, so the rAF values are never
+// seen by the renderer. Hooking the model's motionManager.update lets us
+// re-apply the mouth shape AFTER motions are applied and BEFORE the frame is
+// rendered, which is the only point where the analyser-driven values win.
+function attachMouthDriver(model) {
+  const internalModel = model && model.internalModel;
+  const motionManager = internalModel && internalModel.motionManager;
+  if (!motionManager || motionManager.__mouthDriver) return;
+  motionManager.__mouthDriver = true;
+  const originalUpdate = motionManager.update.bind(motionManager);
+  motionManager.update = function (coreModel, now) {
+    const result = originalUpdate(coreModel, now);
+    const target = coreModel || internalModel.coreModel;
+    if (target && typeof target.setParameterValueById === 'function') {
+      if (mouthState.active) {
+        target.setParameterValueById('ParamMouthOpenY', mouthState.open);
+        target.setParameterValueById('ParamMouthForm', mouthState.form);
+      } else if (mouthState.needsReset) {
+        target.setParameterValueById('ParamMouthOpenY', 0);
+        target.setParameterValueById('ParamMouthForm', 0);
+        mouthState.needsReset = false;
+      }
+    }
+    return result;
+  };
+}
+
 function playAudioBuffer(audioBuffer, label = '') {
   const audioContext = getTTSAudioContext();
   const source = audioContext.createBufferSource();
@@ -20,13 +54,14 @@ function playAudioBuffer(audioBuffer, label = '') {
   let animationFrameId = null;
 
   const resetMouth = () => {
-    const core = currentModel && currentModel.internalModel && currentModel.internalModel.coreModel;
-    if (!core) return;
-    core.setParameterValueById("ParamMouthOpenY", 0);
-    core.setParameterValueById("ParamMouthForm", 0);
+    mouthState.open = 0;
+    mouthState.form = 0;
+    mouthState.active = false;
+    mouthState.needsReset = true;
   };
 
   if (currentModel) {
+    attachMouthDriver(currentModel);
     const analyserNode = getTTSAnalyser();
     source.connect(analyserNode);
 
@@ -45,10 +80,12 @@ function playAudioBuffer(audioBuffer, label = '') {
       const vocalRange = dataArray.slice(10, 100);
       const volume = vocalRange.reduce((acc, val) => acc + val, 0) / vocalRange.length;
       lastVolume = lastVolume + (volume - lastVolume) * smoothingFactor;
-      const normalizedVolume = Math.min(lastVolume / 128, 1);
+      // /128 saturated the curve at full-open for normal speech levels.
+      const normalizedVolume = Math.min(lastVolume / 190, 1);
 
-      currentModel.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", normalizedVolume * 1.5);
-      currentModel.internalModel.coreModel.setParameterValueById("ParamMouthForm", normalizedVolume * 0.5 - 0.25);
+      mouthState.open = normalizedVolume * 1.5;
+      mouthState.form = normalizedVolume * 0.5 - 0.25;
+      mouthState.active = true;
       animationFrameId = requestAnimationFrame(updateMouth);
     };
     updateMouth();
