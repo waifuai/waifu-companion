@@ -1352,7 +1352,11 @@ async function preloadNextAmbientMessage() {
   
   try {
     if (typeof getAIResponse === 'function') {
-      const response = await getAIResponse(ambientPrompt, true); // true for isAmbient
+      // getAIResponse's second parameter is the target language code, not an
+      // isAmbient flag — passing true resolved to English regardless of the
+      // selected language, so preloaded ambient thoughts diverged from the
+      // real-time ones.
+      const response = await getAIResponse(ambientPrompt, selectedLanguageCode);
       if (response && response.reply) {
         window.ambientPreloadBuffer = response;
         debugLog('Ambient message pre-loaded.', 'info');
