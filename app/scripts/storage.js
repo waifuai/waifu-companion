@@ -231,7 +231,10 @@
 
   function getString(key, fallback) {
     const raw = safeGet(key);
-    return raw !== null ? String(raw) : (typeof fallback === 'string' ? fallback : '');
+    if (raw !== null) return String(raw);
+    // Honor a null fallback so callers can distinguish "no stored value"
+    // from a stored empty string (e.g. voice/OpenRouter enabled flags).
+    return fallback === undefined ? '' : fallback;
   }
 
   function getBoolean(key, fallback) {
