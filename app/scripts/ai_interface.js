@@ -42,9 +42,12 @@ async function callConfiguredLLM(messages, eventPrefix, purpose = 'chat') {
   }
 
   try {
+    // No response_format/json_object on purpose: forcing structured output on
+    // small models is what produced the malformed-JSON turns that surfaced raw
+    // braces and truncated replies. parseAIResponse still salvages JSON if a
+    // model emits it anyway.
     const completion = await provider.api.createCompletion({
       messages: sanitizeMessages(messages),
-      json: true,
       purpose
     });
     if (eventPrefix && typeof trackEvent === 'function') {
@@ -144,11 +147,7 @@ Current Application Settings:
 Respond in the language the user writes in.
 ${contextInfo.join('\n\n')}
 
-Respond naturally and directly in conversation. You can reply with plain conversational text, or optionally format as a JSON object:
-{
-    "reply": "(${targetLanguageName} example reply based on user input and emotion)",
-    "emotion": "thoughtful"
-}`;
+Respond with plain conversational dialogue only — one natural message in ${targetLanguageName} that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.`;
 }
 
 // Builds the full message array for a chat completion. conversationContext
@@ -177,22 +176,66 @@ async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '')
   return messages;
 }
 
-// Rough emotion guess for a reply that didn't parse as JSON.
-// Ordered most-specific first: '!' is a weak signal and used to be tested
-// first in the happy branch, which made almost every reply "happy" and left
-// "surprised" (which also tested '!') effectively unreachable.
+// Emotion inference for plain-text replies. The animation switch in
+// chat_controller.js only understands happy/sad/surprised/thoughtful/excited,
+// so map to those — anything else renders as the neutral expression. Order is
+// most-specific first.
 function inferEmotion(text) {
   const lower = (text || '').toLowerCase();
-  if (lower.includes('😢') || lower.includes('😭') || lower.includes('sad') || lower.includes('sorry') || lower.includes('حزين') || lower.includes('آسف')) return 'sad';
-  if (lower.includes('😮') || lower.includes('😲') || lower.includes('surprised') || lower.includes('?') || lower.includes('؟')) return 'surprised';
-  if (lower.includes('🎉') || lower.includes('✨') || lower.includes('excited') || lower.includes('amazing') || lower.includes('wow') || lower.includes('رائع') || lower.includes('حماس')) return 'excited';
-  if (lower.includes('🤔') || lower.includes('think') || lower.includes('hmm') || lower.includes('...') || lower.includes('أعتقد')) return 'thoughtful';
-  if (lower.includes('😊') || lower.includes('😀') || lower.includes('happy') || lower.includes('joy') || lower.includes('!') || lower.includes('جميل') || lower.includes('شكرا') || lower.includes('مرحبا') || lower.includes('أهلا')) return 'happy';
+  if (lower.includes('😢') || lower.includes('😭') || lower.includes('💔') || lower.includes('sad') || lower.includes('sorry') || lower.includes('miss you') || lower.includes('حزين') || lower.includes('آسف')) return 'sad';
+  if (lower.includes('?!') || lower.includes('!?') || lower.includes('😮') || lower.includes('😲') || lower.includes('whoa') || lower.includes('omg')) return 'surprised';
+  if (lower.includes('🎉') || lower.includes('✨') || lower.includes('!!!') || lower.includes('excited') || lower.includes('amazing') || lower.includes('congrats') || lower.includes('wow') || lower.includes('رائع') || lower.includes('حماس')) return 'excited';
+  if (lower.includes('😊') || lower.includes('😀') || lower.includes('🥰') || lower.includes('💕') || lower.includes('happy') || lower.includes('joy') || lower.includes('love') || lower.includes('!') || lower.includes('جميل') || lower.includes('شكرا') || lower.includes('مرحبا') || lower.includes('أهلا')) return 'happy';
+  if (lower.includes('🤔') || lower.includes('hmm') || lower.includes('...') || lower.includes('let me think') || lower.includes('أعتقد') || lower.includes('?') || lower.includes('؟')) return 'thoughtful';
   return 'neutral';
 }
 
-// Parses a raw completion into {reply, emotion, ...}, falling back to treating
-// the whole thing as plain text. Throws BlankAIResponse on an empty reply.
+// Salvages the "reply" field from a malformed JSON wrapper — the failure mode
+// small models hit when the reply string contains unescaped inner quotes.
+// Prefers the boundary at the next ", "emotion" key over the first unescaped
+// close quote, which an inner quoted word would trigger early.
+function salvageReplyFromBrokenJson(raw) {
+  const key = raw.match(/"reply"\s*:\s*"/);
+  if (!key) return null;
+  let after = raw.slice(key.index + key[0].length);
+  const emotionBoundary = after.match(/",\s*"emotion"\s*:/);
+  if (emotionBoundary) {
+    after = after.slice(0, emotionBoundary.index);
+  } else {
+    const closeQuote = findUnescapedQuote(after);
+    // A truncated response has no closing quote at all — everything after
+    // the key is the partial reply worth showing.
+    if (closeQuote !== -1) after = after.slice(0, closeQuote);
+  }
+  // Undo the string escapes JSON.parse would have handled.
+  return after.replace(/\\r/g, '').replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim() || null;
+}
+
+// The animation switch in chat_controller.js only knows five expressions;
+// models that do emit an emotion label reach for dozens of near-synonyms. 
+// Fold them onto
+// the supported set so a labeled turn doesn't fall through to the neutral
+// face, and unknown labels degrade to neutral.
+const EMOTION_ANIMATION_SYNONYMS = {
+  playful: 'happy', warm: 'happy', amused: 'happy', cheerful: 'happy', friendly: 'happy',
+  gentle: 'happy', shy: 'happy', loving: 'happy', affectionate: 'happy', content: 'happy',
+  teasing: 'happy', flirtatious: 'happy', flirty: 'happy', romantic: 'happy', caring: 'happy',
+  tender: 'happy', joyful: 'happy', welcoming: 'happy', smile: 'happy',
+  curious: 'thoughtful', pensive: 'thoughtful', thinking: 'thoughtful',
+  apologetic: 'sad', sympathetic: 'sad', concerned: 'sad', empathetic: 'sad',
+  confused: 'surprised', flustered: 'surprised'
+};
+const ANIMATED_EMOTIONS = ['happy', 'sad', 'surprised', 'thoughtful', 'excited'];
+
+function normalizeEmotion(emotion) {
+  const v = String(emotion || '').toLowerCase().trim();
+  return EMOTION_ANIMATION_SYNONYMS[v] || (ANIMATED_EMOTIONS.includes(v) ? v : 'neutral');
+}
+
+// Parses a raw completion into {reply, emotion, ...}, treating plain
+// conversational text as the expected shape. Well-formed JSON (a model
+// emitting it despite the prompt) is unwrapped; malformed JSON is salvaged
+// rather than shown. Throws BlankAIResponse on an empty reply.
 function parseAIResponse(rawContent, plainTextFallback = null) {
   let raw = (rawContent || '').trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
 
@@ -207,14 +250,22 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
     }
     if (parsed && typeof parsed === 'object' && 'reply' in parsed && typeof parsed.reply === 'string' && parsed.reply.trim() !== '') {
       data = parsed;
-      if (!data.emotion) data.emotion = 'neutral';
+      data.emotion = normalizeEmotion(data.emotion);
     }
   } catch (parseError) {
     data = null;
   }
 
   if (!data) {
-    const text = (plainTextFallback || raw).trim();
+    let text = (plainTextFallback || raw).trim();
+    if (raw.startsWith('{')) {
+      // A model that wrapped the reply in JSON but broke out of strict JSON
+      // (unescaped inner quotes, truncation) must not surface braces — take
+      // the salvage over the raw wrapper, but only displace a real streaming
+      // fallback if the salvage recovered more of the reply.
+      const salvaged = salvageReplyFromBrokenJson(raw);
+      if (salvaged && (!plainTextFallback || salvaged.length > text.length)) text = salvaged;
+    }
     data = { reply: text, emotion: inferEmotion(text) };
     debugLog(`AI returned natural plain text response, inferred emotion: ${data.emotion}`, 'info');
   }
@@ -427,7 +478,7 @@ window.findUnescapedQuote = findUnescapedQuote;
 
 /**
  * Streaming version of getAIResponse. Creates immediate UI feedback by
- * streaming the reply text in real-time as the JSON response arrives.
+ * streaming the reply text in real-time as the response arrives.
  */
 async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', options = {}) {
   debugLog(`Getting AI response (streaming), targeting language: ${targetLanguageCode}`, 'info');
@@ -457,7 +508,6 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     debugLog(`Starting streaming request to ${provider.name}`, 'info');
     const { stream, response } = await provider.api.createCompletionStream({
       messages: sanitizeMessages(messages),
-      json: true,
       purpose: options.purpose === 'ambient' ? 'ambient' : 'chat'
     });
 
@@ -475,7 +525,9 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     let replyText = '';
     let replyStartIndex = -1;
 
-    // Incrementally surfaces the `reply` field while the JSON or plain text is arriving.
+    // Incrementally surfaces the reply text while it is arriving. Plain text
+    // is the expected shape; the "reply" key detection is legacy defense for
+    // a model that starts streaming a JSON object anyway.
     const emitProgress = () => {
       const trimmed = fullContent.trimStart();
       if (!isPlainText && !inReply) {
