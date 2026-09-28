@@ -69,12 +69,12 @@ function initSettingsPanel() {
     // Keep settings closed on mobile so it doesn't obstruct the avatar and chat
     initialSettingsVisible = false;
   } else if (!hasLastOpenState) {
-    // Default closed on first visit for a clean initial experience
-    initialSettingsVisible = false;
+    // First visit: open by default on desktop so the options are discoverable
+    initialSettingsVisible = true;
   } else {
     initialSettingsVisible = (lastOpenRaw === 'true');
   }
-  setSettingsPanelVisible(initialSettingsVisible);
+  setSettingsPanelVisible(initialSettingsVisible, false);
   debugLog('Settings panel initialized.', 'info');
 }
 

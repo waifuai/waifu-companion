@@ -11,7 +11,7 @@ function toggleSettings() {
   setSettingsPanelVisible(willShow);
 }
 
-function setSettingsPanelVisible(visible) {
+function setSettingsPanelVisible(visible, persist = true) {
   settingsPanel.classList.toggle("visible", visible);
   // Reset to main menu when opening/closing
   if (visible) {
@@ -23,7 +23,7 @@ function setSettingsPanelVisible(visible) {
       filterSettings('');
     }
   }
-  AppStorage.setBoolean(AppStorage.KEYS.SETTINGS_PANEL_LAST_OPEN, visible);
+  if (persist) AppStorage.setBoolean(AppStorage.KEYS.SETTINGS_PANEL_LAST_OPEN, visible);
 }
 
 window.toggleSettings = toggleSettings;
