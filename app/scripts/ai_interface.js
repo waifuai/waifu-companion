@@ -244,6 +244,22 @@ function normalizeEmotion(emotion) {
 function parseAIResponse(rawContent, plainTextFallback = null) {
   let raw = (rawContent || '').trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
 
+  // Image protocol, stripped FIRST so the tag never reaches emotion
+  // inference, TTS language detection, or the streaming preview. The
+  // description is written in English by design; the visible/spoken reply
+  // stays in the conversation language.
+  let imageRequest = null;
+  const imageTopMatch = raw.match(/\[IMAGE:\s*([^\]|]+)\|(portrait|landscape|square)\s*\]/i);
+  if (imageTopMatch) {
+    imageRequest = {
+      prompt: imageTopMatch[1].trim(),
+      aspect: imageTopMatch[2].toLowerCase() === 'portrait' ? '2:3' : (imageTopMatch[2].toLowerCase() === 'landscape' ? '3:2' : '1:1'),
+    };
+    raw = raw.replace(imageTopMatch[0], '').replace(/\n{3,}/g, '\n\n').trim();
+  } else if (/\[IMAGE:/i.test(raw)) {
+    raw = raw.replace(/\[IMAGE:[^\]]*\]?/gi, '').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
   let data = null;
   try {
     let parsed = null;
@@ -256,6 +272,7 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
     if (parsed && typeof parsed === 'object' && 'reply' in parsed && typeof parsed.reply === 'string' && parsed.reply.trim() !== '') {
       data = parsed;
       data.emotion = normalizeEmotion(data.emotion);
+      if (imageRequest) data.imageRequest = imageRequest;
     }
   } catch (parseError) {
     data = null;
@@ -272,22 +289,8 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
       if (salvaged && (!plainTextFallback || salvaged.length > text.length)) text = salvaged;
     }
     data = { reply: text, emotion: inferEmotion(text) };
+    if (imageRequest) data.imageRequest = imageRequest;
     debugLog(`AI returned natural plain text response, inferred emotion: ${data.emotion}`, 'info');
-  }
-
-  // Image protocol: [IMAGE: description|orientation] on its own line is the
-  // persona asking the app to render a picture. Strip it from the spoken and
-  // displayed reply; hand it back as imageRequest for the caller.
-  const imageMatch = (data.reply || '').match(/\[IMAGE:\s*([^\]|]+)\|(portrait|landscape|square)\s*\]/i);
-  if (imageMatch) {
-    data.imageRequest = {
-      prompt: imageMatch[1].trim(),
-      aspect: imageMatch[2].toLowerCase() === 'portrait' ? '2:3' : (imageMatch[2].toLowerCase() === 'landscape' ? '3:2' : '1:1'),
-    };
-    data.reply = data.reply.replace(imageMatch[0], '').replace(/\n{3,}/g, '\n\n').trim();
-  } else if (/\[IMAGE:/i.test(data.reply || '')) {
-    // Malformed tag: strip it anyway so brackets never leak into speech.
-    data.reply = data.reply.replace(/\[IMAGE:[^\]]*\]?/gi, '').replace(/\n{3,}/g, '\n\n').trim();
   }
 
   if (!data.reply || data.reply.trim() === '') {
@@ -509,7 +512,16 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     // Incrementally surfaces the reply text while it is arriving. Plain text
     // is the expected shape; the "reply" key detection is legacy defense for
     // a model that starts streaming a JSON object anyway.
+    // Strip the image protocol tag from the streamed preview: the tag is an
+    // internal instruction, never visible text, and its English content would
+    // poison TTS language detection if it leaked into the spoken reply.
+    const stripImageTags = (s) => s
+      .replace(/\[IMAGE:\s*[^\]|]+\|(?:portrait|landscape|square)\s*\]/gi, '')
+      .replace(/\[IMAGE:[^\]]*\]?/gi, '')
+      .replace(/\n{3,}/g, '\n\n');
+
     const emitProgress = () => {
+      fullContent = stripImageTags(fullContent);
       const trimmed = fullContent.trimStart();
       if (!isPlainText && !inReply) {
         if (trimmed.startsWith('{') || trimmed.includes('"reply"')) {
