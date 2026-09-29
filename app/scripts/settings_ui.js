@@ -480,8 +480,8 @@ function populateVoiceSelector() {
     }
 
     // Final fallback: English female or first available
-    const enFemale = availableVoices.find(v => v.id === 'en-female');
-    return enFemale ? 'en-female' : (availableVoices[0]?.id || 'none');
+    const enFemale = availableVoices.find(v => v.id === 'en_us_001');
+    return enFemale ? 'en_us_001' : (availableVoices[0]?.id || 'none');
   }
 
   // Get the default voice for current language

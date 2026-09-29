@@ -11,11 +11,12 @@ function splitIntoSentences(text) {
 window.splitIntoSentences = splitIntoSentences;
 
 // Strips markdown emphasis and emoji so TTS engines don't read them aloud.
+// NOTE: the symbol range stops before U+3000; the previous U+2000-U+329F range swallowed all Hiragana and Katakana.
 // Built with a fresh RegExp each call: a shared /g regex carries lastIndex state.
 function stripForTTS(text) {
     const emojiRegex = new RegExp(
         '([\\u2700-\\u27BF]|[\\uE000-\\uF8FF]|\\uD83C[\\uDC00-\\uDFFF]|' +
-        '\\uD83D[\\uDC00-\\uDFFF]|[\\u2000-\\u329F]|\\uD83E[\\uDD00-\\uDFFF])',
+        '\\uD83D[\\uDC00-\\uDFFF]|[\\u2000-\\u2FFF]|\\uD83E[\\uDD00-\\uDFFF])',
         'g'
     );
     return String(text || '').replace(/\*/g, '').replace(emojiRegex, '').trim();

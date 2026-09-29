@@ -56,11 +56,11 @@ window.voices = [
 
 // Map languages to a proxy base language whose voices they should inherit
 window.voiceLanguageOverrides = {
-  ace: 'tl', ban: 'tl', btx: 'tl', bts: 'tl', bbc: 'tl', bew: 'tl',
-  jv: 'tl', mak: 'tl', 'ms-MS': 'tl', 'ms-Arab': 'tl', min: 'tl', su: 'tl',
-  'id-ID': 'tl',
-  bik: 'tl', ceb: 'tl', hil: 'tl', ilo: 'tl', pam: 'tl', pag: 'tl',
-  fj: 'tl', sm: 'tl', mi: 'tl', haw: 'tl', tet: 'tl', mg: 'tl',
+  ace: 'id', ban: 'id', btx: 'id', bts: 'id', bbc: 'id', bew: 'id',
+  jv: 'id', mak: 'id', 'ms-MS': 'id', 'ms-Arab': 'id', min: 'id', su: 'id',
+  'id-ID': 'id', 'tl': 'id',
+  bik: 'id', ceb: 'id', hil: 'id', ilo: 'id', pam: 'id', pag: 'id',
+  fj: 'id', sm: 'id', mi: 'id', haw: 'id', tet: 'id', mg: 'id',
   uk: 'ru', be: 'ru',
   bg: 'ru', mk: 'ru', sr: 'ru', bs: 'ru', hr: 'ru', sl: 'ru',
   ab: 'ru', ba: 'ru', bua: 'ru', cv: 'ru', crh: 'ru',

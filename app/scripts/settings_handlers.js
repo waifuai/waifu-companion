@@ -868,7 +868,7 @@ async function handleResetLanguages() {
 
   // Reset voice back to English default
   const enCfg = languages.find(l=>l.code==='en-US');
-  selectedVoiceId = (enCfg?.defaultVoiceId) || 'en-female';
+  selectedVoiceId = (enCfg?.defaultVoiceId) || 'en_us_001';
   S.setString(K.SELECTED_VOICE_ID, selectedVoiceId);
   populateVoiceSelector?.(); 
   if (voiceSelector) voiceSelector.value = selectedVoiceId;
@@ -1399,7 +1399,7 @@ async function preloadAmbientTTS(text) {
       // resolution matches. Passing a Kokoro id here (this codebase's
       // fetchTTSBuffer resolves provider by looking up a voiceId in the
       // `voices` list) sent it down the wrong provider path entirely.
-      const voiceId = (typeof window.selectedVoiceId === 'string' && window.selectedVoiceId) || 'en-female';
+      const voiceId = (typeof window.selectedVoiceId === 'string' && window.selectedVoiceId) || 'en_us_001';
       const resolved = await window.fetchTTSBuffer(firstChunkText, voiceId);
       if (resolved) {
         // fetchTTSBuffer never plays; a 'browser' descriptor is inert until played.
