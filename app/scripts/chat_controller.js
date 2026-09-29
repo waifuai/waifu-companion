@@ -34,9 +34,30 @@ function deleteMessage(messageElement, content, isUser) {
 }
 window.deleteMessage = deleteMessage;
 
+// --- Client-side message dedupe -----------------------------------------
+// Ignore identical resends within a short window so rapid re-taps and
+// accidental double-submits are dropped before they are dispatched.
+// Only exact-same text is affected; distinct messages pass freely.
+const MESSAGE_DEDUPE_WINDOW_MS = 2000;
+
+function isDuplicateSend(message) {
+  const prev = window._lastSentMessage;
+  return !!(prev && prev.text === message && (Date.now() - prev.at) < MESSAGE_DEDUPE_WINDOW_MS);
+}
+
+function noteSentMessage(message) {
+  window._lastSentMessage = { text: message, at: Date.now() };
+}
+
 async function sendMessage() {
   const message = messageInput.value.trim();
   if (!message) return;
+
+  if (isDuplicateSend(message)) {
+    if (typeof trackEvent === 'function') trackEvent('duplicate_message_suppressed');
+    debugLog(`Duplicate message suppressed (identical to a recent send): "${message.substring(0, 40)}"`, 'warn');
+    return;
+  }
 
   // Clear input immediately to prevent double-processing or STT interference
   messageInput.value = "";
@@ -46,6 +67,7 @@ async function sendMessage() {
 
   // If already processing and queueing is enabled, add to queue
   if (isProcessing && isUserMessageQueueEnabled) {
+    noteSentMessage(message);
     userMessageQueue.push(message);
     debugLog(`Message queued: "${message}" (Queue length: ${userMessageQueue.length})`, 'info');
     updateQueueUI();
@@ -68,6 +90,7 @@ async function sendMessage() {
   if (window.resetAmbientTimer) window.resetAmbientTimer(true);
   window.ambientPreloadBuffer = null;
 
+  noteSentMessage(message);
   await sendMessageInternal(message);
 }
 
