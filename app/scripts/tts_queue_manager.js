@@ -4,25 +4,33 @@ let isCurrentlySpeaking = false; // a processNextTTSInQueue loop is currently ru
 let ttsPaused = false;           // user paused; do not auto-advance the queue
 let ttsRunToken = 0;             // bumped by pause/stop to invalidate in-flight loops
 
-// Set when a queued item belongs to an AI response, so we know to release
-// isProcessing when the queue drains. Manual per-message playback must NOT
-// release it — that used to advance the user message queue out of turn.
+// Set when a queued item belongs to an AI response, so we know to fire the
+// speech-finished hook when the queue drains. The chat pipeline no longer
+// waits on this (replies release isProcessing as soon as the text lands, so
+// the user can keep typing while slow TTS catches up); the hook only lets
+// ambient mode wait for her to stop talking. Manual per-message playback
+// does not set it.
 let pendingResponseCompletion = false;
 
-// Releases the chat pipeline exactly once per AI response.
+// Fires the speech-finished hook exactly once per AI response.
 function releaseResponseCompletion() {
   if (!pendingResponseCompletion) return;
   pendingResponseCompletion = false;
-  if (typeof window.onAIResponseFullyFinished === 'function') {
-    window.onAIResponseFullyFinished();
+  if (typeof window.onAIResponseSpeechFinished === 'function') {
+    window.onAIResponseSpeechFinished();
   }
+}
+
+// True while anything is speaking or waiting to be spoken.
+function isTTSBusy() {
+  return isCurrentlySpeaking || ttsQueue.length > 0;
 }
 
 async function playTTS(fullText, languageCode, messageId = null, startIndex = 0, preloadedBuffer = null, notifyOnComplete = false) {
   if (!window.enableVoice) {
     debugLog('TTS: Ignoring playback request because voice is disabled.', 'info');
-    if (notifyOnComplete && typeof window.onAIResponseFullyFinished === 'function') {
-      window.onAIResponseFullyFinished();
+    if (notifyOnComplete && typeof window.onAIResponseSpeechFinished === 'function') {
+      window.onAIResponseSpeechFinished();
     }
     return;
   }
@@ -176,8 +184,8 @@ async function processNextTTSInQueue() {
           debugLog('TTS: Rate limit hit. Pausing playback sequence. Click Resume to continue.', 'warn');
           ttsPaused = true;
           isCurrentlySpeaking = false;
-          // Release the chat pipeline even though playback stopped early —
-          // leaving isProcessing set here used to wedge the app permanently.
+          // Fire the speech-finished hook even though playback stopped early,
+          // otherwise ambient mode would wait forever.
           releaseResponseCompletion();
           return;
         }
@@ -243,7 +251,7 @@ function stopTTS() {
   // Clear any active highlights
   document.querySelectorAll('.sentence-highlight').forEach(el => el.classList.remove('sentence-highlight'));
 
-  // A stopped response still has to release the chat pipeline.
+  // A stopped response still counts as finished speaking.
   releaseResponseCompletion();
 }
 
@@ -252,3 +260,4 @@ window.playTTS = playTTS;
 window.pauseTTS = pauseTTS;
 window.stopTTS = stopTTS;
 window.processNextTTSInQueue = processNextTTSInQueue;
+window.isTTSBusy = isTTSBusy;

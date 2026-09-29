@@ -7,10 +7,17 @@
  *                 WaifuAI Cloud. Works in browsers
  *                 and embedded environments that lack the
  *                 Web Speech API.
+ *
+ * Mic button gestures (both engines):
+ *  - press and hold: records while held, stops on release (push-to-talk).
+ *  - quick tap: starts and keeps recording until the next tap.
+ *  - keyboard (Enter/Space): toggles, same as a tap.
+ * The button and the message box placeholder show which state it is in:
+ * starting (waiting on mic permission / the recognizer), listening, and
+ * transcribing (cloud engine only).
  */
 (function(){
   let recognition = null;
-  let recognizing = false;
   window.sttFinalTranscript = '';
 
   // Proxy recording state
@@ -18,6 +25,35 @@
   let mediaRecorder = null;
   let mediaChunks = [];
   let proxyRecording = false;
+  let proxyStartedAt = 0;
+  let discardProxyRecording = false; // stopped before it really began: don't transcribe
+
+  // A press shorter than this is a tap (toggle); longer is push-to-talk.
+  const HOLD_THRESHOLD_MS = 300;
+  // Cloud recordings shorter than this are accidental and never uploaded.
+  const MIN_PROXY_RECORDING_MS = 400;
+
+  // 'idle' | 'starting' | 'listening' | 'transcribing'
+  let micState = 'idle';
+  // 'hold' while the button is held down, 'tap' once it's latched on
+  let micMode = 'tap';
+  let restingPlaceholder = null;
+
+  const FALLBACK_STRINGS = {
+    micIdleTitle: 'Voice input: hold to talk, or tap to start/stop',
+    micStartingPlaceholder: 'Starting microphone...',
+    micHoldPlaceholder: 'Listening... release to stop',
+    micTapPlaceholder: 'Listening... tap the mic again to stop',
+    micTranscribingPlaceholder: 'Transcribing...'
+  };
+
+  function uiString(key) {
+    return (typeof window.getUIString === 'function' && window.getUIString(key)) || FALLBACK_STRINGS[key] || '';
+  }
+
+  function listeningPlaceholder() {
+    return uiString(micMode === 'hold' ? 'micHoldPlaceholder' : 'micTapPlaceholder');
+  }
 
   function getRecognition() {
     try {
@@ -41,9 +77,45 @@
     return typeof window.WaifuProxyAPI?.transcribeAudio === 'function';
   }
 
-  function setMicActive(active) {
+  // Single place that reflects the recording state in the UI.
+  function setMicState(state) {
+    micState = state;
     const micBtn = document.getElementById('micBtn');
-    if (micBtn) micBtn.classList.toggle('active', active);
+    if (micBtn) {
+      micBtn.classList.toggle('starting', state === 'starting');
+      micBtn.classList.toggle('active', state === 'listening');
+      micBtn.classList.toggle('transcribing', state === 'transcribing');
+      micBtn.setAttribute('aria-pressed', String(state === 'starting' || state === 'listening'));
+      micBtn.title = state === 'idle' ? uiString('micIdleTitle')
+        : state === 'transcribing' ? uiString('micTranscribingPlaceholder')
+        : listeningPlaceholder();
+    }
+
+    const input = window.messageInput;
+    if (!input) return;
+    if (state === 'idle') {
+      if (restingPlaceholder !== null) input.placeholder = restingPlaceholder;
+      restingPlaceholder = null;
+      return;
+    }
+    if (restingPlaceholder === null) restingPlaceholder = input.placeholder;
+    input.placeholder = state === 'starting' ? uiString('micStartingPlaceholder')
+      : state === 'transcribing' ? uiString('micTranscribingPlaceholder')
+      : listeningPlaceholder();
+  }
+
+  // The UI translator rewrote the message box placeholder: that's the new
+  // resting text, and the live mic state goes back on top of it.
+  window.onMessageInputPlaceholderChanged = function() {
+    if (micState === 'idle' || !window.messageInput) return;
+    restingPlaceholder = window.messageInput.placeholder;
+    setMicState(micState);
+  };
+
+  function hideMicButton(micBtn) {
+    micBtn.style.display = 'none';
+    // The welcome hint shouldn't advertise a mic that isn't there.
+    document.querySelectorAll('.welcome-hint-mic').forEach(el => el.remove());
   }
 
   function appendToInput(text) {
@@ -60,12 +132,14 @@
   }
 
   // ---------------- Web Speech API engine ----------------
-  function handleWebSpeechClick() {
-    if (recognizing) {
-      recognition.stop();
-      return;
-    }
+  function stopWebSpeech() {
+    if (!recognition) return;
+    // Still spinning up: abort, since there's nothing to finalize yet.
+    if (micState === 'starting') recognition.abort();
+    else recognition.stop();
+  }
 
+  function startWebSpeech() {
     if (!recognition) {
       debugLog('STT: Recognition not available.', 'error');
       return;
@@ -76,9 +150,11 @@
     } catch (e) { /* noop */ }
 
     try {
+      setMicState('starting');
       recognition.start();
       if (typeof trackEvent === 'function') trackEvent('voice_input_used');
     } catch (e) {
+      setMicState('idle');
       debugError('STT failed to start recognition', e, { lang: recognition?.lang });
     }
   }
@@ -89,7 +165,7 @@
       // Web Speech unavailable: WaifuAI Cloud can still take over, so only
       // hide the button when the proxy path is not usable either.
       if (!isProxyConfigured()) {
-        micBtn.style.display = 'none';
+        hideMicButton(micBtn);
         debugLog('STT: Web Speech API not supported in this browser. Hiding mic button.', 'info');
       } else {
         debugLog('STT: Web Speech API not supported; WaifuAI Cloud will be used.', 'info');
@@ -98,15 +174,13 @@
     }
 
     recognition.onstart = () => {
-      recognizing = true;
-      setMicActive(true);
+      setMicState('listening');
       // Initialize with current input value but don't double up
       window.sttFinalTranscript = window.messageInput.value ? window.messageInput.value + ' ' : '';
       debugLog('STT: Recognition started.', 'info');
     };
     recognition.onerror = (e) => {
-      recognizing = false;
-      setMicActive(false);
+      setMicState('idle');
       debugError('STT error', e, {
         errorCode: e.error,
         errorMessage: e.message || 'N/A',
@@ -119,14 +193,15 @@
           switchEnginePreference('proxy');
           debugLog('STT: Web Speech service unavailable. Switching to WaifuAI Cloud.', 'warn');
         } else {
-          micBtn.style.display = 'none';
+          hideMicButton(micBtn);
           debugLog('STT: Service not allowed / unavailable. Hiding mic button.', 'warn');
         }
+      } else if (e.error === 'not-allowed') {
+        addMessage('Microphone permission denied. Enable it in your browser settings to use voice input.', false);
       }
     };
     recognition.onend = () => {
-      recognizing = false;
-      setMicActive(false);
+      setMicState('idle');
       // Final text is already in the input field, just ensure it's set
       if (window.messageInput && window.sttFinalTranscript) {
           window.messageInput.value = window.sttFinalTranscript.trim();
@@ -183,7 +258,15 @@
       const blob = new Blob(mediaChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
       mediaRecorder = null;
       proxyRecording = false;
-      setMicActive(false);
+
+      const durationMs = Date.now() - proxyStartedAt;
+      if (discardProxyRecording || durationMs < MIN_PROXY_RECORDING_MS) {
+        discardProxyRecording = false;
+        setMicState('idle');
+        debugLog(`STT: Discarded ${durationMs}ms recording without transcribing.`, 'info');
+        return;
+      }
+      setMicState('transcribing');
 
       const ext = blob.type.includes('ogg') ? 'ogg' : (blob.type.includes('mp4') ? 'mp4' : (blob.type.includes('mpeg') ? 'mp3' : 'webm'));
       const lang = (window.selectedLanguageCode || 'en-US').split('-')[0];
@@ -206,12 +289,15 @@
           ? 'Voice input is rate limited right now. Please try again in a moment.'
           : 'Voice input failed: ' + (err?.message || 'transcription error');
         addMessage(msg, false);
+      } finally {
+        setMicState('idle');
       }
     };
 
     mediaRecorder.start();
+    proxyStartedAt = Date.now();
     proxyRecording = true;
-    setMicActive(true);
+    setMicState('listening');
     debugLog('STT: Proxy recording started.', 'info');
   }
 
@@ -220,21 +306,21 @@
       mediaRecorder.stop();
     } else {
       proxyRecording = false;
-      setMicActive(false);
+      setMicState('idle');
     }
   }
 
-  async function handleProxyClick() {
-    if (proxyRecording) {
-      stopProxyRecording();
-      return;
-    }
+  async function startProxy() {
     try {
+      discardProxyRecording = false;
+      setMicState('starting');
       if (typeof trackEvent === 'function') trackEvent('voice_input_used', { engine: 'proxy', phase: 'start' });
       await startProxyRecording();
+      // Stopped while the permission prompt / device was still opening.
+      if (discardProxyRecording) stopProxyRecording();
     } catch (err) {
       proxyRecording = false;
-      setMicActive(false);
+      setMicState('idle');
       if (mediaStream) {
         mediaStream.getTracks().forEach(t => t.stop());
         mediaStream = null;
@@ -256,18 +342,86 @@
 
     const hasWebSpeech = initWebSpeech(micBtn);
 
-    micBtn.addEventListener('click', () => {
-      const engine = getSttEngine();
-      if (engine === 'proxy') {
+    function startListening() {
+      if (getSttEngine() === 'proxy') {
         if (!isProxyConfigured()) {
           debugLog('STT: Proxy engine selected but WaifuProxyAPI.transcribeAudio is unavailable.', 'error');
           return;
         }
-        handleProxyClick();
+        startProxy();
         return;
       }
-      handleWebSpeechClick();
+      startWebSpeech();
+    }
+
+    function stopListening() {
+      if (proxyRecording || getSttEngine() === 'proxy') {
+        if (micState === 'starting') discardProxyRecording = true;
+        else stopProxyRecording();
+        return;
+      }
+      stopWebSpeech();
+    }
+
+    const isRecording = () => micState === 'starting' || micState === 'listening';
+
+    // What the current press does on release: 'start' (this press began
+    // recording) or 'stop' (a tap that ends a latched recording).
+    let pressAction = null;
+    let pressStartedAt = 0;
+
+    micBtn.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      // Keep focus (and the mobile keyboard) on the text box, and stop the
+      // long-press from selecting text or opening a menu.
+      e.preventDefault();
+      if (micState === 'transcribing') return;
+      if (isRecording()) {
+        pressAction = 'stop';
+        return;
+      }
+      pressAction = 'start';
+      pressStartedAt = Date.now();
+      micMode = 'hold';
+      try { micBtn.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+      startListening();
     });
+
+    const onPressEnd = () => {
+      const action = pressAction;
+      pressAction = null;
+      if (action === 'stop') {
+        stopListening();
+      } else if (action === 'start') {
+        const held = Date.now() - pressStartedAt;
+        if (held >= HOLD_THRESHOLD_MS && micState === 'listening') {
+          stopListening(); // push-to-talk release
+        } else if (isRecording()) {
+          // Quick tap, or released while still waiting on permission:
+          // latch on until the next tap.
+          micMode = 'tap';
+          setMicState(micState);
+        }
+      }
+    };
+    micBtn.addEventListener('pointerup', onPressEnd);
+    micBtn.addEventListener('pointercancel', onPressEnd);
+    micBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // Pointer presses are handled above; keyboard activation (Enter/Space)
+    // arrives as a click with detail 0 and toggles like a tap.
+    micBtn.addEventListener('click', (e) => {
+      if (e.detail !== 0) return;
+      if (micState === 'transcribing') return;
+      if (isRecording()) {
+        stopListening();
+      } else {
+        micMode = 'tap';
+        startListening();
+      }
+    });
+
+    setMicState('idle');
 
     debugLog(`STT initialized (engine=${getSttEngine()}, webspeechAvailable=${hasWebSpeech}).`, 'info');
   };

@@ -1185,10 +1185,15 @@ function resetAmbientTimer(fromUser = false) {
 }
 
 async function triggerAmbientPrompt() {
-  // isProcessing must be checked too: it stays true through TTS playback
-  // after isAIResponding clears, and firing here would run a second
-  // concurrent sendMessageInternal.
+  // isProcessing must be checked too: firing while a reply is in flight
+  // would run a second concurrent sendMessageInternal.
   if (window.isAIResponding || window.isProcessing || !window.isAmbientQueueEnabled) return;
+  // Replies release isProcessing before TTS finishes, so don't talk over
+  // her own speech (or manual playback): try again after another delay.
+  if (typeof window.isTTSBusy === 'function' && window.isTTSBusy()) {
+    resetAmbientTimer();
+    return;
+  }
   const maxLimit = getMaxConsecutiveAmbient();
   if ((window.consecutiveAmbientCount || 0) >= maxLimit) {
     debugLog(`Ambient mode reached limit of ${maxLimit} consecutive thoughts. Pausing until user speaks.`, 'info');

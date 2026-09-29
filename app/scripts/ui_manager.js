@@ -180,9 +180,9 @@ function highlightSentence(messageId, sentenceIndex, append = false) {
 }
 window.highlightSentence = highlightSentence;
 
-// One-line hint shown inside an empty chat so first-time users discover
-// the /image command. Rendered only when the conversation has no turns;
-// any real message pushes it out naturally.
+// Hint shown inside an empty chat so first-time users discover the /image
+// command and the mic gestures. Rendered only when the conversation has no
+// turns; any real message pushes it out naturally.
 function showWelcomeHint() {
   if (!window.chatHistory || !window.conversationContext || window.conversationContext.length > 0) return;
   const div = document.createElement('div');
@@ -190,6 +190,17 @@ function showWelcomeHint() {
   div.id = 'welcomeHint';
   div.innerHTML =
     'Say hi and chat with me \u2014 or just ask me to draw something, like <i>draw a cozy cafe at sunset</i>. Keep it SFW and I will paint it. You can also use <b>/image [prompt] [portrait|landscape|square]</b> for exact control.';
+
+  // Only advertise the mic if it's actually available (STT hides it, and
+  // removes this line, when no speech engine works in this browser).
+  const micBtn = document.getElementById('micBtn');
+  if (micBtn && micBtn.style.display !== 'none') {
+    const mic = document.createElement('div');
+    mic.className = 'welcome-hint-mic';
+    mic.textContent = (typeof getUIString === 'function' && getUIString('welcomeHintMic'))
+      || 'Press and hold the \u{1F3A4} mic to talk, and let go when you are done. Or tap it once to start and again to stop.';
+    div.appendChild(mic);
+  }
   window.chatHistory.appendChild(div);
 }
 window.showWelcomeHint = showWelcomeHint;

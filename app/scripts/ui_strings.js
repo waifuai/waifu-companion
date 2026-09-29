@@ -157,7 +157,7 @@ window.UI_STRINGS = {
     
     automationSettingsTitle: '🤖 Automation Settings',
     enableUserMessageQueueLabel: '📬 User Message Queue',
-    enableUserMessageQueueDesc: 'Queue messages instead of sending immediately while the AI is responding.',
+    enableUserMessageQueueDesc: 'Queue messages sent while the AI is still writing its reply. You never wait for her to finish speaking: sending a message interrupts the voice.',
     enableAmbientQueueLabel: '🍃 Ambient Mode',
     enableAmbientQueueDesc: 'The AI will share thoughts or follow-up questions unprompted after periods of silence (pauses after 10 unreplied messages on Free Cloud; unlimited with custom API key).',
     ambientPromptLabel: '💭 Ambient Prompt',
@@ -172,6 +172,12 @@ window.UI_STRINGS = {
     
     // Chat interface
     messageInputPlaceholder: 'Type your message...',
+    welcomeHintMic: 'Press and hold the 🎤 mic to talk, and let go when you are done. Or tap it once to start and again to stop.',
+    micIdleTitle: 'Voice input: hold to talk, or tap to start/stop',
+    micStartingPlaceholder: 'Starting microphone...',
+    micHoldPlaceholder: 'Listening... release to stop',
+    micTapPlaceholder: 'Listening... tap the mic again to stop',
+    micTranscribingPlaceholder: 'Transcribing...',
     sendBtn: 'Send',
     resetChatBtn: 'Reset Chat',
     

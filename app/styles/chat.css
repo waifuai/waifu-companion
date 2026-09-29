@@ -272,6 +272,12 @@
   color: rgba(241, 245, 249, 0.9);
 }
 
+.welcome-hint-mic {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
 .chat-image {
   max-width: 100%;
   max-height: 320px;
@@ -533,14 +539,55 @@
   background: #333;
   color: #fff;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
   position: relative;
   z-index: 1;
+  /* Press-and-hold must not select text, scroll, or open a long-press menu. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .mic-button:hover { background: #444; }
-.mic-button.active { background: #c62828; }
+.mic-button:active { transform: scale(0.94); }
 .mic-button svg { pointer-events: none; }
+
+/* Waiting on mic permission / the recognizer: amber pulse. */
+.mic-button.starting {
+  background: #b26a00;
+  animation: mic-pulse-soft 0.9s ease-in-out infinite;
+}
+
+/* Recording: red with an expanding ring so it's obvious it's live. */
+.mic-button.active {
+  background: #c62828;
+  animation: mic-ring 1.2s ease-out infinite;
+}
+
+/* Cloud engine uploading/transcribing: dimmed, not clickable. */
+.mic-button.transcribing {
+  background: #555;
+  cursor: progress;
+  animation: mic-pulse-soft 1.2s ease-in-out infinite;
+}
+
+@keyframes mic-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.7); }
+  100% { box-shadow: 0 0 0 10px rgba(239, 83, 80, 0); }
+}
+
+@keyframes mic-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mic-button.starting,
+  .mic-button.active,
+  .mic-button.transcribing { animation: none; }
+  .mic-button.active { box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.6); }
+}
 
 /* Chat Sidebar */
 .chat-sidebar {

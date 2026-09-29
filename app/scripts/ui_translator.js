@@ -231,6 +231,7 @@ async function applyInterfaceLanguage(langCode) {
     'customModelUrl': 'modelUrlPlaceholder',
     'customModelImage': 'modelImagePlaceholder',
     'bgUrlInput': 'bgUrlPlaceholder',
+    'conversationSummary': 'conversationSummaryPlaceholder',
     'messageInput': 'messageInputPlaceholder',
     'settingsSearch': 'searchSettingsPlaceholder'
   };
@@ -239,6 +240,19 @@ async function applyInterfaceLanguage(langCode) {
     const elem = document.getElementById(elemId);
     if (elem && uiStrings[strKey]) elem.placeholder = uiStrings[strKey];
   });
+
+  // Declarative placeholders (e.g. the ambient prompt textarea). These
+  // attributes were in the markup but never read, so they stayed English.
+  document.querySelectorAll('[data-ui-placeholder]').forEach(el => {
+    const strKey = el.dataset.uiPlaceholder;
+    if (uiStrings[strKey]) el.placeholder = uiStrings[strKey];
+  });
+
+  // The mic may be showing a temporary "Listening..." placeholder; tell it
+  // the resting text changed so it restores the translated one.
+  if (typeof window.onMessageInputPlaceholderChanged === 'function') {
+    window.onMessageInputPlaceholderChanged();
+  }
 
   // 4. The user's persona text is deliberately NOT translated here.
   //
@@ -263,7 +277,19 @@ async function applyInterfaceLanguage(langCode) {
   debugLog(`Interface language changed and settings panel translated to: ${langCode}`, 'info');
 }
 
+// Synchronous lookup for strings set from code (not markup): the current
+// interface language if it's loaded, otherwise English.
+function getUIString(key) {
+  const lang = window.currentInterfaceLanguage || 'en-US';
+  const sets = [window.UI_STRINGS?.[lang], window.translationCache?.[lang], window.UI_STRINGS?.['en-US']];
+  for (const set of sets) {
+    if (set && set[key]) return set[key];
+  }
+  return '';
+}
+
 window.applyInterfaceLanguage = applyInterfaceLanguage;
+window.getUIString = getUIString;
 window.translateInterfaceText = translateInterfaceText;
 window.translateTutorialSteps = translateTutorialSteps;
 window.getUIStringsForLanguage = getUIStringsForLanguage;

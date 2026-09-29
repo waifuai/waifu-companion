@@ -79,16 +79,22 @@ async function sendMessage() {
       addMessage('Describe what you want me to draw: /image a cozy cafe at sunset \u2014 or add portrait / landscape / square', false);
       return;
     }
-    if (isProcessing) {
-      messageInput.value = message;
-      return;
-    }
+    // Image renders are fire-and-forget, so they never wait on a reply.
     noteSentMessage(message);
     await handleImageRequest(prompt, aspect);
     return;
   }
 
-  // If already processing and queueing is enabled, add to queue
+  // Barge-in: a new message cuts off whatever she is still saying, the way
+  // talking over someone does. Without this, slow TTS for an old reply kept
+  // playing (or hadn't even started) while the conversation moved on.
+  if (typeof window.isTTSBusy === 'function' && window.isTTSBusy()) {
+    debugLog('Barge-in: user sent a message while TTS was busy; stopping playback.', 'info');
+    if (typeof window.stopTTS === 'function') window.stopTTS();
+  }
+
+  // isProcessing only covers the reply being generated now (not TTS), so
+  // this queue is only hit while the text is still streaming in.
   if (isProcessing && isUserMessageQueueEnabled) {
     noteSentMessage(message);
     userMessageQueue.push(message);
@@ -464,11 +470,6 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       debugLog('Connection-error reply shown to user but kept out of conversation context.', 'warn');
     }
 
-    // Trigger preloading for next queued message if available
-    if (window.isUserMessageQueueEnabled && userMessageQueue.length > 0) {
-      preloadNextQueuedMessage();
-    }
-
     if (currentModel && !isErrorReply) {
       // Enhanced emotion responses with more varied animations
       switch (aiResponse.emotion) {
@@ -519,10 +520,9 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     // Initiate TTS playback
     if (window.enableVoice && !isErrorReply) {
       try {
-        // notifyOnComplete=true: this playback owns the response lifecycle
-        // and must release isProcessing when it drains. Manual per-message
-        // playback passes false so it can't advance the user message queue
-        // out of turn.
+        // notifyOnComplete=true: fires onAIResponseSpeechFinished when this
+        // reply is done speaking, which is what ambient mode waits on. The
+        // chat pipeline itself is released below, without waiting for TTS.
         playTTS(originalReply, selectedLanguageCode, messageId, 0, ttsPreloadBuffer, true);
       } catch (e) {
         debugError('TTS call failed (playTTS threw)', e, {
@@ -531,16 +531,17 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
           voiceId: voiceId,
           replyLen: originalReply?.length
         });
-        onAIResponseFullyFinished(); // Fallback if TTS fails immediately
       }
     } else {
       if (!window.enableVoice) debugLog('TTS is disabled, skipping playback.', 'info');
       else if (isErrorReply) debugLog('TTS skipped for error message.', 'info');
-
-      onAIResponseFullyFinished(); // Trigger next task immediately if no TTS
     }
 
-    debugLog(`AI response complete. Emotion: ${aiResponse.emotion}. Waiting for TTS to finish...`, 'info');
+    // The reply text is on screen, so the user may send again right away.
+    // TTS carries on in its own queue; waiting for it here meant slow TTS
+    // blocked the next message for the whole length of the speech.
+    debugLog(`AI response complete. Emotion: ${aiResponse.emotion}. Releasing input (TTS continues in background).`, 'info');
+    onAIResponseFullyFinished();
 
     // Trigger preloading if enabled
     if (window.isAmbientQueueEnabled && window.isAmbientPreloadEnabled) {
@@ -565,15 +566,15 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
 }
 
 function onAIResponseFullyFinished() {
-  // Idempotent: several paths can reach here for the same response (TTS
-  // drain, TTS error, the catch in sendMessageInternal). Without this guard a
-  // double call shifts two messages off the queue and only sends one of them.
+  // Idempotent: several paths can reach here for the same response (the
+  // normal completion and the catch in sendMessageInternal). Without this
+  // guard a double call shifts two messages off the queue and only sends one.
   if (!isProcessing && !isAIResponding) {
     debugLog('AI response already finalized, ignoring duplicate completion.', 'info');
     return;
   }
 
-  debugLog('AI response and TTS fully finished.', 'info');
+  debugLog('AI response finished; input released.', 'info');
   debugState('ChatController', 'processing_end', { isProcessing: isProcessing, isAIResponding: isAIResponding, queueRemaining: userMessageQueue.length });
   isProcessing = false;
   isAIResponding = false;
@@ -594,9 +595,18 @@ function onAIResponseFullyFinished() {
       updateQueueUI();
       sendMessageInternal(nextMsg);
     }
-  } else {
+  } else if (!(typeof window.isTTSBusy === 'function' && window.isTTSBusy())) {
+    // Still speaking: onAIResponseSpeechFinished starts the timer instead,
+    // so ambient thoughts don't talk over the current reply.
     if (window.resetAmbientTimer) window.resetAmbientTimer();
   }
+}
+
+// Called by the TTS queue once an AI reply has finished speaking (or was
+// stopped). Only ambient mode cares; the chat pipeline was released earlier.
+function onAIResponseSpeechFinished() {
+  if (isProcessing || userMessageQueue.length > 0) return;
+  if (window.resetAmbientTimer) window.resetAmbientTimer();
 }
 
 async function preloadNextQueuedMessage() {
@@ -634,6 +644,7 @@ async function preloadNextQueuedMessage() {
 
 window.sendMessageInternal = sendMessageInternal;
 window.onAIResponseFullyFinished = onAIResponseFullyFinished;
+window.onAIResponseSpeechFinished = onAIResponseSpeechFinished;
 window.preloadNextQueuedMessage = preloadNextQueuedMessage;
 
 function updateSummaryMarker() {
