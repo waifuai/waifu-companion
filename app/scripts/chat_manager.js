@@ -144,7 +144,7 @@ function loadChat(chatId) {
     window.chatHistory.innerHTML = '';
     window.conversationContext.forEach(msg => {
       const langCode = msg.role === 'user' ? 'en-US' : (msg.languageCode || window.selectedLanguageCode || 'en-US');
-      const id = addMessage(msg.content, msg.role === 'user', null, null, langCode);
+      const id = addMessage(msg.content, msg.role === 'user', null, null, langCode, msg.imageUrl || null);
       msg.id = id;
     });
     if (typeof updateSummaryMarker === 'function') updateSummaryMarker();

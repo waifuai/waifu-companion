@@ -39,7 +39,7 @@ function renderSentenceSpans(container, text) {
 }
 window.renderSentenceSpans = renderSentenceSpans;
 
-function addMessage(originalText, isUser, translationText = null, transliterationText = null, languageCode = 'en-US') {
+function addMessage(originalText, isUser, translationText = null, transliterationText = null, languageCode = 'en-US', imageUrl = null) {
   // Assumes chatHistory is accessible
   const messageDiv = document.createElement("div");
   messageDiv.id = nextMessageId();
@@ -121,6 +121,17 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   }
   
   messageDiv.appendChild(originalSpan);
+
+  // Generated image (if provided and not user message)
+  if (!isUser && imageUrl) {
+    const img = document.createElement('img');
+    img.className = 'chat-image';
+    img.src = imageUrl;
+    img.alt = originalText;
+    img.loading = 'lazy';
+    img.addEventListener('click', () => window.open(imageUrl, '_blank'));
+    messageDiv.appendChild(img);
+  }
 
   // Transliteration (if provided and not user message)
   if (!isUser && transliterationText) {

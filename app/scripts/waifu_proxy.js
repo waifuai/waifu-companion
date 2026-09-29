@@ -39,6 +39,7 @@ function getVisitorId() {
 
 const WaifuProxyAPI = {
   API_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/chat/completions',
+  IMAGE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/image',
   DEFAULT_MODEL: 'waifuai-v1',
 
   getModel() {
@@ -78,6 +79,24 @@ const WaifuProxyAPI = {
 
   async createCompletion(options) {
     return performLLMRequest(this.buildRequest(options, false));
+  },
+
+  // Free image generation. Resolves with { url } on success; throws an
+  // Error with .blocked = true when the request was not allowed.
+  async generateImage(prompt, aspect = '1:1', seed = null) {
+    const params = new URLSearchParams({ text: prompt, aspect });
+    if (seed !== null && seed !== undefined && !isNaN(Number(seed))) {
+      params.set('seed', String(parseInt(seed, 10)));
+    }
+    const res = await fetch(this.IMAGE_URL + '?' + params.toString());
+    let body = null;
+    try { body = await res.json(); } catch (e) { }
+    if (!res.ok) {
+      const err = new Error((body && body.error) || 'Image generation failed.');
+      err.blocked = Boolean(body && body.blocked);
+      throw err;
+    }
+    return { url: res.url };
   },
 
   async createCompletionStream(options) {

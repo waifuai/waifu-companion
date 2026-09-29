@@ -65,6 +65,22 @@ async function sendMessage() {
     window.sttFinalTranscript = "";
   }
 
+  // /image command: generate a picture instead of a chat reply
+  if (/^\/(image|img)\b/i.test(message)) {
+    const prompt = message.replace(/^\/(image|img)\b\s*/i, '').trim();
+    if (!prompt) {
+      addMessage('Describe what you want me to draw: /image a cozy cafe at sunset', false);
+      return;
+    }
+    if (isProcessing) {
+      messageInput.value = message;
+      return;
+    }
+    noteSentMessage(message);
+    await handleImageCommand(prompt);
+    return;
+  }
+
   // If already processing and queueing is enabled, add to queue
   if (isProcessing && isUserMessageQueueEnabled) {
     noteSentMessage(message);
@@ -92,6 +108,64 @@ async function sendMessage() {
 
   noteSentMessage(message);
   await sendMessageInternal(message);
+}
+
+// /image flow: draws a picture through the image endpoint and drops it into
+// the chat. The prompt goes out as-is; a short in-character caption is added
+// and stored so chat reloads and the LLM context both know the image exists.
+async function handleImageCommand(prompt) {
+  isProcessing = true;
+  isAIResponding = true;
+
+  if (typeof trackEvent === 'function') trackEvent('image_generation_started');
+  debugLog(`Image generation requested: "${prompt.substring(0, 60)}"`, 'info');
+
+  addMessage(prompt, true, null, null, 'en-US');
+  conversationContext.push({ role: 'user', content: '/image ' + prompt });
+
+  showTypingIndicator(true);
+  let replyText = '';
+  let imageUrl = null;
+  let isError = false;
+
+  try {
+    if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) {
+      throw new Error('Image generation is not available.');
+    }
+    const result = await window.WaifuProxyAPI.generateImage(prompt);
+    imageUrl = result.url;
+    replyText = 'Here, I drew this for you~ \u2728';
+  } catch (err) {
+    isError = true;
+    replyText = err && err.blocked
+      ? 'I... I can\'t draw that! Let\'s pick something else, okay?'
+      : 'Sorry, my canvas is acting up. Could we try again in a moment?';
+    debugError('Image generation failed', err);
+    if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: Boolean(err && err.blocked) });
+  } finally {
+    showTypingIndicator(false);
+  }
+
+  const langCode = window.selectedLanguageCode || 'en-US';
+  const messageId = addMessage(replyText, false, null, null, langCode, imageUrl);
+
+  if (!isError && imageUrl) {
+    conversationContext.push({
+      role: 'assistant',
+      content: `[generated an image: ${prompt}]`,
+      imageUrl,
+      id: messageId
+    });
+  }
+
+  if (window.ChatManager) {
+    const activeId = window.ChatManager.getActiveChatId();
+    if (activeId) window.ChatManager.saveCurrentChat(activeId);
+  }
+
+  isProcessing = false;
+  isAIResponding = false;
+  debugState('ChatController', 'image_done', { isProcessing: false, ok: !isError });
 }
 
 // Tears down everything tied to the conversation that's being left behind.
@@ -580,3 +654,4 @@ function initChatController() {
 }
 
 window.sendMessage = sendMessage;
+window.handleImageCommand = handleImageCommand;
