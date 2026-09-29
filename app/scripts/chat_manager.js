@@ -147,6 +147,7 @@ function loadChat(chatId) {
       const id = addMessage(msg.content, msg.role === 'user', null, null, langCode, msg.imageUrl || null);
       msg.id = id;
     });
+    if (typeof showWelcomeHint === 'function') showWelcomeHint();
     if (typeof updateSummaryMarker === 'function') updateSummaryMarker();
   }
 
@@ -377,6 +378,8 @@ function handleNewChat() {
   if (window.chatHistory) window.chatHistory.innerHTML = '';
   const summaryEl = document.getElementById('conversationSummary');
   if (summaryEl) summaryEl.value = '';
+
+  if (typeof showWelcomeHint === 'function') showWelcomeHint();
 
   // Update header. This used to reference an undefined `name`, which resolves
   // to window.name (a built-in cross-frame global, normally '""') instead of

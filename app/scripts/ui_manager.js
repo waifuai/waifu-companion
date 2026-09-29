@@ -41,6 +41,8 @@ window.renderSentenceSpans = renderSentenceSpans;
 
 function addMessage(originalText, isUser, translationText = null, transliterationText = null, languageCode = 'en-US', imageUrl = null) {
   // Assumes chatHistory is accessible
+  const welcomeHint = document.getElementById('welcomeHint');
+  if (welcomeHint) welcomeHint.remove();
   const messageDiv = document.createElement("div");
   messageDiv.id = nextMessageId();
   messageDiv.className = `message ${isUser ? "user-message" : "model-message"}`;
@@ -177,6 +179,21 @@ function highlightSentence(messageId, sentenceIndex, append = false) {
   }
 }
 window.highlightSentence = highlightSentence;
+
+// One-line hint shown inside an empty chat so first-time users discover
+// the /image command. Rendered only when the conversation has no turns;
+// any real message pushes it out naturally.
+function showWelcomeHint() {
+  if (!window.chatHistory || !window.conversationContext || window.conversationContext.length > 0) return;
+  const div = document.createElement('div');
+  div.className = 'welcome-hint';
+  div.id = 'welcomeHint';
+  div.innerHTML =
+    'Say hi, chat with me, or draw a picture with <b>/image</b> \u2014 e.g. <i>/image a cozy cafe at sunset</i>';
+  window.chatHistory.appendChild(div);
+}
+window.showWelcomeHint = showWelcomeHint;
+
 
 function showRetryTTSButton(messageId, startIndex, languageCode) {
   const msgDiv = document.getElementById(messageId);
