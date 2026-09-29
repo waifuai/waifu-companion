@@ -93,3 +93,7 @@ If issues persist:
 2. Review Settings > Help & Tutorial for the interactive guide
 3. Check the [GitHub issues](https://github.com/waifuai/waifu-companion/issues) for known problems
 4. Visit [waifuai.com](https://waifuai.com) for the latest version
+
+## Image generation fails
+
+Refused prompts (adult content) get an in-character refusal - rephrase. Occasionally a drawing takes longer or fails: the chat stays usable the whole time, and you can simply ask again. The chat window never locks while an image renders.

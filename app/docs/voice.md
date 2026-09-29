@@ -109,3 +109,7 @@ Multi-sentence AI responses are split into individual sentences for TTS:
 - Each sentence can be preloaded while the previous one plays
 - Configurable character limit per TTS chunk
 - Queue can be interrupted by sending a new message
+
+## Image generation
+
+The character can also draw. Ask in plain words ("draw a cozy cafe at sunset") or use the `/image` command with an optional `portrait`, `landscape` or `square` flag for the aspect ratio. Generated images appear in the chat and are clickable for full size. Keep requests SFW.

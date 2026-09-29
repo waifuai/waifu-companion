@@ -22,6 +22,7 @@ Click the gear icon in the top-left corner of the application.
 
 ### Audio Category
 - **Voice Settings**: TTS provider selection (TikTok, Kokoro, Browser), voice selection per provider
+- **Image Generation**: ask the character to draw anything in chat, or use `/image` with an optional portrait / landscape / square flag
 - **Audio Settings**: Master volume, TTS volume, radio volume, sound effects toggle, internet radio
 
 ### System Category
