@@ -119,13 +119,9 @@ window.UI_STRINGS = {
     showVerboseLogsLabel: '💬 Show Live2d Debug Logs',
     showAIDebugLogsLabel: '🧠 Show AI Debug Logs',
     showTTSDebugLogsLabel: '🔊 Show TTS Debug Logs',
-    offlineModeLabel: '🔌 Offline Mode',
-    offlineDurationLabel: '⏱️ Offline Duration (seconds)',
     showChatContextLabel: '📄 Show Chat Context in Debug',
     includeTutorialLabel: '📖 Include Tutorial in AI Context',
     searchSettingsPlaceholder: 'Search settings...',
-    disableAutoOfflineLabel: '🚫 Disable automatic Offline Mode',
-    disableAutoOfflineDesc: 'When enabled, the app will never switch itself into Offline Mode automatically after connection errors.',
     
     helpTutorialTitle: '❓ Help & Tutorial',
     llmSettingsTitle: '🤖 LLM Provider',

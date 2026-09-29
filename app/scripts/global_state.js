@@ -66,7 +66,6 @@ DomRefs.customModelImageInput = document.getElementById('customModelImage');
 DomRefs.addCustomModelBtn = document.getElementById('addCustomModelBtn');
 
 // Provider settings
-DomRefs.forceOfflineCheckbox = document.getElementById('forceOfflineCheckbox');
 DomRefs.useOpenRouterCheckbox = document.getElementById('useOpenRouterCheckbox');
 DomRefs.openRouterApiKeyInput = document.getElementById('openRouterApiKeyInput');
 DomRefs.openRouterPrimaryEnabledCheckbox = document.getElementById('openRouterPrimaryEnabledCheckbox');
@@ -83,7 +82,6 @@ DomRefs.openaiCompatibleBaseUrlInput = document.getElementById('openaiCompatible
 DomRefs.openaiCompatibleApiKeyInput = document.getElementById('openaiCompatibleApiKeyInput');
 DomRefs.openaiCompatibleModelInput = document.getElementById('openaiCompatibleModelInput');
 DomRefs.openaiCompatibleCorsProxyInput = document.getElementById('openaiCompatibleCorsProxyInput');
-DomRefs.disableAutoOfflineCheckbox = document.getElementById('disableAutoOfflineCheckbox');
 DomRefs.multipleModelsCheckbox = document.getElementById('multipleModelsCheckbox');
 DomRefs.useJsonForEmotionCheckbox = document.getElementById('useJsonForEmotionCheckbox');
 
@@ -142,12 +140,6 @@ AppState.conversationSummary = "";
 AppState.messageCountSinceLastSummary = 0;
 AppState.summaryTriggerCount = 30;
 AppState.summaryLengthPreference = 'concise';
-
-// Offline mode state
-AppState.isOfflineMode = false;
-AppState.forceOfflineMode = false;
-AppState.offlineModeDuration = 300;
-AppState.offlineCountdownTimer = null;
 
 // Provider state
 AppState.useOpenRouter = false;
@@ -235,7 +227,6 @@ Object.defineProperty(window, 'customModelNameInput', { get: () => DomRefs.custo
 Object.defineProperty(window, 'customModelUrlInput', { get: () => DomRefs.customModelUrlInput, set: v => { DomRefs.customModelUrlInput = v; } });
 Object.defineProperty(window, 'customModelImageInput', { get: () => DomRefs.customModelImageInput, set: v => { DomRefs.customModelImageInput = v; } });
 Object.defineProperty(window, 'addCustomModelBtn', { get: () => DomRefs.addCustomModelBtn, set: v => { DomRefs.addCustomModelBtn = v; } });
-Object.defineProperty(window, 'forceOfflineCheckbox', { get: () => DomRefs.forceOfflineCheckbox, set: v => { DomRefs.forceOfflineCheckbox = v; } });
 Object.defineProperty(window, 'useOpenRouterCheckbox', { get: () => DomRefs.useOpenRouterCheckbox, set: v => { DomRefs.useOpenRouterCheckbox = v; } });
 Object.defineProperty(window, 'openRouterApiKeyInput', { get: () => DomRefs.openRouterApiKeyInput, set: v => { DomRefs.openRouterApiKeyInput = v; } });
 Object.defineProperty(window, 'openRouterPrimaryEnabledCheckbox', { get: () => DomRefs.openRouterPrimaryEnabledCheckbox, set: v => { DomRefs.openRouterPrimaryEnabledCheckbox = v; } });
@@ -252,7 +243,6 @@ Object.defineProperty(window, 'openaiCompatibleBaseUrlInput', { get: () => DomRe
 Object.defineProperty(window, 'openaiCompatibleApiKeyInput', { get: () => DomRefs.openaiCompatibleApiKeyInput, set: v => { DomRefs.openaiCompatibleApiKeyInput = v; } });
 Object.defineProperty(window, 'openaiCompatibleModelInput', { get: () => DomRefs.openaiCompatibleModelInput, set: v => { DomRefs.openaiCompatibleModelInput = v; } });
 Object.defineProperty(window, 'openaiCompatibleCorsProxyInput', { get: () => DomRefs.openaiCompatibleCorsProxyInput, set: v => { DomRefs.openaiCompatibleCorsProxyInput = v; } });
-Object.defineProperty(window, 'disableAutoOfflineCheckbox', { get: () => DomRefs.disableAutoOfflineCheckbox, set: v => { DomRefs.disableAutoOfflineCheckbox = v; } });
 Object.defineProperty(window, 'multipleModelsCheckbox', { get: () => DomRefs.multipleModelsCheckbox, set: v => { DomRefs.multipleModelsCheckbox = v; } });
 Object.defineProperty(window, 'useJsonForEmotionCheckbox', { get: () => DomRefs.useJsonForEmotionCheckbox, set: v => { DomRefs.useJsonForEmotionCheckbox = v; } });
 
@@ -290,10 +280,6 @@ Object.defineProperty(window, 'conversationSummary', { get: () => AppState.conve
 Object.defineProperty(window, 'messageCountSinceLastSummary', { get: () => AppState.messageCountSinceLastSummary, set: v => { AppState.messageCountSinceLastSummary = v; } });
 Object.defineProperty(window, 'summaryTriggerCount', { get: () => AppState.summaryTriggerCount, set: v => { AppState.summaryTriggerCount = v; } });
 Object.defineProperty(window, 'summaryLengthPreference', { get: () => AppState.summaryLengthPreference, set: v => { AppState.summaryLengthPreference = v; } });
-Object.defineProperty(window, 'isOfflineMode', { get: () => AppState.isOfflineMode, set: v => { AppState.isOfflineMode = v; } });
-Object.defineProperty(window, 'forceOfflineMode', { get: () => AppState.forceOfflineMode, set: v => { AppState.forceOfflineMode = v; } });
-Object.defineProperty(window, 'offlineModeDuration', { get: () => AppState.offlineModeDuration, set: v => { AppState.offlineModeDuration = v; } });
-Object.defineProperty(window, 'offlineCountdownTimer', { get: () => AppState.offlineCountdownTimer, set: v => { AppState.offlineCountdownTimer = v; } });
 Object.defineProperty(window, 'allowAIModSettings', { get: () => AppState.allowAIModSettings, set: v => { AppState.allowAIModSettings = v; } });
 Object.defineProperty(window, 'includeTutorialInContext', { get: () => AppState.includeTutorialInContext, set: v => { AppState.includeTutorialInContext = v; } });
 Object.defineProperty(window, 'useOpenRouter', { get: () => AppState.useOpenRouter, set: v => { AppState.useOpenRouter = v; } });

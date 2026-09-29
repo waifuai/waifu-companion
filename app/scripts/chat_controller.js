@@ -152,7 +152,6 @@ const SUMMARIZE_FAILURE_COOLDOWN_MS = 120000; // 2 minutes cooldown after a fail
 async function maybeSummarizeConversation() {
   if (isSummarizing) return;
   if (Date.now() - lastSummarizeFailureTime < SUMMARIZE_FAILURE_COOLDOWN_MS) return;
-  if (window.isOfflineMode || window.forceOfflineMode) return;
 
   const trigger = window.summaryTriggerCount || 20;
   if (window.messageCountSinceLastSummary < trigger) return;
@@ -292,7 +291,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
           });
         }
       } else {
-        // ── NON-STREAMING PATH (no provider configured / offline fallback) ──
+        // NON-STREAMING PATH
         showTypingIndicator(true);
         aiResponse = await getAIResponse(message, selectedLanguageCode);
         showTypingIndicator(false);

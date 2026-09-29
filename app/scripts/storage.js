@@ -91,11 +91,6 @@
     OPENAI_COMPATIBLE_MODEL: 'openaiCompatibleModel',
     OPENAI_COMPATIBLE_CORS_PROXY: 'openaiCompatibleCorsProxy',
 
-    // Offline
-    FORCE_OFFLINE_MODE: 'forceOfflineMode',
-    OFFLINE_MODE_DURATION: 'offlineModeDuration',
-    DISABLE_AUTO_OFFLINE_MODE: 'disableAutoOfflineMode',
-
     // Models & backgrounds
     SELECTED_MODEL_URL: 'selectedModelUrl',
     USER_MODELS: 'userModels',

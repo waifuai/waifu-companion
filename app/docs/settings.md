@@ -26,11 +26,11 @@ Click the gear icon in the top-left corner of the application.
 
 ### System Category
 - **Preferences**: General application preferences (language, theme, auto-save)
-- **Debug Settings**: Enable debug panel, AI/TTS/verbose log filters, chat context logging, offline mode toggle, copy debug log
+- **Debug Settings**: Enable debug panel, AI/TTS/verbose log filters, chat context logging, copy debug log
 
 ### Additional Sections
 - **Links**: External links and resources (GitHub, TikTok, website)
-- **Help & Tutorial**: 15-step interactive tutorial, documentation links
+- **Help & Tutorial**: interactive tutorial, documentation links
 
 ## Search Functionality
 

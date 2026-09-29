@@ -279,16 +279,10 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
 
 const CONNECTION_ERROR_REPLY = "Oh no... I'm having trouble connecting. Could we try again in a moment?";
 
-// Shared failure path for both entry points. setTransientFallbackState/
-// getLocalFallbackResponse already do the right thing here — the fallback is
-// per-request and never persisted to localStorage, so a bad request doesn't
-// strand the user in offline mode across reloads. This just makes sure the
-// caller can tell a genuine connectivity failure apart from ordinary dialogue
-// via `isError`, instead of every caller string-comparing the English text.
-function handleAIFailure(error, userMessage, reason) {
-  if (window.LocalFallbackEngine) {
-    return getLocalFallbackResponse(userMessage, reason);
-  }
+// Shared failure path for both entry points. Small helper so callers can
+// tell a genuine connectivity failure apart from ordinary dialogue via
+// isError, instead of every caller string-comparing the English text.
+function handleAIFailure(error) {
   return { reply: CONNECTION_ERROR_REPLY, emotion: 'sad', isError: true };
 }
 
@@ -308,11 +302,6 @@ async function getAIResponse(userMessage, targetLanguageCode = 'en-US', options 
   debugLog(`Getting AI response (non-streaming), targeting language: ${targetLanguageCode}`, 'info');
 
   try {
-    if (window.forceOfflineMode) {
-      debugLog('AI completions are disabled (Force Offline Mode). Using Local Fallback Engine.', 'warn');
-      throw new Error('ForceOfflineModeEnabled');
-    }
-
     const provider = resolveLLMProvider();
     if (!provider) {
       debugLog('No LLM provider configured. Using Local Fallback Engine.', 'warn');
@@ -324,43 +313,14 @@ async function getAIResponse(userMessage, targetLanguageCode = 'en-US', options 
     debugLog(`Received AI response from ${provider.name}`, 'info');
 
     const data = parseAIResponse(completion.content);
-    setTransientFallbackState(false);
     return data;
 
   } catch (error) {
     debugError('AI response (non-streaming) failed', error, {
-      messagePreview: userMessage.substring(0, 80),
-      offlineMode: !!window.forceOfflineMode,
-      fallbackAvailable: !!window.LocalFallbackEngine
+      messagePreview: userMessage.substring(0, 80)
     });
-    const isForceOffline = error && error.message === 'ForceOfflineModeEnabled';
-    return handleAIFailure(error, userMessage, isForceOffline ? 'forced offline' : 'ai failure or blank response');
+    return handleAIFailure(error);
   }
-}
-
-function setTransientFallbackState(isActive) {
-  window.isOfflineMode = !!isActive;
-
-  if (window.forceOfflineMode) {
-    return;
-  }
-
-  const chatContainer = document.querySelector('.chat-container');
-  const statusInd = document.getElementById('chat-status-indicator');
-
-  if (isActive) {
-    if (chatContainer) chatContainer.classList.add('offline-mode');
-    if (statusInd) statusInd.textContent = 'OFFLINE FALLBACK';
-  } else {
-    if (chatContainer) chatContainer.classList.remove('offline-mode');
-    if (statusInd) statusInd.textContent = 'ONLINE';
-  }
-}
-
-function getLocalFallbackResponse(userMessage, reason) {
-  setTransientFallbackState(true);
-  debugLog(`Using Local Heuristic Fallback Engine (${reason}).`, 'warn');
-  return window.LocalFallbackEngine.getResponse(userMessage);
 }
 
 async function getTranslatedText(text, targetLangCode, sourceLangCode = 'auto') {
@@ -490,10 +450,6 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
   const provider = resolveLLMProvider();
 
   try {
-    if (window.forceOfflineMode) {
-      debugLog('AI completions are disabled (Force Offline Mode). Using Local Fallback Engine.', 'warn');
-      throw new Error('ForceOfflineModeEnabled');
-    }
     if (!provider) {
       debugLog('No LLM provider configured. Using Local Fallback Engine.', 'warn');
       throw new Error('LLMNotConfigured');
@@ -604,7 +560,6 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     // replyText is the best plain-text fallback: for a truncated JSON
     // response it holds the partial reply we already showed the user.
     const data = parseAIResponse(fullContent, replyText || fullContent);
-    setTransientFallbackState(false);
     if (onComplete) onComplete(data);
     return data;
 
@@ -612,9 +567,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     debugError('AI streaming response failed', error, {
       provider: provider && provider.name,
       model: provider && provider.model,
-      messagePreview: userMessage.substring(0, 80),
-      offlineMode: !!window.forceOfflineMode,
-      fallbackAvailable: !!window.LocalFallbackEngine
+      messagePreview: userMessage.substring(0, 80)
     });
 
     // success:false only — never the raw error message, which can echo
@@ -624,8 +577,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     }
     if (typeof trackError === 'function') trackError('ai_request', error && error.status);
 
-    const isForceOffline = error && error.message === 'ForceOfflineModeEnabled';
-    return handleAIFailure(error, userMessage, isForceOffline ? 'forced offline' : 'streaming failure');
+    return handleAIFailure(error);
   }
 }
 

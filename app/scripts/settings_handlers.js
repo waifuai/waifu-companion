@@ -194,8 +194,6 @@ function handleIncludeBatteryChange(event) {
     debugLog(`Include battery in context changed to: ${includeBatteryInContext}`, 'info');
 }
 
-
-
 function handleMultipleModelsToggle(event){
   const enabled = !!event.target.checked;
   window.allowMultipleModels = enabled;
@@ -262,19 +260,6 @@ function handleUseJsonForEmotionChange(event) {
     window.useJsonForEmotion = value;
     S.setBoolean(K.USE_JSON_FOR_EMOTION, value);
     debugLog(`Use JSON For Emotion changed to: ${value}`, 'info');
-}
-
-function updateChatOfflineUI(isOffline, labelText) {
-    const chatContainer = document.querySelector('.chat-container');
-    const statusInd = document.getElementById('chat-status-indicator');
-
-    if (isOffline) {
-        if (chatContainer) chatContainer.classList.add('offline-mode');
-        if (statusInd) statusInd.textContent = labelText || 'OFFLINE MODE (FORCED)';
-    } else {
-        if (chatContainer) chatContainer.classList.remove('offline-mode');
-        if (statusInd) statusInd.textContent = 'ONLINE';
-    }
 }
 
 function handleUseOpenRouterChange(event) {
@@ -416,108 +401,6 @@ function handleOpenAICompatibleCorsProxyChange(event) {
     debugLog(`OpenAI Compatible CORS proxy updated: ${value || '(empty)'}`, 'info');
 }
 
-function handleForceOfflineChange(event) {
-    const val = event.target.checked;
-    window.forceOfflineMode = val;
-    S.setBoolean(K.FORCE_OFFLINE_MODE, val);
-    if (typeof trackEvent === 'function') trackEvent('offline_mode_toggled', { offline: val });
-    debugLog(`Force Offline Mode set to: ${val}`, 'info');
-    
-    if (val) {
-        window.isOfflineMode = true;
-        updateChatOfflineUI(true, 'OFFLINE MODE (FORCED)');
-        startOfflineCountdown();
-    } else {
-        if (window.offlineCountdownTimer) {
-            clearInterval(window.offlineCountdownTimer);
-            window.offlineCountdownTimer = null;
-        }
-        window.isOfflineMode = false;
-        updateChatOfflineUI(false, 'ONLINE');
-    }
-}
-
-function startOfflineCountdown() {
-    if (window.offlineCountdownTimer) clearInterval(window.offlineCountdownTimer);
-    
-    const statusInd = document.getElementById('chat-status-indicator');
-    if (window.offlineModeDuration > 3600) {
-        if (statusInd) statusInd.textContent = `OFFLINE MODE (FORCED) - Permanent`;
-        return;
-    }
-
-    let remaining = window.offlineModeDuration;
-    const updateUI = (rem) => {
-        if (statusInd) statusInd.textContent = `OFFLINE MODE (FORCED) - ${rem}s`;
-    };
-    
-    updateUI(remaining);
-    
-    window.offlineCountdownTimer = setInterval(() => {
-        remaining--;
-        if (remaining <= 0) {
-            clearInterval(window.offlineCountdownTimer);
-            window.offlineCountdownTimer = null;
-            
-            // Revert to online
-            window.forceOfflineMode = false;
-            window.isOfflineMode = false;
-            const checkbox = document.getElementById('forceOfflineCheckbox');
-            if (checkbox) checkbox.checked = false;
-            
-            const chatContainer = document.querySelector('.chat-container');
-            if (chatContainer) chatContainer.classList.remove('offline-mode');
-            if (statusInd) statusInd.textContent = 'ONLINE';
-            
-            S.setBoolean(K.FORCE_OFFLINE_MODE, false);
-            debugLog('Offline mode duration expired. Returning to Online mode.', 'info');
-        } else {
-            updateUI(remaining);
-        }
-    }, 1000);
-}
-
-function handleOfflineDurationChange(event) {
-    const value = parseInt(event.target.value);
-    window.offlineModeDuration = value;
-    const valEl = document.getElementById('offlineDurationValue');
-    if (valEl) {
-        valEl.textContent = value > 3600 ? '∞ (Permanent)' : value + 's';
-    }
-    S.setNumber(K.OFFLINE_MODE_DURATION, value);
-    const logVal = value > 3600 ? 'Permanent' : value + 's';
-    debugLog(`Offline mode duration updated to: ${logVal}`, 'info');
-}
-
-function handleGoOnlineClick() {
-    debugLog('Go Online button clicked. Disabling offline mode and returning to ONLINE state.', 'info');
-
-    // Clear any running countdown
-    if (window.offlineCountdownTimer) {
-        clearInterval(window.offlineCountdownTimer);
-        window.offlineCountdownTimer = null;
-    }
-
-    // Reset flags
-    window.forceOfflineMode = false;
-    window.isOfflineMode = false;
-
-    // Uncheck the Offline Mode checkbox if present
-    const checkbox = document.getElementById('forceOfflineCheckbox');
-    if (checkbox) {
-        checkbox.checked = false;
-    }
-
-    // Persist the new state
-    S.setBoolean(K.FORCE_OFFLINE_MODE, false);
-
-    // Update chat UI back to ONLINE
-    updateChatOfflineUI(false, 'ONLINE');
-}
-
-// Expose handler globally for app_init to attach
-window.handleGoOnlineClick = handleGoOnlineClick;
-
 function handleSavePersona() {
   const coreTextarea = document.getElementById('corePersonaPrompt');
   const userTextarea = document.getElementById('personaPrompt');
@@ -555,16 +438,6 @@ function handleSavePersona() {
 }
 
 async function handleManualSummarize() {
-  if (window.isOfflineMode || window.forceOfflineMode) {
-    debugLog('Manual summarization disabled in offline mode.', 'warn');
-    const btn = document.getElementById('manualSummarizeBtn');
-    if (btn) {
-      const old = btn.textContent;
-      btn.textContent = '🔌 Offline';
-      setTimeout(() => btn.textContent = old, 2000);
-    }
-    return;
-  }
 
   if (window.conversationContext.length === 0) {
     debugLog('No new messages to summarize.', 'info');
@@ -1107,13 +980,6 @@ function handleIncludeTutorialInContextChange(event) {
     window.includeTutorialInContext = value;
     S.setBoolean(K.INCLUDE_TUTORIAL_IN_CONTEXT, value);
     debugLog(`Include Tutorial in Context changed to: ${value}`, 'info');
-}
-
-function handleDisableAutoOfflineChange(event) {
-    const value = event.target.checked;
-    window.disableAutoOfflineMode = value;
-    S.setBoolean(K.DISABLE_AUTO_OFFLINE_MODE, value);
-    debugLog(`Disable automatic Offline Mode changed to: ${value}`, 'info');
 }
 
 window.applyAIProposedSettings = applyAIProposedSettings;

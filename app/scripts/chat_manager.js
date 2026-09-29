@@ -305,11 +305,6 @@ async function generateChatTitle(chatId, force = false) {
     .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.substring(0, 150)}`)
     .join('\n');
 
-  if (window.isOfflineMode || window.forceOfflineMode) {
-    debugLog('ChatManager: Skipping title generation while offline.', 'info');
-    return;
-  }
-
   try {
     // Routed through resolveLLMProvider so this works with whichever of
     // Groq / OpenRouter / OpenAI-compatible the user has configured — it used

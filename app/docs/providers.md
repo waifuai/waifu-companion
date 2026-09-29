@@ -64,20 +64,9 @@ Some models on OpenRouter don't support JSON response format. These are automati
 - `stepfun/step-3.5-flash:free`
 - `stepfun/step-1-flash`
 
-## Local Fallback Engine
+## Error Handling
 
-When no LLM provider is configured or all providers fail, a built-in heuristic engine provides pattern-matching responses.
-
-### Behavior
-- Matches greetings, emotions, identity questions, farewells, and more
-- Provides affectionate persona-driven responses
-- Always available, no API key needed
-- Responses are marked with `isFallback: true`
-
-### Activation
-- Automatic: When API keys are missing or requests fail
-- Manual: Enable "Force Offline Mode" in Debug Settings
-- Timed: Configure automatic offline mode duration in settings
+When no LLM provider is configured or all providers fail, the chat shows a brief connection error message.
 
 ## How It Works
 

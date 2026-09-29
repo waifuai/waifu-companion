@@ -533,36 +533,6 @@ function initProviders() {
     openaiCompatibleCorsProxyInput.addEventListener('blur', handleOpenAICompatibleCorsProxyChange);
   }
 
-  if (forceOfflineCheckbox) {
-    const storedOffline = AppStorage.getBoolean(AppStorage.KEYS.FORCE_OFFLINE_MODE, false);
-    window.forceOfflineMode = storedOffline;
-    forceOfflineCheckbox.checked = storedOffline;
-    forceOfflineCheckbox.addEventListener('change', handleForceOfflineChange);
-    if (storedOffline) {
-      window.isOfflineMode = true;
-      if (typeof updateChatOfflineUI === 'function') updateChatOfflineUI(true, 'OFFLINE MODE (FORCED)');
-      if (typeof startOfflineCountdown === 'function') startOfflineCountdown();
-    }
-  }
-  document.getElementById('goOnlineBtn')?.addEventListener('click', () => { if (typeof handleGoOnlineClick === 'function') handleGoOnlineClick(); });
-
-  const offlineDurationSlider = document.getElementById('offlineDuration');
-  const offlineDurationValueEl = document.getElementById('offlineDurationValue');
-  const storedOfflineDuration = AppStorage.getNumber(AppStorage.KEYS.OFFLINE_MODE_DURATION, NaN);
-  if (!Number.isNaN(storedOfflineDuration)) {
-    window.offlineModeDuration = storedOfflineDuration;
-    if (offlineDurationSlider) offlineDurationSlider.value = window.offlineModeDuration;
-    if (offlineDurationValueEl) offlineDurationValueEl.textContent = window.offlineModeDuration > 3600 ? '∞ (Permanent)' : window.offlineModeDuration + 's';
-  }
-  if (offlineDurationSlider) offlineDurationSlider.addEventListener('input', handleOfflineDurationChange);
-
-  const disableAutoOfflineCheckbox = document.getElementById('disableAutoOfflineCheckbox');
-  if (disableAutoOfflineCheckbox) {
-    window.disableAutoOfflineMode = AppStorage.getBoolean(AppStorage.KEYS.DISABLE_AUTO_OFFLINE_MODE, false);
-    disableAutoOfflineCheckbox.checked = window.disableAutoOfflineMode;
-    disableAutoOfflineCheckbox.addEventListener('change', handleDisableAutoOfflineChange);
-  }
-
   if (typeof window.updateAmbientMaxConsecutiveDisplay === 'function') {
     window.updateAmbientMaxConsecutiveDisplay();
   }

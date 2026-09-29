@@ -73,23 +73,8 @@
       <li><code>stepfun/step-1-flash</code></li>
     </ul>
 
-    <h2>Local Fallback Engine</h2>
-    <p>When no LLM provider is configured or all providers fail, a built-in heuristic engine provides pattern-matching responses.</p>
-
-    <h3>Behavior</h3>
-    <ul>
-      <li>Matches greetings, emotions, identity questions, farewells, and more</li>
-      <li>Provides affectionate persona-driven responses</li>
-      <li>Always available, no API key needed</li>
-      <li>Responses are marked with <code>isFallback: true</code></li>
-    </ul>
-
-    <h3>Activation</h3>
-    <ul>
-      <li>Automatic: When API keys are missing or requests fail</li>
-      <li>Manual: Enable "Force Offline Mode" in Debug Settings</li>
-      <li>Timed: Configure automatic offline mode duration in settings</li>
-    </ul>
+    <h2>Error Handling</h2>
+    <p>When no LLM provider is configured or all providers fail, the chat shows a brief connection error message.</p>
 
     <h2>How It Works</h2>
     <p>The AI system constructs a structured prompt containing:</p>

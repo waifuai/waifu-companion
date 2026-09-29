@@ -778,29 +778,9 @@
           </label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="offlineModeLabel">
-            <input type="checkbox" id="forceOfflineCheckbox" /> 🔌 Offline Mode
-          </label>
-        </div>
-        <div class="settings-item">
-          <label for="offlineDuration" data-ui-key="offlineDurationLabel">⏱️ Offline Duration (seconds)</label>
-          <input type="range" id="offlineDuration" min="10" max="3610" step="10" value="300" />
-          <div class="value-display" data-ui-desc="offlineDuration">
-            Reset to Online in: <span id="offlineDurationValue">300s</span>
-          </div>
-        </div>
-        <div class="settings-item">
           <label data-ui-key="showChatContextLabel">
             <input type="checkbox" id="showChatContextCheckbox" /> 📄 Show Chat Context in Debug
           </label>
-        </div>
-        <div class="settings-item">
-          <label data-ui-key="disableAutoOfflineLabel">
-            <input type="checkbox" id="disableAutoOfflineCheckbox" /> 🚫 Disable automatic Offline Mode
-          </label>
-          <div class="value-display" data-ui-desc="disableAutoOfflineDesc">
-            When enabled, the app will never switch itself into Offline Mode automatically after connection errors.
-          </div>
         </div>
       </div>
 
@@ -942,8 +922,6 @@
       <div class="chat-header">
         <button class="chat-sidebar-toggle" type="button" data-action="toggle-chat-sidebar" title="Chat History">☰</button>
         <span id="chatTitle">Chat</span>
-        <span id="chat-status-indicator">OFFLINE</span>
-        <button id="goOnlineBtn" class="go-online-btn" type="button">Go Online</button>
         <button class="regenerate-title-btn" type="button" data-action="regenerate-title" title="Regenerate Title">🔄</button>
         <button class="new-chat-btn" type="button" data-action="new-chat" title="New Chat">＋</button>
       </div>
@@ -1032,7 +1010,6 @@
     <script src="scripts/chat_controller.js"></script>
     <script src="scripts/tutorial.js"></script>
     <script src="scripts/stt_controller.js"></script>
-    <script src="scripts/local_fallback_engine.js"></script>
     <script type="module" src="scripts/kokoro_manager.js"></script>
     <script src="scripts/main.js"></script>
     <script src="scripts/app_init.js"></script>

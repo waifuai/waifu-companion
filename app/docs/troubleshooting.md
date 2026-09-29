@@ -38,13 +38,8 @@
 - A Live2D model must be loaded with mouth parameters (`ParamMouthOpenY`)
 - Check that audio is actually playing (TTS volume not muted)
 
-### Offline Mode Activated
-The app automatically switches to offline mode after connection errors. To reset:
-1. Click "Go Online" button in chat header
-2. Or go to Debug Settings and uncheck "Offline Mode"
-3. Disable automatic offline mode in Debug Settings if issues persist
-
-The local fallback engine provides basic affectionate responses when offline.
+### Connection Errors
+If the AI service is temporarily unavailable, the chat shows a brief error message. Just retry in a moment.
 
 ### Background Not Loading
 - Verify the image URL is publicly accessible
