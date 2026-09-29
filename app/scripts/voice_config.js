@@ -35,6 +35,23 @@ window.voices = [
   { id: 'en_male_pirate', name: 'TikTok Pirate', language: 'en-US', gender: 'male', provider: 'tiktok' },
   { id: 'en_male_narration', name: 'TikTok Narrator', language: 'en-US', gender: 'male', provider: 'tiktok' },
   { id: 'en_female_f08_warmy_breeze', name: 'TikTok Warmy Breeze', language: 'en-US', gender: 'female', provider: 'tiktok' },
+  // Extra voices verified against the live service 2026-09-29
+  { id: 'en_us_chewbacca', name: 'TikTok Chewbacca', language: 'en-US', gender: 'male', provider: 'tiktok' },
+  { id: 'en_us_stormtrooper', name: 'TikTok Stormtrooper', language: 'en-US', gender: 'male', provider: 'tiktok' },
+  { id: 'en_us_rocket', name: 'TikTok Rocket', language: 'en-US', gender: 'male', provider: 'tiktok' },
+  { id: 'en_us_008', name: 'TikTok US English (Alt)', language: 'en-US', gender: 'male', provider: 'tiktok' },
+  { id: 'en_male_funny', name: 'TikTok Funny', language: 'en-US', gender: 'male', provider: 'tiktok' },
+  { id: 'en_male_m2_xhxs_m03_silly', name: 'TikTok Silly', language: 'en-US', gender: 'male', provider: 'tiktok' },
+  { id: 'en_female_emotional', name: 'TikTok Emotional (F)', language: 'en-US', gender: 'female', provider: 'tiktok' },
+  { id: 'en_female_f08_salut_damour', name: 'TikTok Salut Damour (Singing)', language: 'en-US', gender: 'female', provider: 'tiktok' },
+  { id: 'en_female_f08_twinkle', name: 'TikTok Twinkle (Singing)', language: 'en-US', gender: 'female', provider: 'tiktok' },
+  { id: 'en_female_ht_f08_glorious', name: 'TikTok Glorious (Singing)', language: 'en-US', gender: 'female', provider: 'tiktok' },
+  { id: 'en_female_ht_f08_halloween', name: 'TikTok Halloween (Singing)', language: 'en-US', gender: 'female', provider: 'tiktok' },
+  { id: 'en_female_ht_f08_newyear', name: 'TikTok New Year (Singing)', language: 'en-US', gender: 'female', provider: 'tiktok' },
+  { id: 'en_female_ht_f08_wonderful_world', name: 'TikTok Wonderful World (Singing)', language: 'en-US', gender: 'female', provider: 'tiktok' },
+  { id: 'en_male_m03_lobby', name: 'TikTok Lobby (Singing)', language: 'en-US', gender: 'male', provider: 'tiktok' },
+  { id: 'en_male_m03_sunshine_soon', name: 'TikTok Sunshine Soon (Singing)', language: 'en-US', gender: 'male', provider: 'tiktok' },
+  { id: 'en_male_m03_classical', name: 'TikTok Classical (Singing)', language: 'en-US', gender: 'male', provider: 'tiktok' },
 
   // Browser SpeechSynthesis Voices (built-in, no rate limits)
   { id: 'browser-female', name: 'Browser Voice (Female)', language: 'en-US', gender: 'female', provider: 'browser' },
