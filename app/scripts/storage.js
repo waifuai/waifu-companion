@@ -49,6 +49,7 @@
     TTS_CHUNK_LIMIT: 'ttsChunkLimit',
     TTS_VOLUME: 'ttsVolume',
     TTS_FALLBACK_VOICE_ID: 'ttsFallbackVoiceId',
+    ENABLE_AUTO_TTS_LANG: 'enableAutoTtsLang',
 
     // Automation & queue
     IS_USER_MESSAGE_QUEUE_ENABLED: 'isUserMessageQueueEnabled',

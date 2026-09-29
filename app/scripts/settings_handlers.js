@@ -62,6 +62,18 @@ function handleVoiceChange(event) {
     debugLog(`Voice changed to: ${selectedVoiceId}`, 'info');
 }
 
+function handleManualVoiceSelection() {
+    // A manual voice pick means the user wants THEIR voice everywhere:
+    // turn the automatic per-language routing off (they can re-enable it).
+    if (window.enableAutoTtsLang === false) return;
+    window.enableAutoTtsLang = false;
+    S.setBoolean(K.ENABLE_AUTO_TTS_LANG, false);
+    const autoCheckbox = document.getElementById('enableAutoTtsLangCheckbox');
+    if (autoCheckbox) autoCheckbox.checked = false;
+    if (typeof trackEvent === 'function') trackEvent('auto_tts_lang_toggle', { enabled: false, cause: 'manual_voice_selection' });
+    debugLog('Auto TTS language disabled after manual voice selection.', 'info');
+}
+
 function handleTTSChunkLimitChange(event) {
     const value = parseInt(event.target.value);
     window.ttsChunkLimit = value;

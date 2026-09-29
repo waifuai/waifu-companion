@@ -329,7 +329,7 @@ async function fetchTTSBuffer(textChunk, voiceId) {
   const voiceConfig = voices.find(v => v.id === voiceId);
   const provider = voiceConfig ? voiceConfig.provider : 'tiktok';
   debugLog(`TTS: Resolved provider: "${provider}" for voiceId: "${voiceId}"`, 'info');
-  const routed = resolveVoiceForText(textChunk, voiceId);
+  const routed = (window.enableAutoTtsLang !== false) ? resolveVoiceForText(textChunk, voiceId) : { voiceId, lang: null };
   if (routed.lang) debugLog(`TTS: Language routing: ${routed.lang} -> voice ${routed.voiceId} (user setting: ${voiceId})`, 'info');
 
   const audioContext = getTTSAudioContext();

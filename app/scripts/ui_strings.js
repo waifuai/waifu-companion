@@ -61,6 +61,8 @@ window.UI_STRINGS = {
     ttsVolumeCurrent: 'Volume:',
     enableTikTokVoiceLabel: '🔈 Enable TikTok TTS',
     enableTikTokVoiceDesc: 'Primary voice synthesis using TikTok\'s free TTS API.',
+    enableAutoTtsLangLabel: '🌐 Auto TTS Language',
+    enableAutoTtsLangDesc: 'Matches the TikTok voice to the language of each reply. Choosing a voice manually turns this off.',
     enableKokoroVoiceLabel: '🚀 Enable Local Voice (Kokoro)',
     kokoroVoiceLabel: '🚀 Kokoro Voice',
     kokoroVoiceDesc: 'High-quality local TTS. Preloaded in background for silent handoff.',

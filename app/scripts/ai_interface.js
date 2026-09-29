@@ -130,6 +130,7 @@ Current Application Settings:
 - Language: ${window.selectedLanguageCode}
 - Voice Enabled: ${window.enableVoice}
 - Current Voice: ${window.selectedVoiceId}
+- Auto TTS Language: ${window.enableAutoTtsLang}
 - Memory Size: ${window.maxMemorySize} messages
 - Show Transliteration: ${window.showTransliteration}
 - Show Clock: ${window.showClock}

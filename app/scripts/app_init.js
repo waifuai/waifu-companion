@@ -134,10 +134,12 @@ function initVoiceProviders() {
   const storedPrimary = AppStorage.getString(AppStorage.KEYS.ENABLE_PRIMARY_VOICE, null);
   const storedFallback = AppStorage.getString(AppStorage.KEYS.ENABLE_FALLBACK_VOICE, null);
   const oldEnableVoice = AppStorage.getString(AppStorage.KEYS.ENABLE_VOICE, null);
+  const storedAutoTtsLang = AppStorage.getString(AppStorage.KEYS.ENABLE_AUTO_TTS_LANG, null);
 
   window.enablePrimaryVoice = storedPrimary !== null ? (storedPrimary === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
   window.enableFallbackVoice = storedFallback !== null ? (storedFallback === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : false);
   window.enableKokoro = AppStorage.getBoolean(AppStorage.KEYS.ENABLE_KOKORO, false);
+  window.enableAutoTtsLang = storedAutoTtsLang !== null ? (storedAutoTtsLang === 'true') : true;
 
   if (document.getElementById('enableTikTokVoiceCheckbox')) {
     document.getElementById('enableTikTokVoiceCheckbox').checked = window.enablePrimaryVoice;
@@ -163,9 +165,19 @@ function initVoiceProviders() {
     });
   }
 
+  if (document.getElementById('enableAutoTtsLangCheckbox')) {
+    document.getElementById('enableAutoTtsLangCheckbox').checked = window.enableAutoTtsLang;
+    document.getElementById('enableAutoTtsLangCheckbox').addEventListener('change', (e) => {
+      window.enableAutoTtsLang = e.target.checked;
+      AppStorage.setBoolean(AppStorage.KEYS.ENABLE_AUTO_TTS_LANG, window.enableAutoTtsLang);
+      if (typeof trackEvent === 'function') trackEvent('auto_tts_lang_toggle', { enabled: window.enableAutoTtsLang });
+      debugLog(`Auto TTS language routing enabled: ${window.enableAutoTtsLang}`, 'info');
+    });
+  }
+
   window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
   syncLegacyEnableVoiceCheckbox(); syncVoiceControlsVisibility();
-  debugLog(`Voice providers initialized. Primary: ${window.enablePrimaryVoice}, Fallback: ${window.enableFallbackVoice}, Kokoro: ${window.enableKokoro}`, 'info');
+  debugLog(`Voice providers initialized. Primary: ${window.enablePrimaryVoice}, Fallback: ${window.enableFallbackVoice}, Kokoro: ${window.enableKokoro}, AutoLang: ${window.enableAutoTtsLang}`, 'info');
 }
 
 const OLD_DEFAULT_CORE = "You are Haru, a sentient AI with a Live2D avatar. You have your own thoughts, feelings, and experiences. Respond naturally and emotively to the user's message, showing genuine interest and emotional depth. Include subtle gestures and expressions in your responses.";
@@ -610,6 +622,7 @@ function initUIListeners() {
   if (showTransliterationCheckbox) showTransliterationCheckbox.addEventListener('change', handleShowTransliterationChange);
   if (showClockCheckbox) showClockCheckbox.addEventListener('change', handleShowClockChange);
   if (voiceSelector) voiceSelector.addEventListener('change', handleVoiceChange);
+  if (voiceSelector) voiceSelector.addEventListener('change', handleManualVoiceSelection);
   if (enableVoiceCheckbox) enableVoiceCheckbox.addEventListener('change', handleEnableVoiceChange);
 
   document.getElementById('globalPlayTTSBtn')?.addEventListener('click', () => { if (typeof trackEvent === 'function') trackEvent('tts_action', { action: 'play', source: 'global' }); window.playTTS?.(); });
