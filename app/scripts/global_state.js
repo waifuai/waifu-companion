@@ -115,7 +115,7 @@ AppState.showNavigationControls = false;
 AppState.currentTime = new Date();
 
 // Voice state
-AppState.enableVoice = true;
+AppState.enableVoice = false;
 AppState.selectedVoiceId = 'en-female';
 AppState.ttsChunkLimit = 300;
 AppState.ttsVolume = 1.0;

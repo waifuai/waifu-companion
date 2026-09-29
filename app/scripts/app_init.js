@@ -135,7 +135,7 @@ function initVoiceProviders() {
   const storedFallback = AppStorage.getString(AppStorage.KEYS.ENABLE_FALLBACK_VOICE, null);
   const oldEnableVoice = AppStorage.getString(AppStorage.KEYS.ENABLE_VOICE, null);
 
-  window.enablePrimaryVoice = storedPrimary !== null ? (storedPrimary === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
+  window.enablePrimaryVoice = storedPrimary !== null ? (storedPrimary === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : false);
   window.enableFallbackVoice = storedFallback !== null ? (storedFallback === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : false);
   window.enableKokoro = AppStorage.getBoolean(AppStorage.KEYS.ENABLE_KOKORO, false);
 
