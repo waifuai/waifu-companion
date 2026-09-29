@@ -115,6 +115,25 @@ function saveCurrentChat(chatId) {
 }
 
 // Load a chat's data into the global state
+// Read-only accessor to a chat's stored data (used by background
+// image completions to append into a chat the user has navigated
+// away from without disturbing the active conversation).
+function getChatData(chatId) {
+  return _getChatData(chatId);
+}
+
+function saveChatData(chatId, data) {
+  _saveChatData(chatId, data);
+  const meta = _getChatIndex().find(c => c.id === chatId);
+  if (meta) {
+    meta.messageCount = data.conversationContext.length;
+    const lastMsg = data.conversationContext[data.conversationContext.length - 1];
+    meta.preview = lastMsg ? lastMsg.content.substring(0, 80) : '';
+    meta.updatedAt = Date.now();
+    _saveChatIndex(_getChatIndex());
+  }
+}
+
 function loadChat(chatId) {
   // Stop anything still running for the conversation being replaced. Without
   // this, switching chats mid-reply left TTS speaking and isProcessing set
@@ -551,9 +570,12 @@ window.ChatManager = {
   setActiveChatId,
   getAllChats,
   getChatMeta,
+  getChatData,
   createNewChat,
   saveCurrentChat,
   loadChat,
+  getChatData,
+  saveChatData,
   deleteChat,
   renameChat,
   getChatCount,

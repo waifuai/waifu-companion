@@ -114,58 +114,90 @@ async function sendMessage() {
 // the chat. The prompt goes out as-is; a short in-character caption is added
 // and stored so chat reloads and the LLM context both know the image exists.
 async function handleImageCommand(prompt) {
-  isProcessing = true;
-  isAIResponding = true;
+  // Image generation can take a while (or hang upstream), so it must never
+  // hold the chat hostage: isProcessing releases immediately and the user
+  // can keep chatting. The image lands in its own bubble whenever it is
+  // ready -- or fails gracefully into an error bubble.
 
   if (typeof trackEvent === 'function') trackEvent('image_generation_started');
   debugLog(`Image generation requested: "${prompt.substring(0, 60)}"`, 'info');
 
   addMessage(prompt, true, null, null, 'en-US');
   conversationContext.push({ role: 'user', content: '/image ' + prompt });
-
-  showTypingIndicator(true);
-  let replyText = '';
-  let imageUrl = null;
-  let isError = false;
-
-  try {
-    if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) {
-      throw new Error('Image generation is not available.');
-    }
-    const result = await window.WaifuProxyAPI.generateImage(prompt);
-    imageUrl = result.url;
-    replyText = 'Here, I drew this for you~ \u2728';
-  } catch (err) {
-    isError = true;
-    replyText = err && err.blocked
-      ? 'I... I can\'t draw that! Let\'s pick something else, okay?'
-      : 'Sorry, my canvas is acting up. Could we try again in a moment?';
-    debugError('Image generation failed', err);
-    if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: Boolean(err && err.blocked) });
-  } finally {
-    showTypingIndicator(false);
-  }
-
-  const langCode = window.selectedLanguageCode || 'en-US';
-  const messageId = addMessage(replyText, false, null, null, langCode, imageUrl);
-
-  if (!isError && imageUrl) {
-    conversationContext.push({
-      role: 'assistant',
-      content: `[generated an image: ${prompt}]`,
-      imageUrl,
-      id: messageId
-    });
-  }
-
   if (window.ChatManager) {
     const activeId = window.ChatManager.getActiveChatId();
     if (activeId) window.ChatManager.saveCurrentChat(activeId);
   }
 
-  isProcessing = false;
-  isAIResponding = false;
-  debugState('ChatController', 'image_done', { isProcessing: false, ok: !isError });
+  // Origin chat: images always belong to the chat where they were requested,
+  // even if the user wanders off to another chat while it renders.
+  const originChatId = window.ChatManager ? window.ChatManager.getActiveChatId() : null;
+
+  // Placeholder bubble: visible progress without blocking anything.
+  const placeholder = addMessage('Painting your picture... \u{1F3A8}', false, null, null, 'en-US');
+
+  // Fire and forget: nothing here awaits back at the call site.
+  (async () => {
+    let replyText = '';
+    let imageUrl = null;
+    let isError = false;
+
+    try {
+      if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) {
+        throw new Error('Image generation is not available.');
+      }
+      const result = await window.WaifuProxyAPI.generateImage(prompt);
+      imageUrl = result.url;
+      replyText = 'Here, I drew this for you~ \u2728';
+    } catch (err) {
+      isError = true;
+      replyText = err && err.blocked
+        ? 'I... I can\'t draw that! Let\'s pick something else, okay?'
+        : 'Sorry, my canvas is acting up. Could we try again in a moment?';
+      debugError('Image generation failed', err);
+      if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: Boolean(err && err.blocked) });
+    }
+
+    // Replace the placeholder bubble in place (same message id), or drop the
+    // placeholder if the user switched away and re-render from context.
+    const placeholderEl = document.getElementById(placeholder);
+    const sameChatStillActive = !window.ChatManager || window.ChatManager.getActiveChatId() === originChatId;
+    if (placeholderEl) placeholderEl.remove();
+
+    if (!sameChatStillActive && !isError) {
+      // The user moved on: persist into the originating chat's saved context
+      // so the image is there when they come back. No live bubble.
+      const data = window.ChatManager.getChatData(originChatId);
+      if (data) {
+        data.conversationContext.push({
+          role: 'assistant',
+          content: `[generated an image: ${prompt}]`,
+          imageUrl,
+        });
+        window.ChatManager.saveChatData(originChatId, data);
+      }
+      debugLog('Image generation finished in the background; stored into the origin chat.', 'info');
+      return;
+    }
+
+    const langCode = window.selectedLanguageCode || 'en-US';
+    const messageId = addMessage(replyText, false, null, null, langCode, imageUrl);
+
+    if (!isError && imageUrl) {
+      conversationContext.push({
+        role: 'assistant',
+        content: `[generated an image: ${prompt}]`,
+        imageUrl,
+        id: messageId
+      });
+    }
+
+    if (window.ChatManager) {
+      const activeId = window.ChatManager.getActiveChatId();
+      if (activeId) window.ChatManager.saveCurrentChat(activeId);
+    }
+    debugState('ChatController', 'image_done', { ok: !isError });
+  })();
 }
 
 // Tears down everything tied to the conversation that's being left behind.
