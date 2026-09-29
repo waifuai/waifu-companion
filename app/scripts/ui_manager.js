@@ -189,7 +189,7 @@ function showWelcomeHint() {
   div.className = 'welcome-hint';
   div.id = 'welcomeHint';
   div.innerHTML =
-    'Say hi, chat with me, or draw a picture with <b>/image</b> \u2014 e.g. <i>/image a cozy cafe at sunset</i>';
+    'Say hi and chat with me \u2014 or just ask me to draw something, like <i>draw a cozy cafe at sunset</i>. Keep it SFW and I will paint it. You can also use <b>/image [prompt] [portrait|landscape|square]</b> for exact control.';
   window.chatHistory.appendChild(div);
 }
 window.showWelcomeHint = showWelcomeHint;

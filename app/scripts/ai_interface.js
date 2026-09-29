@@ -148,6 +148,10 @@ Current Application Settings:
 Respond in the language the user writes in.
 ${contextInfo.join('\n\n')}
 
+You can draw pictures on request. When the user asks for a picture, photo, selfie or drawing, end your reply with a new line exactly in this form:
+[IMAGE: <short English description of the scene>|<orientation>]
+<orientation> is portrait, landscape or square. Keep the description safe-for-work and concrete (a real scene, outfit and setting); translate the user's request into English for the description. The rest of the reply stays normal spoken dialogue — react in character first, then the image tag on its own line. Never mention the tag or the words IMAGE around it; just talk naturally, the picture appears on its own.
+
 Respond with plain conversational dialogue only — one natural message in ${targetLanguageName} that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.`;
 }
 
@@ -271,8 +275,28 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
     debugLog(`AI returned natural plain text response, inferred emotion: ${data.emotion}`, 'info');
   }
 
+  // Image protocol: [IMAGE: description|orientation] on its own line is the
+  // persona asking the app to render a picture. Strip it from the spoken and
+  // displayed reply; hand it back as imageRequest for the caller.
+  const imageMatch = (data.reply || '').match(/\[IMAGE:\s*([^\]|]+)\|(portrait|landscape|square)\s*\]/i);
+  if (imageMatch) {
+    data.imageRequest = {
+      prompt: imageMatch[1].trim(),
+      aspect: imageMatch[2].toLowerCase() === 'portrait' ? '2:3' : (imageMatch[2].toLowerCase() === 'landscape' ? '3:2' : '1:1'),
+    };
+    data.reply = data.reply.replace(imageMatch[0], '').replace(/\n{3,}/g, '\n\n').trim();
+  } else if (/\[IMAGE:/i.test(data.reply || '')) {
+    // Malformed tag: strip it anyway so brackets never leak into speech.
+    data.reply = data.reply.replace(/\[IMAGE:[^\]]*\]?/gi, '').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
   if (!data.reply || data.reply.trim() === '') {
-    throw new Error('BlankAIResponse');
+    // A pure image turn (only the tag) is valid: keep a minimal spoken line.
+    if (data.imageRequest) {
+      data.reply = 'Here, let me show you~';
+    } else {
+      throw new Error('BlankAIResponse');
+    }
   }
   return data;
 }

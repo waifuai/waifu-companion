@@ -65,11 +65,18 @@ async function sendMessage() {
     window.sttFinalTranscript = "";
   }
 
-  // /image command: generate a picture instead of a chat reply
+  // /image command: generate a picture instead of a chat reply.
+  // Optional trailing flag: portrait | landscape | square.
   if (/^\/(image|img)\b/i.test(message)) {
-    const prompt = message.replace(/^\/(image|img)\b\s*/i, '').trim();
+    let prompt = message.replace(/^\/(image|img)\b\s*/i, '').trim();
+    let aspect = '1:1';
+    const aspectMatch = prompt.match(/\s+(portrait|landscape|square)\s*$/i);
+    if (aspectMatch) {
+      aspect = aspectMatch[1].toLowerCase() === 'portrait' ? '2:3' : (aspectMatch[1].toLowerCase() === 'landscape' ? '3:2' : '1:1');
+      prompt = prompt.slice(0, aspectMatch.index).trim();
+    }
     if (!prompt) {
-      addMessage('Describe what you want me to draw: /image a cozy cafe at sunset', false);
+      addMessage('Describe what you want me to draw: /image a cozy cafe at sunset \u2014 or add portrait / landscape / square', false);
       return;
     }
     if (isProcessing) {
@@ -77,7 +84,7 @@ async function sendMessage() {
       return;
     }
     noteSentMessage(message);
-    await handleImageCommand(prompt);
+    await handleImageRequest(prompt, aspect);
     return;
   }
 
@@ -113,24 +120,16 @@ async function sendMessage() {
 // /image flow: draws a picture through the image endpoint and drops it into
 // the chat. The prompt goes out as-is; a short in-character caption is added
 // and stored so chat reloads and the LLM context both know the image exists.
-async function handleImageCommand(prompt) {
-  // Image generation can take a while (or hang upstream), so it must never
-  // hold the chat hostage: isProcessing releases immediately and the user
-  // can keep chatting. The image lands in its own bubble whenever it is
-  // ready -- or fails gracefully into an error bubble.
+async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
+  // Non-blocking: the chat stays usable while the image renders. The
+  // placeholder bubble is replaced in place when the image lands. Images
+  // belong to the chat where they were requested even if the user switches
+  // away mid-render.
 
   if (typeof trackEvent === 'function') trackEvent('image_generation_started');
-  debugLog(`Image generation requested: "${prompt.substring(0, 60)}"`, 'info');
+  debugLog(`Image generation requested: "${prompt.substring(0, 60)}" (${aspect})`, 'info');
 
-  addMessage(prompt, true, null, null, 'en-US');
-  conversationContext.push({ role: 'user', content: '/image ' + prompt });
-  if (window.ChatManager) {
-    const activeId = window.ChatManager.getActiveChatId();
-    if (activeId) window.ChatManager.saveCurrentChat(activeId);
-  }
-
-  // Origin chat: images always belong to the chat where they were requested,
-  // even if the user wanders off to another chat while it renders.
+  // Origin chat: the image belongs where it was asked for.
   const originChatId = window.ChatManager ? window.ChatManager.getActiveChatId() : null;
 
   // Placeholder bubble: visible progress without blocking anything.
@@ -138,7 +137,7 @@ async function handleImageCommand(prompt) {
 
   // Fire and forget: nothing here awaits back at the call site.
   (async () => {
-    let replyText = '';
+    let replyText = caption || 'Here, I drew this for you~ \u2728';
     let imageUrl = null;
     let isError = false;
 
@@ -146,9 +145,9 @@ async function handleImageCommand(prompt) {
       if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) {
         throw new Error('Image generation is not available.');
       }
-      const result = await window.WaifuProxyAPI.generateImage(prompt);
+      const result = await window.WaifuProxyAPI.generateImage(prompt, aspect);
       imageUrl = result.url;
-      replyText = 'Here, I drew this for you~ \u2728';
+      if (typeof trackEvent === 'function') trackEvent('image_generation_completed');
     } catch (err) {
       isError = true;
       replyText = err && err.blocked
@@ -158,10 +157,8 @@ async function handleImageCommand(prompt) {
       if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: Boolean(err && err.blocked) });
     }
 
-    // Replace the placeholder bubble in place (same message id), or drop the
-    // placeholder if the user switched away and re-render from context.
-    const placeholderEl = document.getElementById(placeholder);
     const sameChatStillActive = !window.ChatManager || window.ChatManager.getActiveChatId() === originChatId;
+    const placeholderEl = document.getElementById(placeholder);
     if (placeholderEl) placeholderEl.remove();
 
     if (!sameChatStillActive && !isError) {
@@ -416,16 +413,23 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       debugState('ChatController', 'ai_responded', { isWaiting: false });
     }
 
+    // Flagged by getAIResponse rather than string-compared, so it survives
+    // translation and rewording of the connection-error text.
+    const isErrorReply = aiResponse.isError === true;
+
+    // Persona-initiated image: the model ended its reply with the image
+    // protocol tag (stripped by parseAIResponse). Fire the render without
+    // blocking; the caption is the reply the persona already wrote.
+    if (aiResponse.imageRequest && !isErrorReply) {
+      handleImageRequest(aiResponse.imageRequest.prompt, aiResponse.imageRequest.aspect, aiResponse.reply || null);
+    }
+
     // Apply settings updates if requested by AI and allowed by user
     if (aiResponse.settingsUpdate && window.allowAIModSettings) {
       if (typeof window.applyAIProposedSettings === 'function') {
         window.applyAIProposedSettings(aiResponse.settingsUpdate);
       }
     }
-
-    // Flagged by getAIResponse rather than string-compared, so it survives
-    // translation and rewording of the connection-error text.
-    const isErrorReply = aiResponse.isError === true;
 
     // A connection-error notice is UI feedback, not dialogue. Storing it
     // meant feeding "I'm having trouble connecting" back to the model as its
@@ -686,4 +690,4 @@ function initChatController() {
 }
 
 window.sendMessage = sendMessage;
-window.handleImageCommand = handleImageCommand;
+window.handleImageRequest = handleImageRequest;
