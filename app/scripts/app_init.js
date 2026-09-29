@@ -128,6 +128,18 @@ function initVoice() {
     debugLog(`Loaded valid voice ID from storage: ${selectedVoiceId}`, 'info');
   }
   populateVoiceSelector();
+  // Voice input (STT) engine preference
+  window.sttEngine = AppStorage.getString(AppStorage.KEYS.STT_ENGINE, '');
+  if (!window.sttEngine) {
+    // Backfill for preferences stored before the engine selector existed
+    window.sttEngine = AppStorage.getBoolean(AppStorage.KEYS.STT_PROXY_ENABLED, false) ? 'proxy' : 'webspeech';
+  }
+  const sttEngineSelector = document.getElementById('sttEngineSelector');
+  if (sttEngineSelector) {
+    if (window.sttEngine !== 'proxy' && window.sttEngine !== 'webspeech') window.sttEngine = 'webspeech';
+    sttEngineSelector.value = window.sttEngine;
+    sttEngineSelector.addEventListener('change', handleSttEngineChange);
+  }
 }
 
 function initVoiceProviders() {

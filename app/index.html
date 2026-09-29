@@ -555,6 +555,16 @@
             </div>
           </div>
 
+          <div style="margin-top: 15px;">
+            <label for="sttEngineSelector" data-ui-key="sttEngineLabel">🎤 Voice Input (STT)</label>
+            <select id="sttEngineSelector" class="settings-select">
+              <option value="webspeech">Browser (Web Speech API)</option>
+              <option value="proxy">WaifuAI Cloud</option>
+            </select>
+            <div class="value-display" data-ui-desc="sttEngineDesc">
+              Speech-to-text engine for the chat microphone. Records your mic and transcribes via WaifuAI Cloud - works in browsers without the Web Speech API.
+            </div>
+          </div>
           <div class="button-row" style="margin-top: 15px;">
             <button id="globalPlayTTSBtn" data-ui-key="playTTSBtn">Play</button>
             <button id="globalPauseTTSBtn" data-ui-key="pauseTTSBtn">Pause</button>
@@ -937,6 +947,11 @@
         </div>
         <div class="chat-input">
           <input type="text" id="messageInput" placeholder="Type your message..."/>
+          <button id="micBtn" class="mic-button" aria-label="Start voice input" title="Voice input">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+              <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v4a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 14 0h-2zM11 19h2v3h-2z"/>
+            </svg>
+          </button>
           <button id="sendMessageBtn" type="button" data-action="send-message">Send</button>
         </div>
       </div>

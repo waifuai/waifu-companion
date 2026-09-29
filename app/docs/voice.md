@@ -79,6 +79,18 @@ Use your microphone to speak to your companion:
 
 Powered by the Web Speech API. Requires microphone permissions.
 
+### WaifuAI Cloud
+
+Cross-engine alternative that works in browsers without the Web Speech API:
+
+1. Select **Voice Input (STT) -> WaifuAI Cloud** in Settings > Voice
+2. Click the microphone icon to start recording (MediaRecorder, Opus/WebM)
+3. Click again to stop; the recording is transcribed via WaifuAI Cloud (`/transcribe`) and placed in the chat input
+
+No API key is required in the browser. Requires microphone permissions.
+
+> Tip: the app can auto-switch to this engine when the browser reports the Web Speech service as unavailable.
+
 ## Internet Radio
 
 Stream music from Listen.moe:

@@ -50,6 +50,8 @@
     TTS_VOLUME: 'ttsVolume',
     TTS_FALLBACK_VOICE_ID: 'ttsFallbackVoiceId',
     ENABLE_AUTO_TTS_LANG: 'enableAutoTtsLang',
+    STT_PROXY_ENABLED: 'sttProxyEnabled',
+    STT_ENGINE: 'sttEngine',
 
     // Automation & queue
     IS_USER_MESSAGE_QUEUE_ENABLED: 'isUserMessageQueueEnabled',

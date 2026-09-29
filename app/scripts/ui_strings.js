@@ -62,6 +62,8 @@ window.UI_STRINGS = {
     enableTikTokVoiceLabel: '🔈 Enable TikTok TTS',
     enableTikTokVoiceDesc: 'Primary voice synthesis using TikTok\'s free TTS API.',
     enableAutoTtsLangLabel: '🌐 Auto TTS Language',
+    sttEngineLabel: '🎤 Voice Input (STT)',
+    sttEngineDesc: 'Speech-to-text engine for the chat microphone. "WaifuAI Cloud" records your mic and transcribes via the WaifuAI Cloud - works even in browsers without the Web Speech API.',
     enableAutoTtsLangDesc: 'Matches the TikTok voice to the language of each reply. Choosing a voice manually turns this off.',
     enableKokoroVoiceLabel: '🚀 Enable Local Voice (Kokoro)',
     kokoroVoiceLabel: '🚀 Kokoro Voice',

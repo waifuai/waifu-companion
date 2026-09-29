@@ -40,6 +40,7 @@ function getVisitorId() {
 const WaifuProxyAPI = {
   API_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/chat/completions',
   IMAGE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/image',
+  TRANSCRIBE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/transcribe',
   DEFAULT_MODEL: 'waifuai-v1',
 
   getModel() {
@@ -101,6 +102,27 @@ const WaifuProxyAPI = {
 
   async createCompletionStream(options) {
     return performLLMRequest(this.buildRequest(options, true));
+  },
+
+  // Voice input (speech-to-text) through WaifuAI Cloud. Sends a recorded audio
+  // Blob to WaifuAI Cloud's /transcribe endpoint.
+  // No API key is needed client-side. Resolves with
+  // the JSON response ({ text, ... }); throws Error with .status set.
+  async transcribeAudio(audioBlob, opts = {}) {
+    const form = new FormData();
+    form.append('file', audioBlob, opts.filename || 'audio.webm');
+    if (opts.language) form.append('language', opts.language);
+    if (opts.prompt) form.append('prompt', opts.prompt);
+
+    const res = await fetch(this.TRANSCRIBE_URL, { method: 'POST', body: form });
+    let body = null;
+    try { body = await res.json(); } catch (e) { }
+    if (!res.ok) {
+      const err = new Error((body && body.error) || `Transcription failed (HTTP ${res.status}).`);
+      err.status = res.status;
+      throw err;
+    }
+    return body;
   }
 };
 

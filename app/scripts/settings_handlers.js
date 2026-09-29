@@ -1326,3 +1326,12 @@ document.addEventListener('DOMContentLoaded', () => {
     clearQueueButton.addEventListener('click', handleClearQueue);
   }
 });
+
+function handleSttEngineChange(event) {
+  const val = event && event.target && event.target.value === 'proxy' ? 'proxy' : 'webspeech';
+  window.sttEngine = val;
+  S.setString(K.STT_ENGINE, val);
+  S.setBoolean(K.STT_PROXY_ENABLED, val === 'proxy');
+  if (typeof trackEvent === 'function') trackEvent('stt_engine_changed', { engine: val });
+  debugLog(`STT engine set to: ${val}`, 'info');
+}
