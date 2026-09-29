@@ -48,6 +48,7 @@ canvas {
   max-width: 550px;
   min-width: 320px;
   min-height: 300px;
+  max-height: calc(100vh - 48px);
   background: var(--glass-bg);
   backdrop-filter: blur(16px) saturate(180%);
   border-radius: 16px;
