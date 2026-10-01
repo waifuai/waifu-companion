@@ -246,6 +246,12 @@ function parseImageDecision(raw) {
   return { prompt, aspect: getImageAspect() };
 }
 
+// Cheap gate in front of the decision call, so most turns cost one LLM call
+// instead of two. JS \b is ASCII-only, so the
+// boundaries wrap only the Latin words.
+const PICTURE_REQUEST_WORDS = /\b(pics?|pictures?|photos?|selfies?|images?|imgs?|draw\w*|paint\w*|sketch\w*|portraits?|wallpapers?|look like|show (me )?(you|yourself|what))\b|фот|картин|рису|покажи|селфи|изображ|снимок|скинь|пришли|foto|imagen|imagem|dibuj|desenh|mu[eé]stra|mostra|gambar|lukis|bild|zeichn|dessin|montre|写真|画像|絵|描|見せ|照片|图片|画|自拍|사진|그림|셀카|보여/i;
+const PICTURE_OFFER_WORDS = /\b(pictures?|photos?|selfies?|images?|draw\w*|snap\w*)\b|фото|картин|рисун|нарису|imagen|foto|gambar/i;
+
 // Decides, in its own small call alongside the chat reply, whether this turn
 // asks for a picture, and writes the English description for it. Resolves
 // with {prompt, aspect} or null, and never throws: a failed decision just
@@ -257,6 +263,7 @@ async function getImageDecision(userMessage) {
     // history, the model kept re-drawing for a request it had already answered.
     const clip = (s) => String(s || '').slice(0, 300);
     const prevReply = [...contextForModel(conversationContext)].reverse().find(m => m.role === 'assistant');
+    if (!PICTURE_REQUEST_WORDS.test(userMessage || '') && !(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))) return null;
     const input = `Companion's previous message: ${prevReply ? clip(prevReply.content) : '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
 
     const completion = await callConfiguredLLM([
