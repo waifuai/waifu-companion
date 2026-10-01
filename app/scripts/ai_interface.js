@@ -247,10 +247,25 @@ function parseImageDecision(raw) {
 }
 
 // Cheap gate in front of the decision call, so most turns cost one LLM call
-// instead of two. JS \b is ASCII-only, so the
-// boundaries wrap only the Latin words.
-const PICTURE_REQUEST_WORDS = /\b(pics?|pictures?|photos?|selfies?|images?|imgs?|draw\w*|paint\w*|sketch\w*|portraits?|wallpapers?|look like|show (me )?(you|yourself|what))\b|фот|картин|рису|покажи|селфи|изображ|снимок|скинь|пришли|foto|imagen|imagem|dibuj|desenh|mu[eé]stra|mostra|gambar|lukis|bild|zeichn|dessin|montre|写真|画像|絵|描|見せ|照片|图片|画|自拍|사진|그림|셀카|보여/i;
-const PICTURE_OFFER_WORDS = /\b(pictures?|photos?|selfies?|images?|draw\w*|snap\w*)\b|фото|картин|рисун|нарису|imagen|foto|gambar/i;
+// instead of two. JS \b is ASCII-only, so the boundaries wrap only the
+// English words; the other stems match anywhere, and a stray hit only costs
+// one decision call. 
+const PICTURE_REQUEST_WORDS = new RegExp([
+  String.raw`\b(pics?|pictures?|photos?|selfies?|images?|imgs?|draw\w*|paint\w*|sketch\w*|portraits?|wallpapers?|look like|show (me )?(you|yourself|what))\b`,
+  'фот|картин|рису|покажи|селфи|изображ|зображ|снимок|скинь|пришли|малюн|намалюй|світлин', // ru, uk
+  'foto|selfi(?!sh)|imagen|imagem|imaxe|dibuj|debux|desenh|retrat|mu[eé]stra|mostra|immagin|disegn|ritratt', // es, pt, gl, it
+  'bild|zeichn|dessin|montre|plaatje|afbeelding|tekening|laat .{0,12}zien', // de, fr, nl
+  'zdję|fotk|obraz|rysu|narysuj|pokaż|kresl|ukaž|képet|rajzol|resim|resmin|çiz|görsel', // pl, cs, hu, tr
+  'gambar|lukis|litrato|larawan|guhit|(?<!\\p{L})(ảnh|vẽ|chụp)(?!\\p{L})', // id/ms, tl, vi
+  'صور|ارسم|رسم|سيلفي|عکس|تصویر|نقاشی|سلفی|תמונ|צייר|סלפי', // ar, fa/ur, he
+  'फोटो|फ़ोटो|तस्वीर|चित्र|सेल्फी|सेल्फ़ी|दिखा|படம்|வரைந்|வரைய|செல்ஃபி|காட்டு|รูป|ภาพ|วาด|เซลฟี', // hi, ta, th
+  '写真|画像|絵|描|見せ|照片|相片|图片|圖片|画|畫|圖|自拍|사진|그림|셀카|보여', // ja, zh, ko
+].join('|'), 'iu');
+const PICTURE_OFFER_WORDS = new RegExp([
+  String.raw`\b(pictures?|photos?|selfies?|images?|draw\w*|snap\w*)\b`,
+  'фото|картин|рисун|нарису|малюн|imagen|imagem|foto|dibuj|desenh|disegn|immagin|bild|zeichn|dessin|zdję|rysun|resim|gambar|(?<!\\p{L})(ảnh|vẽ)(?!\\p{L})',
+  'صور|عکس|تصویر|תמונ|फोटो|तस्वीर|படம்|รูป|ภาพ|写真|絵|照片|图片|画|畫|사진|그림',
+].join('|'), 'iu');
 
 // Decides, in its own small call alongside the chat reply, whether this turn
 // asks for a picture, and writes the English description for it. Resolves
