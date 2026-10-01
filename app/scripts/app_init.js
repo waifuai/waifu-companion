@@ -75,6 +75,11 @@ function initSettingsPanel() {
     initialSettingsVisible = (lastOpenRaw === 'true');
   }
   setSettingsPanelVisible(initialSettingsVisible, false);
+  // The panel opens on its own for first-time desktop visitors and when
+  // restored, so count that too, or submenu opens outnumber panel opens.
+  if (initialSettingsVisible && typeof trackEvent === 'function') {
+    trackEvent('settings_opened', { source: 'initial' });
+  }
   debugLog('Settings panel initialized.', 'info');
 }
 
@@ -276,7 +281,7 @@ async function initModels() {
   const initialModelUrl = savedModelUrl || defaultModelUrl;
   
   // Fire and forget Live2D parsing so it doesn't block the serial boot chain
-  loadModel(initialModelUrl).then(() => {
+  loadModel(initialModelUrl, 'initial').then(() => {
     debugLog('Initial Live2D model loaded successfully.', 'info');
   }).catch(error => {
     debugError('Failed to load initial Live2D model', error, { url: initialModelUrl });

@@ -1,5 +1,7 @@
 // Load Live2D model
-async function loadModel(modelUrl) {
+// `source` says why the model loaded ('initial' on boot, 'user' for a picker
+// choice), so analytics can tell real switches from the default model loading.
+async function loadModel(modelUrl, source = 'user') {
   debugLog(`Loading Live2D model from: ${modelUrl}`, 'info');
   try {
     // Cancel previous animation loop if running
@@ -31,7 +33,7 @@ async function loadModel(modelUrl) {
     }
 
     if (typeof trackEvent === 'function') {
-        trackEvent('model_changed', { model_name: currentModelName });
+        trackEvent('model_changed', { model_name: currentModelName, source });
     }
 
     model.__modelUrl = modelUrl;

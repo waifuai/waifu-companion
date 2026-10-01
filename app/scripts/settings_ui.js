@@ -5,7 +5,7 @@ function toggleSettings() {
   const willShow = !settingsPanel.classList.contains("visible");
   
   if (willShow && typeof trackEvent === 'function') {
-    trackEvent('settings_opened');
+    trackEvent('settings_opened', { source: 'user' });
   }
 
   setSettingsPanelVisible(willShow);
@@ -29,12 +29,13 @@ function setSettingsPanelVisible(visible, persist = true) {
 window.toggleSettings = toggleSettings;
 
 function openSubmenu(submenuId) {
-  if (typeof trackEvent === 'function') trackEvent('settings_submenu_opened', { submenu_id: submenuId });
   const mainMenu = document.getElementById('settingsMainMenu');
   const submenus = document.querySelectorAll('.settings-submenu');
   
   // Prevent opening submenus while searching
   if (settingsPanel.classList.contains('searching')) return;
+
+  if (typeof trackEvent === 'function') trackEvent('settings_submenu_opened', { submenu_id: submenuId });
 
   if (mainMenu) mainMenu.style.display = 'none';
   submenus.forEach(s => s.classList.remove('active'));
@@ -103,6 +104,22 @@ function bindSettingsPanelEvents() {
     }
   });
 
+  // One generic event per settings control, so every setting is measurable
+  // without a hand-written trackEvent in each handler. Only the control's id
+  // is sent, never its value: inputs here include API keys and persona text.
+  // `change` (not `input`) fires once per slider drag, so no debounce needed.
+  settingsPanel.addEventListener('change', (event) => {
+    const el = event.target;
+    if (!el.id || el.id === 'settingsSearch' || typeof trackEvent !== 'function') return;
+    trackEvent('setting_changed', { setting: el.id, submenu_id: el.closest('.settings-submenu')?.id || '' });
+  });
+
+  settingsPanel.addEventListener('click', (event) => {
+    const btn = event.target.closest('button[id]');
+    if (!btn || !settingsPanel.contains(btn) || typeof trackEvent !== 'function') return;
+    trackEvent('settings_action', { action: btn.id, submenu_id: btn.closest('.settings-submenu')?.id || '' });
+  });
+
   settingsPanel.dataset.eventsBound = 'true';
 }
 
@@ -124,7 +141,7 @@ function filterSettings(query) {
     submenus.forEach(submenu => {
       submenu.querySelectorAll('.settings-item').forEach(item => item.style.display = 'block');
     });
-    return;
+    return 0;
   }
 
   // Active search state
@@ -179,6 +196,7 @@ function filterSettings(query) {
   } else if (searchResults) {
     searchResults.innerHTML = ''; // Clear the "header" logic if we use the CSS-only approach
   }
+  return totalMatches;
 }
 
 // Initialize search listener
@@ -194,7 +212,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('settingsSearch');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
-      filterSettings(e.target.value);
+      const matches = filterSettings(e.target.value);
+      // Logged once typing pauses, so we see what people look for (and miss)
+      // rather than every keystroke. GA4 reports search_term natively.
+      const term = e.target.value.toLowerCase().trim().slice(0, 50);
+      if (term.length >= 2 && typeof trackEvent === 'function') {
+        debounced('settings_search', () => trackEvent('search', {
+          search_term: term, setting_value: String(matches), source: 'settings'
+        }), 1200);
+      }
     });
     
     // Clear search on escape key if focused

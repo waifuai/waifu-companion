@@ -178,7 +178,7 @@ async function processNextTTSInQueue() {
           showRetryTTSButton(messageId, chunk.indices[0], languageCode);
         }
 
-        if (typeof trackError === 'function') trackError('tts', err.status);
+        if (typeof trackError === 'function') trackError('tts', classifyError(err));
 
         if (isRateLimit) {
           debugLog('TTS: Rate limit hit. Pausing playback sequence. Click Resume to continue.', 'warn');

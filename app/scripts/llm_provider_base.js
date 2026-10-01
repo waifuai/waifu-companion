@@ -47,6 +47,9 @@ async function performLLMRequest({ url, headers, body, stream, providerLabel, pr
       url,
       ...extraLogContext
     });
+    // fetch() rejecting means no HTTP response at all; tag it so analytics can
+    // tell a network failure apart from other errors without the message text.
+    if (fetchErr && fetchErr.name !== 'AbortError') fetchErr.network = true;
     throw fetchErr;
   }
 

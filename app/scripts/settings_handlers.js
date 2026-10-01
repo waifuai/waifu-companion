@@ -266,7 +266,7 @@ function handleUseOpenRouterChange(event) {
     const val = event.target.checked;
     window.useOpenRouter = val;
     S.setBoolean(K.USE_OPEN_ROUTER, val);
-    if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openrouter: val });
+    if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { provider: 'openrouter', enabled: val });
     if (typeof updateAmbientMaxConsecutiveDisplay === 'function') updateAmbientMaxConsecutiveDisplay();
     debugLog(`Use OpenRouter set to: ${val}`, 'info');
 }
@@ -341,7 +341,7 @@ function handleUseGroqChange(event) {
     const val = event.target.checked;
     window.useGroq = val;
     S.setBoolean(K.USE_GROQ, val);
-    if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_groq: val });
+    if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { provider: 'groq', enabled: val });
     if (typeof updateAmbientMaxConsecutiveDisplay === 'function') updateAmbientMaxConsecutiveDisplay();
     debugLog(`Use Groq set to: ${val}`, 'info');
 }
@@ -366,7 +366,7 @@ function handleUseOpenAICompatibleChange(event) {
     const val = event.target.checked;
     window.useOpenAICompatible = val;
     S.setBoolean(K.USE_OPENAI_COMPATIBLE, val);
-    if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { use_openai_compatible: val });
+    if (typeof trackEvent === 'function') trackEvent('llm_provider_changed', { provider: 'openai_compatible', enabled: val });
     if (typeof updateAmbientMaxConsecutiveDisplay === 'function') updateAmbientMaxConsecutiveDisplay();
     debugLog(`Use OpenAI Compatible API set to: ${val}`, 'info');
 }
@@ -616,7 +616,7 @@ function handleRemoveCustomModel(url) {
   if (selectedUrl === url) {
     S.setString(K.SELECTED_MODEL_URL, defaultModelUrl);
     if (typeof loadModel === 'function') {
-      loadModel(defaultModelUrl).catch(err=>debugError('Failed to load default after removal', err, { url: defaultModelUrl }));
+      loadModel(defaultModelUrl, 'fallback').catch(err=>debugError('Failed to load default after removal', err, { url: defaultModelUrl }));
     }
   }
   if (typeof populateModelSelector === 'function') populateModelSelector();

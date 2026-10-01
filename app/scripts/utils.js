@@ -78,12 +78,41 @@ const ERROR_THROTTLE_MS = 60000;
 const ERROR_SESSION_CAP = 50;
 let _errorsReported = 0;
 
+// Fixed reasons for failures that never got an HTTP status. Before these
+// existed, all of them were reported as code 0 and could not be told apart.
+const ERROR_REASONS = [
+  'not_configured', // no LLM provider resolved
+  'offline',        // browser reports no connection
+  'abort',          // request cancelled (new chat, stop, page change)
+  'timeout',        // request or provider timed out
+  'network',        // fetch() rejected: no response at all
+  'stream_cut',     // stream started, then failed mid-reply
+  'parse',          // response arrived but could not be parsed
+  'other'
+];
+
+// Maps an error to its HTTP status, or to one of ERROR_REASONS. Reads the
+// message locally to classify, but only the resulting code leaves the page.
+function classifyError(error, { streamStarted = false } = {}) {
+  if (!error) return 'other';
+  if (Number.isInteger(error.status) && error.status > 0) return error.status;
+  if (error.message === 'LLMNotConfigured') return 'not_configured';
+  if (error.timedOut || error.name === 'TimeoutError') return 'timeout';
+  if (error.name === 'AbortError') return 'abort';
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'offline';
+  if (error.name === 'SyntaxError') return 'parse';
+  if (streamStarted) return 'stream_cut';
+  if (error.network) return 'network';
+  return 'other';
+}
+window.classifyError = classifyError;
+
 function trackError(category, code) {
   if (!ERROR_CATEGORIES.includes(category)) return;
   if (_errorsReported >= ERROR_SESSION_CAP) return;
 
-  // Only pass through a plain status code; anything else is bucketed.
-  const safeCode = Number.isInteger(code) ? code : 0;
+  // Only pass through a plain status code or a known reason; anything else is bucketed.
+  const safeCode = (Number.isInteger(code) || ERROR_REASONS.includes(code)) ? code : 0;
 
   const key = `${category}:${safeCode}`;
   const now = Date.now();

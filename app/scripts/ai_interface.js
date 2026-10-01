@@ -61,7 +61,7 @@ async function callConfiguredLLM(messages, eventPrefix, purpose = 'chat') {
     if (eventPrefix && typeof trackEvent === 'function') {
       trackEvent(`${eventPrefix}_completed`, { provider: provider.name, model: provider.model, success: false });
     }
-    if (typeof trackError === 'function') trackError('ai_request', error && error.status);
+    if (typeof trackError === 'function') trackError('ai_request', classifyError(error));
     throw error;
   }
 }
@@ -490,6 +490,8 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
   const onComplete = options.onComplete;
 
   const provider = resolveLLMProvider();
+  // Set once the first chunk arrives, so a failure after it counts as a cut stream.
+  let streamStarted = false;
 
   try {
     if (!provider) {
@@ -510,6 +512,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
       purpose: options.purpose === 'ambient' ? 'ambient' : 'chat'
     });
 
+    streamStarted = true;
     if (typeof trackEvent === 'function') {
       trackEvent('llm_stream_started', { provider: provider.name, model: provider.model, time_to_first_chunk_ms: Date.now() - streamRequestStartTime });
     }
@@ -632,7 +635,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     if (typeof trackEvent === 'function') {
       trackEvent('llm_stream_completed', { provider: provider && provider.name, model: provider && provider.model, success: false });
     }
-    if (typeof trackError === 'function') trackError('ai_request', error && error.status);
+    if (typeof trackError === 'function') trackError('ai_request', classifyError(error, { streamStarted }));
 
     return handleAIFailure(error);
   }

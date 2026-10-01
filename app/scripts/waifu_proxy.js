@@ -37,6 +37,34 @@ function getVisitorId() {
   }
 }
 
+// Feature-usage. Sent as a body field rather than system-prompt lines so the
+// model never sees it. Booleans and short ids only: no URLs, keys or free text.
+function getClientSettings() {
+  try {
+    const S = AppStorage, K = AppStorage.KEYS;
+    return {
+      model: window.currentModelName || '',
+      voice_tiktok: Boolean(window.enablePrimaryVoice),
+      voice_kokoro: Boolean(window.enableKokoro),
+      voice_browser: Boolean(window.enableFallbackVoice),
+      stt_engine: window.sttEngine || '',
+      background_set: Boolean(S.getString(K.CURRENT_BACKGROUND_URL, '')),
+      bg_library_size: S.getJSON(K.BG_LIBRARY, []).length,
+      custom_models: S.getJSON(K.USER_MODELS, []).length,
+      ambient_mode: S.getBoolean(K.IS_AMBIENT_QUEUE_ENABLED, false),
+      message_queue: S.getBoolean(K.IS_USER_MESSAGE_QUEUE_ENABLED, true),
+      multiple_models: Boolean(window.allowMultipleModels),
+      translate_ui: Boolean(window.translateUI),
+      allow_ai_settings: Boolean(window.allowAIModSettings),
+      json_emotion: Boolean(window.useJsonForEmotion),
+      radio_playing: typeof radioPlayer !== 'undefined' && Boolean(radioPlayer) && !radioPlayer.paused
+    };
+  } catch (e) {
+    // A snapshot must never break the chat.
+    return undefined;
+  }
+}
+
 const WaifuProxyAPI = {
   API_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/chat/completions',
   IMAGE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/image',
@@ -66,6 +94,10 @@ const WaifuProxyAPI = {
       if (sid) headers['x-session-id'] = sid;
       const vid = getVisitorId();
       if (vid) headers['x-visitor-id'] = vid;
+      // The proxy rebuilds the upstream request from known fields, so this
+      // never reaches the model provider.
+      const clientSettings = getClientSettings();
+      if (clientSettings) body.client_settings = clientSettings;
     }
 
     return {
