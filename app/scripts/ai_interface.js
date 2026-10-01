@@ -515,17 +515,22 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     // Strip the image protocol tag from the streamed preview: the tag is an
     // internal instruction, never visible text, and its English content would
     // poison TTS language detection if it leaked into the spoken reply.
+    // Display-only: fullContent must keep the raw tag, or a tag split across
+    // chunks loses its "[IMAGE:" head mid-stream and the final parse sees only
+    // "...|portrait]" (no image, tag tail leaks into chat). The third replace
+    // hides a tag head still arriving ("[", "[IMA", ...).
     const stripImageTags = (s) => s
       .replace(/\[IMAGE:\s*[^\]|]+\|(?:portrait|landscape|square)\s*\]/gi, '')
       .replace(/\[IMAGE:[^\]]*\]?/gi, '')
+      .replace(/\[(?:I(?:M(?:A(?:G(?:E)?)?)?)?)?$/i, '')
       .replace(/\n{3,}/g, '\n\n');
 
     const emitProgress = () => {
-      fullContent = stripImageTags(fullContent);
-      const trimmed = fullContent.trimStart();
+      const visible = stripImageTags(fullContent);
+      const trimmed = visible.trimStart();
       if (!isPlainText && !inReply) {
         if (trimmed.startsWith('{') || trimmed.includes('"reply"')) {
-          const replyMatch = fullContent.match(/"reply"\s*:\s*"/);
+          const replyMatch = visible.match(/"reply"\s*:\s*"/);
           if (replyMatch) {
             inReply = true;
             replyStartIndex = replyMatch.index + replyMatch[0].length;
@@ -537,13 +542,13 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
       }
 
       if (isPlainText) {
-        replyText = fullContent;
+        replyText = visible;
         if (onChunk) onChunk(replyText);
         return;
       }
 
       if (inReply) {
-        const afterKey = fullContent.slice(replyStartIndex);
+        const afterKey = visible.slice(replyStartIndex);
         const closeQuoteIndex = findUnescapedQuote(afterKey);
         if (closeQuoteIndex !== -1) {
           replyText = afterKey.slice(0, closeQuoteIndex);
