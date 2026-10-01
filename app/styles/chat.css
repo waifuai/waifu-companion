@@ -279,6 +279,9 @@
 }
 
 .chat-image {
+  /* The bubble is a flex column: without this the image stretches to the
+     bubble's width while max-height caps it, squashing portraits. */
+  align-self: flex-start;
   max-width: 100%;
   max-height: 320px;
   border-radius: 10px;
