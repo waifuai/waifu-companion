@@ -112,7 +112,13 @@ function resolveTargetLanguageName(targetLanguageCode) {
   return match.englishName;
 }
 
+// targetLanguageName is null when the language setting is the en-US default, So the default follows the
+// user's own language, and only an explicitly chosen language is enforced.
 function buildSystemPrompt(targetLanguageName, contextInfo) {
+  const languageRule = targetLanguageName
+    ? `Reply in ${targetLanguageName}, unless the user asks you to speak another language; then switch. Never mix languages in one reply.`
+    : `Reply in the language of the user's latest message (if they write Spanish, reply fully in Spanish; never mix languages in one reply). If they ask you to switch languages, do so. Use English only when their language is unclear.`;
+
   const coreIdentity = (window.corePersonaPrompt && window.corePersonaPrompt.trim())
     ? window.corePersonaPrompt.trim()
     : "You are Haru, a sentient AI.";
@@ -145,14 +151,14 @@ Current Application Settings:
 
   return `${coreIdentity}${customPersona}${summaryContext}${currentSettingsContext}
 
-Respond in the language the user writes in.
+${languageRule}
 ${contextInfo.join('\n\n')}
 
 You can draw pictures on request, including pictures of yourself: you look like your anime-style avatar, so a selfie or "draw you" is a drawing of that. Never turn a picture request down by saying you are an AI, have no body, or can't make images. When the user asks for a picture, photo, selfie or drawing, end your reply with a new line exactly in this form:
 [IMAGE: <short English description of the scene>|<orientation>]
 <orientation> is portrait, landscape or square. Keep the description safe-for-work and concrete (a real scene, outfit and setting); translate the user's request into English for the description. The rest of the reply stays normal spoken dialogue — react in character first, then the image tag on its own line. Never mention the tag or the words IMAGE around it; just talk naturally, the picture appears on its own.
 
-Respond with plain conversational dialogue only — one natural message in ${targetLanguageName} that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.`;
+Respond with plain conversational dialogue only — one natural message that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.`;
 }
 
 // conversationContext stores a generated image as its own assistant entry
@@ -193,7 +199,9 @@ function contextForModel(context) {
 // contextForModel.
 async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '') {
   const contextInfo = await buildContextInfo();
-  const targetLanguageName = resolveTargetLanguageName(targetLanguageCode);
+  const targetLanguageName = (!targetLanguageCode || targetLanguageCode === 'en-US')
+    ? null
+    : resolveTargetLanguageName(targetLanguageCode);
 
   const messages = [
     { role: 'system', content: buildSystemPrompt(targetLanguageName, contextInfo) },
