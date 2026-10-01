@@ -243,6 +243,14 @@ function normalizeEmotion(emotion) {
 // so an unclosed tag never swallows the dialogue after it.
 const IMAGE_TAG_SOURCE = String.raw`\[IMAGE:\s*([^\]|\n]+?)\s*\|\s*(portrait|landscape|square)\s*(?:\]|(?=\n|$))`;
 
+// Headless variant: "...\n\n A girl at a desk|portrait]" with no "[IMAGE:".
+// The model copies it from chat history that an older client corrupted
+// (saved chats restore that history), so it is still a real image request.
+// Kept narrow to avoid eating dialogue: the description must sit alone on its
+// own line and end in "|orientation]", or in a bare "|orientation" only at
+// the very end of the reply. Same capture groups as IMAGE_TAG_SOURCE.
+const HEADLESS_IMAGE_TAG_SOURCE = String.raw`(?:^|\n)[ \t]*([^\[\]|\n]{8,}?)[ \t]*\|[ \t]*(portrait|landscape|square)[ \t]*(?:\](?=[ \t]*(?:\n|$))|$)`;
+
 // Parses a raw completion into {reply, emotion, ...}, treating plain
 // conversational text as the expected shape. Well-formed JSON (a model
 // emitting it despite the prompt) is unwrapped; malformed JSON is salvaged
@@ -255,13 +263,14 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
   // description is written in English by design; the visible/spoken reply
   // stays in the conversation language.
   let imageRequest = null;
-  const imageTopMatch = raw.match(new RegExp(IMAGE_TAG_SOURCE, 'i'));
+  const imageTopMatch = raw.match(new RegExp(IMAGE_TAG_SOURCE, 'i'))
+    || raw.match(new RegExp(HEADLESS_IMAGE_TAG_SOURCE, 'i'));
   if (imageTopMatch) {
     imageRequest = {
       prompt: imageTopMatch[1].trim(),
       aspect: imageTopMatch[2].toLowerCase() === 'portrait' ? '2:3' : (imageTopMatch[2].toLowerCase() === 'landscape' ? '3:2' : '1:1'),
     };
-    raw = raw.replace(imageTopMatch[0], '').replace(/\n{3,}/g, '\n\n').trim();
+    raw = raw.replace(imageTopMatch[0], '\n').replace(/\n{3,}/g, '\n\n').trim();
   } else if (/\[IMAGE:/i.test(raw)) {
     raw = raw.replace(/\[IMAGE:[^\]]*\]?/gi, '').replace(/\n{3,}/g, '\n\n').trim();
   }
@@ -527,6 +536,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     // hides a tag head still arriving ("[", "[IMA", ...).
     const stripImageTags = (s) => s
       .replace(new RegExp(IMAGE_TAG_SOURCE, 'gi'), '')
+      .replace(new RegExp(HEADLESS_IMAGE_TAG_SOURCE, 'gi'), '\n')
       .replace(/\[IMAGE:[^\]]*\]?/gi, '')
       .replace(/\[(?:I(?:M(?:A(?:G(?:E)?)?)?)?)?$/i, '')
       .replace(/\n{3,}/g, '\n\n');
