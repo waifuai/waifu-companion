@@ -163,7 +163,10 @@ function loadChat(chatId) {
     window.chatHistory.innerHTML = '';
     window.conversationContext.forEach(msg => {
       const langCode = msg.role === 'user' ? 'en-US' : (msg.languageCode || window.selectedLanguageCode || 'en-US');
-      const id = addMessage(msg.content, msg.role === 'user', null, null, langCode, msg.imageUrl || null);
+      // Image messages store a [generated an image: ...] marker as content for
+      // the LLM; show the caption instead (older saves have none).
+      const text = msg.imageUrl ? (msg.caption || 'Here, I drew this for you~ ✨') : msg.content;
+      const id = addMessage(text, msg.role === 'user', null, null, langCode, msg.imageUrl || null);
       msg.id = id;
     });
     if (typeof showWelcomeHint === 'function') showWelcomeHint();

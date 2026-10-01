@@ -13,9 +13,13 @@ function deleteMessage(messageElement, content, isUser) {
     messageElement.remove();
   }, 200);
 
-  // Remove from conversationContext
+  // Remove from conversationContext. Match on the bubble's id: matching on
+  // text removed the first identical message (e.g. an earlier "ok") instead
+  // of this one, and never matched image bubbles, whose stored content is the
+  // [generated an image: ...] marker rather than the caption shown.
   const role = isUser ? 'user' : 'assistant';
-  const index = conversationContext.findIndex(m => m.content === content && m.role === role);
+  let index = conversationContext.findIndex(m => m.id && m.id === messageElement.id);
+  if (index === -1) index = conversationContext.findIndex(m => !m.id && m.content === content && m.role === role);
 
   if (index !== -1) {
     conversationContext.splice(index, 1);
@@ -171,14 +175,21 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
     const placeholderEl = document.getElementById(placeholder);
     if (placeholderEl) placeholderEl.remove();
 
-    if (!sameChatStillActive && !isError) {
-      // The user moved on: persist into the originating chat's saved context
-      // so the image is there when they come back. No live bubble.
+    if (!sameChatStillActive) {
+      // The user moved on. An error belongs to the chat it came from, so it
+      // is dropped rather than shown in the chat now open.
+      if (isError) {
+        debugLog('Image generation failed after the user switched chats; error not shown.', 'info');
+        return;
+      }
+      // Persist into the originating chat's saved context so the image is
+      // there when they come back. No live bubble.
       const data = window.ChatManager.getChatData(originChatId);
       if (data) {
         data.conversationContext.push({
           role: 'assistant',
           content: `[generated an image: ${prompt}]`,
+          caption: replyText,
           imageUrl,
         });
         window.ChatManager.saveChatData(originChatId, data);
@@ -194,7 +205,9 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
       conversationContext.push({
         role: 'assistant',
         content: `[generated an image: ${prompt}]`,
+        caption: replyText,
         imageUrl,
+        languageCode: langCode,
         id: messageId
       });
     }
@@ -429,9 +442,10 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
 
     // Persona-initiated image: the model ended its reply with the image
     // protocol tag (stripped by parseAIResponse). Fire the render without
-    // blocking; the caption is the reply the persona already wrote.
+    // blocking. No caption from the reply: it is already its own bubble, and
+    // passing it repeated the same text under the image.
     if (aiResponse.imageRequest && !isErrorReply) {
-      handleImageRequest(aiResponse.imageRequest.prompt, aiResponse.imageRequest.aspect, aiResponse.reply || null);
+      handleImageRequest(aiResponse.imageRequest.prompt, aiResponse.imageRequest.aspect);
     }
 
     // Apply settings updates if requested by AI and allowed by user
@@ -448,6 +462,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       conversationContext.push({
         role: "assistant",
         content: originalReply,
+        languageCode: selectedLanguageCode,
         id: messageId
       });
       const contextBeforeTrim = conversationContext.length;

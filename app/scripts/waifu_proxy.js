@@ -109,7 +109,7 @@ const WaifuProxyAPI = {
     // image on every load, so it is only a fallback for older proxies.
     const finalUrl = res.headers.get('X-Image-Url') || res.url;
     // Only the URL is needed; skip downloading the bytes.
-    try { if (res.body) res.body.cancel(); } catch (e) { }
+    try { if (res.body) res.body.cancel().catch(() => { }); } catch (e) { }
     return { url: finalUrl };
   },
 
