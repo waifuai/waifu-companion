@@ -89,7 +89,12 @@ const WaifuProxyAPI = {
     if (seed !== null && seed !== undefined && !isNaN(Number(seed))) {
       params.set('seed', String(parseInt(seed, 10)));
     }
-    const res = await fetch(this.IMAGE_URL + '?' + params.toString());
+    const headers = {};
+    const sid = getSessionId();
+    if (sid) headers['x-session-id'] = sid;
+    const vid = getVisitorId();
+    if (vid) headers['x-visitor-id'] = vid;
+    const res = await fetch(this.IMAGE_URL + '?' + params.toString(), { headers });
     let body = null;
     try { body = await res.json(); } catch (e) { }
     if (!res.ok) {
