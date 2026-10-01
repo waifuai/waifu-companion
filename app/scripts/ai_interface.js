@@ -200,14 +200,24 @@ function currentAvatarAppearance() {
   return (avatar && avatar.appearance) || null;
 }
 
-const IMAGE_DECISION_SYSTEM_PROMPT = (appearance) => `You are the picture step of a chat app. Read the end of a chat between a user and their anime companion, and decide whether the user's LAST message asks the companion to draw, send or show a picture, photo, selfie or drawing. The chat can be in any language.
+const IMAGE_DECISION_SYSTEM_PROMPT = (appearance) => `You are the picture step of a chat app. You get the companion's previous message and the user's NEW message. Decide whether the NEW message asks the companion to draw, send or show a picture, photo, selfie or drawing. The chat can be in any language. Earlier picture requests are already done: only the NEW message counts.
 
 Answer with exactly one line and nothing else, either:
 NONE
 or:
 DRAW: <English description>
 
-Answer DRAW only when the last message clearly asks for a picture, or agrees to a picture the companion just offered. Chatting, compliments, questions about pictures and roleplay actions are NONE.
+Answer DRAW only when the NEW message clearly asks for a picture, or says yes to a picture the companion's previous message offered. Chatting, compliments, reactions to a picture, questions about pictures and roleplay actions are NONE.
+
+Examples:
+"send me a selfie" -> DRAW
+"draw yourself at the beach" -> DRAW
+"yes please" after the companion offered a picture -> DRAW
+"cute" -> NONE
+"ok" -> NONE
+"thanks, you look great" -> NONE
+"hi" -> NONE
+
 Answer NONE when the picture would be nude, sexual, in underwear or lingerie, or involve anyone underage.
 
 The description is one line of English (translate if the chat isn't English), 10 to 40 words, describing a concrete scene: who is in it, outfit, pose, setting and mood.
@@ -243,15 +253,15 @@ function parseImageDecision(raw) {
 async function getImageDecision(userMessage) {
   if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) return null;
   try {
+    // Only the companion's last reply and the new message: given a longer
+    // history, the model kept re-drawing for a request it had already answered.
     const clip = (s) => String(s || '').slice(0, 300);
-    const lines = contextForModel(conversationContext).slice(-6)
-      .map(m => `${m.role === 'user' ? 'User' : 'Companion'}: ${clip(m.content)}`);
-    const last = conversationContext[conversationContext.length - 1];
-    if (!last || last.role !== 'user' || last.content !== userMessage) lines.push(`User: ${clip(userMessage)}`);
+    const prevReply = [...contextForModel(conversationContext)].reverse().find(m => m.role === 'assistant');
+    const input = `Companion's previous message: ${prevReply ? clip(prevReply.content) : '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
 
     const completion = await callConfiguredLLM([
       { role: 'system', content: IMAGE_DECISION_SYSTEM_PROMPT(currentAvatarAppearance()) },
-      { role: 'user', content: lines.join('\n') }
+      { role: 'user', content: input }
     ], null, 'image_prompt');
     const decision = parseImageDecision(completion && completion.content);
     debugLog(`Image decision: ${decision ? `draw "${decision.prompt.substring(0, 60)}" (${decision.aspect})` : 'none'}`, 'info');
