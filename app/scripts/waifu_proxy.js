@@ -100,6 +100,8 @@ const WaifuProxyAPI = {
       try { body = await res.json(); } catch (e) { }
       const err = new Error((body && body.error) || 'Image generation failed.');
       err.blocked = Boolean(body && body.blocked);
+      // The proxy answers 504 when the image provider took too long.
+      err.timedOut = res.status === 504;
       throw err;
     }
     // The proxy reports the final storage URL in X-Image-Url. res.url is the

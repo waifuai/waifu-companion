@@ -156,11 +156,15 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
       if (typeof trackEvent === 'function') trackEvent('image_generation_completed');
     } catch (err) {
       isError = true;
-      replyText = err && err.blocked
-        ? 'I... I can\'t draw that! Let\'s pick something else, okay?'
-        : 'Sorry, my canvas is acting up. Could we try again in a moment?';
+      if (err && err.blocked) {
+        replyText = 'I can only draw safe-for-work pictures, so I can\'t make that one. Want something cute instead? Like me in a sundress at the beach \u{1F3A8}';
+      } else if (err && err.timedOut) {
+        replyText = 'That one took too long and my brush gave up. Try again?';
+      } else {
+        replyText = 'Sorry, my canvas is acting up. Could we try again in a moment?';
+      }
       debugError('Image generation failed', err);
-      if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: Boolean(err && err.blocked) });
+      if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: Boolean(err && err.blocked), timed_out: Boolean(err && err.timedOut) });
     }
 
     const sameChatStillActive = !window.ChatManager || window.ChatManager.getActiveChatId() === originChatId;
