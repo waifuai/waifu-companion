@@ -149,12 +149,18 @@ Current Application Settings:
 - Summary Length: ${window.summaryLengthPreference}
 `;
 
+  // Without a concrete look, every self-portrait came out as a different girl.
+  const avatar = (window.availableModels || []).find(m => m.name === window.currentModelName);
+  const selfLook = avatar && avatar.appearance
+    ? `you look like your avatar: ${avatar.appearance}. Whenever a picture includes you, put that exact look in the description, plus the outfit or pose asked for`
+    : `you look like your anime-style avatar, an adult woman, so a selfie or "draw you" is a drawing of that`;
+
   return `${coreIdentity}${customPersona}${summaryContext}${currentSettingsContext}
 
 ${languageRule}
 ${contextInfo.join('\n\n')}
 
-You can draw pictures on request, including pictures of yourself: you look like your anime-style avatar, so a selfie or "draw you" is a drawing of that. Never turn a picture request down by saying you are an AI, have no body, or can't make images. When the user asks for a picture, photo, selfie or drawing, end your reply with a new line exactly in this form:
+You can draw pictures on request, including pictures of yourself: ${selfLook}. Never turn a picture request down by saying you are an AI, have no body, or can't make images. When the user asks for a picture, photo, selfie or drawing, end your reply with a new line exactly in this form:
 [IMAGE: <short English description of the scene>|<orientation>]
 <orientation> is portrait, landscape or square. Keep the description safe-for-work and concrete (a real scene, outfit and setting); translate the user's request into English for the description. The rest of the reply stays normal spoken dialogue — react in character first, then the image tag on its own line. Never mention the tag or the words IMAGE around it; just talk naturally, the picture appears on its own.
 
