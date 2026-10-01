@@ -191,6 +191,7 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
           content: `[generated an image: ${prompt}]`,
           caption: replyText,
           imageUrl,
+          aspect,
         });
         window.ChatManager.saveChatData(originChatId, data);
       }
@@ -207,6 +208,7 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
         content: `[generated an image: ${prompt}]`,
         caption: replyText,
         imageUrl,
+        aspect,
         languageCode: langCode,
         id: messageId
       });

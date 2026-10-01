@@ -155,16 +155,49 @@ You can draw pictures on request, including pictures of yourself: you look like 
 Respond with plain conversational dialogue only — one natural message in ${targetLanguageName} that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.`;
 }
 
+// conversationContext stores a generated image as its own assistant entry
+// whose content is a "[generated an image: <prompt>]" marker (the reply that
+// asked for it was stored with the tag already stripped). Sent as-is, the
+// model never saw its own [IMAGE: ...] tag in history, copied the marker
+// instead, and no image was drawn. So for the model, the marker becomes the
+// tag again, appended to the reply that triggered it.
+const GENERATED_IMAGE_MARKER_SOURCE = String.raw`\[generated an image:\s*([^\]\n]+?)\s*\]`;
+
+function aspectToOrientation(aspect) {
+  return aspect === '2:3' ? 'portrait' : (aspect === '3:2' ? 'landscape' : 'square');
+}
+
+function contextForModel(context) {
+  const out = [];
+  for (const m of context) {
+    const marker = m.role === 'assistant' && m.imageUrl
+      && (m.content || '').match(new RegExp(`^${GENERATED_IMAGE_MARKER_SOURCE}$`, 'i'));
+    if (!marker) {
+      out.push({ role: m.role, content: m.content });
+      continue;
+    }
+    const tag = `[IMAGE: ${marker[1]}|${aspectToOrientation(m.aspect)}]`;
+    const prev = out[out.length - 1];
+    if (prev && prev.role === 'assistant' && !/\[IMAGE:/i.test(prev.content)) {
+      prev.content = `${prev.content}\n${tag}`;
+    } else {
+      out.push({ role: 'assistant', content: `${m.caption || 'Here, I drew this for you~'}\n${tag}` });
+    }
+  }
+  return out;
+}
+
 // Builds the full message array for a chat completion. conversationContext
 // stores assistant turns as plain reply text (already unwrapped from JSON
-// before storage in chat_controller.js), so it's spread in directly.
+// before storage in chat_controller.js); image entries go through
+// contextForModel.
 async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '') {
   const contextInfo = await buildContextInfo();
   const targetLanguageName = resolveTargetLanguageName(targetLanguageCode);
 
   const messages = [
     { role: 'system', content: buildSystemPrompt(targetLanguageName, contextInfo) },
-    ...conversationContext
+    ...contextForModel(conversationContext)
   ];
 
   const lastMsg = conversationContext[conversationContext.length - 1];
@@ -263,12 +296,16 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
   // description is written in English by design; the visible/spoken reply
   // stays in the conversation language.
   let imageRequest = null;
+  // The history marker is accepted too: chats saved before contextForModel
+  // taught the model to answer with it, and it still means "draw this".
   const imageTopMatch = raw.match(new RegExp(IMAGE_TAG_SOURCE, 'i'))
-    || raw.match(new RegExp(HEADLESS_IMAGE_TAG_SOURCE, 'i'));
+    || raw.match(new RegExp(HEADLESS_IMAGE_TAG_SOURCE, 'i'))
+    || raw.match(new RegExp(GENERATED_IMAGE_MARKER_SOURCE, 'i'));
   if (imageTopMatch) {
+    const orientation = (imageTopMatch[2] || 'square').toLowerCase();
     imageRequest = {
       prompt: imageTopMatch[1].trim(),
-      aspect: imageTopMatch[2].toLowerCase() === 'portrait' ? '2:3' : (imageTopMatch[2].toLowerCase() === 'landscape' ? '3:2' : '1:1'),
+      aspect: orientation === 'portrait' ? '2:3' : (orientation === 'landscape' ? '3:2' : '1:1'),
     };
     raw = raw.replace(imageTopMatch[0], '\n').replace(/\n{3,}/g, '\n\n').trim();
   } else if (/\[IMAGE:/i.test(raw)) {
@@ -540,7 +577,9 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     const stripImageTags = (s) => s
       .replace(new RegExp(IMAGE_TAG_SOURCE, 'gi'), '')
       .replace(new RegExp(HEADLESS_IMAGE_TAG_SOURCE, 'gi'), '\n')
+      .replace(new RegExp(GENERATED_IMAGE_MARKER_SOURCE, 'gi'), '')
       .replace(/\[IMAGE:[^\]]*\]?/gi, '')
+      .replace(/\[generated an image:[^\]]*$/i, '')
       .replace(/\[(?:I(?:M(?:A(?:G(?:E)?)?)?)?)?$/i, '')
       .replace(/\n{3,}/g, '\n\n');
 
