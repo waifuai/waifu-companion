@@ -95,14 +95,20 @@ const WaifuProxyAPI = {
     const vid = getVisitorId();
     if (vid) headers['x-visitor-id'] = vid;
     const res = await fetch(this.IMAGE_URL + '?' + params.toString(), { headers });
-    let body = null;
-    try { body = await res.json(); } catch (e) { }
     if (!res.ok) {
+      let body = null;
+      try { body = await res.json(); } catch (e) { }
       const err = new Error((body && body.error) || 'Image generation failed.');
       err.blocked = Boolean(body && body.blocked);
       throw err;
     }
-    return { url: res.url };
+    // The proxy reports the final storage URL in X-Image-Url. res.url is the
+    // proxy's own /image URL: rendering or saving that would regenerate the
+    // image on every load, so it is only a fallback for older proxies.
+    const finalUrl = res.headers.get('X-Image-Url') || res.url;
+    // Only the URL is needed; skip downloading the bytes.
+    try { if (res.body) res.body.cancel(); } catch (e) { }
+    return { url: finalUrl };
   },
 
   async createCompletionStream(options) {
