@@ -7,31 +7,33 @@ Click the gear icon in the top-left corner of the application.
 
 ## Menu Structure
 
-### AI & Language Category
-- **Language Settings**: UI translation and response language selection (100+ languages)
-- **LLM / OpenRouter**: Configure LLM providers (Groq and OpenRouter API keys, model selection, fallback models)
-- **Persona System Prompt**: Define character core identity and additional personality instructions
-- **Memory Settings**: Conversation memory size, auto-summarization trigger, summary length preference
-- **Context Settings**: Time context, battery status, tutorial context, user background context, AI settings control
-- **Automation Settings**: Auto-response, ambient mode (trigger delay, custom prompt, preload toggle)
+### Companion
+- **Character**: Select and manage Live2D models, model gallery, custom model URLs, load multiple models at once
+- **Persona**: Define the character's core identity and personality instructions
+- **Language**: Response language (100+ languages), transliteration, AI-translated interface
 
-### Models & Visuals Category
-- **Model Settings**: Select and manage Live2D models, custom model URL, model gallery access
-- **Display Settings**: Panel positions, visibility, clock display, transliteration toggle
-- **Background Image**: AI-generated backgrounds, custom URL, background library, fit modes, opacity
+### AI
+- **AI Provider**: WaifuAI Cloud (default), OpenRouter, Groq or any OpenAI-compatible API, with fallback models
+- **Memory**: Conversation memory size, auto-summarization trigger, summary length, editable summary
+- **Ambient & Queue**: User message queue, ambient mode (trigger delay, custom prompt, preload)
 
-### Audio Category
-- **Voice Settings**: TTS provider selection (TikTok, Kokoro, Browser), voice selection per provider
-- **Image Generation**: ask the character to draw anything in chat, or use `/image` with an optional portrait / landscape / square flag
-- **Audio Settings**: Master volume, TTS volume, radio volume, sound effects toggle, internet radio
+### Appearance
+- **Background**: Background opacity, custom URL, background library, fit modes
+- **Interface**: Clock, chatbox and message bubble opacity, open Settings on page load
 
-### System Category
-- **Preferences**: General application preferences (language, theme, auto-save)
-- **Debug Settings**: Enable debug panel, AI/TTS/verbose log filters, chat context logging, copy debug log
+### Sound
+- **Voice**: TTS providers (TikTok, Kokoro, Browser), voice per provider, volume, voice input (STT)
+- **Radio**: Internet radio stream and volume
 
-### Additional Sections
+### Advanced
+- **AI Context**: Time, battery and tutorial context, let the AI change settings, JSON emotion format
+- **Debug**: Debug panel, AI/TTS/Live2D log filters, chat context logging
+
+### Help & About
+- **Help & Tutorial**: Interactive tutorial, documentation links
 - **Links**: External links and resources (GitHub, TikTok, website)
-- **Help & Tutorial**: interactive tutorial, documentation links
+
+Image generation has no submenu: ask the character to draw anything in chat, or use `/image` with an optional portrait / landscape / square flag.
 
 ## Search Functionality
 

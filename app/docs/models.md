@@ -7,7 +7,7 @@ Waifu Companion renders Live2D Cubism character models with interactive features
 The model gallery provides a fullscreen overlay for browsing and selecting characters.
 
 ### Opening the Gallery
-- Click the gallery icon or access from Settings > Model Settings
+- Click the gallery icon or access from Settings > Character
 - Browse the thumbnail grid showing all 50+ built-in models
 - Click a thumbnail to load that model
 
@@ -20,7 +20,7 @@ Each model has a thumbnail image for gallery browsing.
 
 Load any Live2D Cubism model by providing a URL:
 
-1. Open Settings > Model Settings
+1. Open Settings > Character
 2. Enter a URL pointing to a `.model3.json` file
 3. The model will load and render on the canvas
 
@@ -51,7 +51,7 @@ Models support standard Cubism expression files (`f00`-`f04`) and motion groups.
 ## Multi-Model Support
 
 Enable multiple characters on screen simultaneously:
-1. Go to Settings > Model Settings
+1. Go to Settings > Character
 2. Enable multi-model mode
 3. Load additional models
 

@@ -2,7 +2,7 @@
 window.UI_STRINGS = {
   'en-US': {
     // Settings Panel
-    personaSettingsTitle: '🧠 Persona System Prompt',
+    personaSettingsTitle: '🧠 Persona',
     corePersonaLabel: '🆔 Core Identity',
     corePersonaPlaceholder: 'Describe who you are fundamentally...',
     personaSystemPromptLabel: '🎭 Custom Personality / Roleplay',
@@ -20,18 +20,18 @@ window.UI_STRINGS = {
     manualSummarizeBtn: 'Update Summary from Chat',
     summaryCutoffMarker: '--- Summary Boundary (Active Memory Below) ---',
 
-    contextSettingsTitle: '🧠 Context Settings',
+    contextSettingsTitle: '🧩 AI Context',
     useJsonForEmotionLabel: '📝 Use JSON Format for Emotion (Advanced)',
     useJsonForEmotionDesc: 'Forces the AI to respond in JSON for emotional reactions, but may cause errors on weaker LLMs.',
 
-    memorySettingsTitle: '🧠 Memory Settings',
+    memorySettingsTitle: '🧵 Memory',
     conversationMemoryLabel: '🧵 Conversation Memory Size',
     memorySizeCurrent: 'Current:',
     messages: 'messages',
     memoryContextLabel: '📌 Conversation Context',
     memoryContextDesc: 'This text is sent with every request so the AI remembers your long-term background, preferences, or roleplay setup.',
     
-    modelSettingsTitle: '🧩 Model Settings',
+    modelSettingsTitle: '🎭 Character',
     selectModelLabel: '🎭 Select Model',
     addCustomModelLabel: '➕ Add Custom Model',
     modelNamePlaceholder: 'Model name (optional)',
@@ -45,14 +45,14 @@ window.UI_STRINGS = {
     openModelGalleryBtn: 'Open Model Gallery',
     clearCustomModelsBtn: '🗑️ Clear Custom Models',
     
-    languageSettingsTitle: '🌐 Language Settings',
+    languageSettingsTitle: '🌐 Language',
     responseLanguageLabel: '🈶 Response Language',
     translateToLabel: '🔁 Translate Response To',
     translateNone: 'None',
     showTransliterationLabel: '🔤 Show Transliteration (for JA, KO)',
     translateUILabel: '🈯 Translate User Interface (AI)',
     
-    voiceSettingsTitle: '🔊 Voice Settings',
+    voiceSettingsTitle: '🔊 Voice',
     enableVoiceLabel: '🔈 Enable Voice (TTS)',
     voiceLabel: '🎙️ Voice',
     ttsChunkLimitLabel: '📏 TTS Chunk Character Limit',
@@ -69,10 +69,10 @@ window.UI_STRINGS = {
     kokoroVoiceLabel: '🚀 Kokoro Voice',
     kokoroVoiceDesc: 'High-quality local TTS. Preloaded in background for silent handoff.',
     
-    audioSettingsTitle: '🎧 Audio Settings',
+    audioSettingsTitle: '📻 Radio',
     radioStreamLabel: '📻 Radio Stream',
     
-    displaySettingsTitle: '🖥️ Display Settings',
+    displaySettingsTitle: '🖥️ Interface',
     showClockLabel: '⏰ Show Clock',
     chatboxOpacityLabel: '🪟 Chatbox Opacity',
     chatboxOpacityCurrent: 'Current:',
@@ -80,7 +80,7 @@ window.UI_STRINGS = {
     messageOpacityCurrent: 'Current:',
     bgOpacityLabel: '🖼️ Background Image Opacity',
     
-    backgroundSettingsTitle: '🖼️ Background Image',
+    backgroundSettingsTitle: '🖼️ Background',
     bgUrlLabel: '🌐 Custom Background URL',
     bgUrlPlaceholder: 'https://example.com/image.jpg',
     applyBgUrlBtn: 'Set Background',
@@ -116,7 +116,7 @@ window.UI_STRINGS = {
     
     interfaceLanguageLabel: '🌍 Interface Language',
     
-    debugSettingsTitle: '🐞 Debug Settings',
+    debugSettingsTitle: '🐞 Debug',
     enableDebuggerLabel: '🧰 Enable Debug Panel',
     showVerboseLogsLabel: '💬 Show Live2d Debug Logs',
     showAIDebugLogsLabel: '🧠 Show AI Debug Logs',
@@ -126,7 +126,7 @@ window.UI_STRINGS = {
     searchSettingsPlaceholder: 'Search settings...',
     
     helpTutorialTitle: '❓ Help & Tutorial',
-    llmSettingsTitle: '🤖 LLM Provider',
+    llmSettingsTitle: '🤖 AI Provider',
     useOpenRouterLabel: 'Use OpenRouter',
     useOpenRouterDesc: 'When enabled, chat, translation, and summarization will call OpenRouter using your API key and model name.',
     openRouterApiKeyLabel: '🔑 OpenRouter API Key',
@@ -155,7 +155,7 @@ window.UI_STRINGS = {
     pauseTTSBtn: 'Pause TTS',
     stopTTSBtn: 'Stop TTS',
     
-    automationSettingsTitle: '🤖 Automation Settings',
+    automationSettingsTitle: '🍃 Ambient & Queue',
     enableUserMessageQueueLabel: '📬 User Message Queue',
     enableUserMessageQueueDesc: 'Queue messages sent while the AI is still writing its reply. You never wait for her to finish speaking: sending a message interrupts the voice.',
     enableAmbientQueueLabel: '🍃 Ambient Mode',
