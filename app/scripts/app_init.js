@@ -297,6 +297,16 @@ function initModelControls() {
   document.getElementById('clearCustomModelsBtn')?.addEventListener('click', handleClearAllCustomModels);
   allowMultipleModels = AppStorage.getBoolean(AppStorage.KEYS.ALLOW_MULTIPLE_MODELS, false);
   if (multipleModelsCheckbox) { multipleModelsCheckbox.checked = !!allowMultipleModels; multipleModelsCheckbox.addEventListener('change', handleMultipleModelsToggle); }
+
+  // Read at draw time by getImageAspect, so only the select needs syncing.
+  const aspectSelect = document.getElementById('imageAspect');
+  if (aspectSelect) {
+    aspectSelect.value = getImageAspect();
+    aspectSelect.addEventListener('change', () => {
+      AppStorage.setString(AppStorage.KEYS.IMAGE_ASPECT, aspectSelect.value);
+      if (typeof trackEvent === 'function') trackEvent('image_aspect_changed', { aspect: aspectSelect.value });
+    });
+  }
 }
 
 function initBackgrounds() {

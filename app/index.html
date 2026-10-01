@@ -368,6 +368,17 @@
           <div class="value-display" data-ui-desc="multipleModelsDesc">When enabled, selecting a model adds it without removing existing ones.</div>
         </div>
         <div class="settings-item">
+          <label for="imageAspect" data-ui-key="imageAspectLabel">🎨 Picture Shape</label>
+          <select id="imageAspect" class="settings-select">
+            <option value="2:3" selected>Portrait (2:3)</option>
+            <option value="3:2">Landscape (3:2)</option>
+            <option value="1:1">Square (1:1)</option>
+            <option value="9:16">Tall, phone wallpaper (9:16)</option>
+            <option value="16:9">Wide, desktop wallpaper (16:9)</option>
+          </select>
+          <div class="value-display" data-ui-desc="imageAspectDesc">Shape of the pictures she draws for you.</div>
+        </div>
+        <div class="settings-item">
           <label data-ui-key="addCustomModelLabel">➕ Add Custom Model</label>
           <input id="customModelName" class="settings-select" placeholder="Model name (optional)">
           <input id="customModelUrl" class="settings-select" placeholder="Model .model3.json URL">

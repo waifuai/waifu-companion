@@ -35,6 +35,9 @@
     SUMMARY_TRIGGER_COUNT: 'summaryTriggerCount',
     SUMMARY_LENGTH_PREFERENCE: 'summaryLengthPreference',
 
+    // Images
+    IMAGE_ASPECT: 'imageAspect',
+
     // Persona
     CORE_PERSONA_PROMPT: 'corePersonaPrompt',
     USER_PERSONA_PROMPT: 'userPersonaPrompt',

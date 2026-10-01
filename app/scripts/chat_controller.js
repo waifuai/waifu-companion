@@ -73,7 +73,7 @@ async function sendMessage() {
   // Optional trailing flag: portrait | landscape | square.
   if (/^\/(image|img)\b/i.test(message)) {
     let prompt = message.replace(/^\/(image|img)\b\s*/i, '').trim();
-    let aspect = '1:1';
+    let aspect = typeof getImageAspect === 'function' ? getImageAspect() : '2:3';
     const aspectMatch = prompt.match(/\s+(portrait|landscape|square)\s*$/i);
     if (aspectMatch) {
       aspect = aspectMatch[1].toLowerCase() === 'portrait' ? '2:3' : (aspectMatch[1].toLowerCase() === 'landscape' ? '3:2' : '1:1');
@@ -367,6 +367,14 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       }
     }
 
+    // Whether this turn wants a picture is decided by its own call, running
+    // alongside the reply (see getImageDecision). Ambient turns have no user
+    // request to draw.
+    const imageChatId = window.ChatManager ? window.ChatManager.getActiveChatId() : null;
+    const imageDecision = (!isAmbient && typeof getImageDecision === 'function')
+      ? getImageDecision(message)
+      : null;
+
     // Any configured provider (Groq, OpenRouter, OpenAI-compatible) streams —
     // this used to gate the streaming UI on OpenRouter specifically, so Groq
     // and OpenAI-compatible users got a plain typing indicator followed by an
@@ -442,12 +450,15 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     // translation and rewording of the connection-error text.
     const isErrorReply = aiResponse.isError === true;
 
-    // Persona-initiated image: the model ended its reply with the image
-    // protocol tag (stripped by parseAIResponse). Fire the render without
-    // blocking. No caption from the reply: it is already its own bubble, and
-    // passing it repeated the same text under the image.
-    if (aiResponse.imageRequest && !isErrorReply) {
-      handleImageRequest(aiResponse.imageRequest.prompt, aiResponse.imageRequest.aspect);
+    // Render the picture once the decision is in, without blocking. No caption
+    // from the reply: it is already its own bubble, and passing it repeated
+    // the same text under the image. A decision that lands after the user
+    // switched chats is dropped rather than drawn into the wrong chat.
+    if (imageDecision && !isErrorReply) {
+      imageDecision.then(req => {
+        const sameChat = !window.ChatManager || window.ChatManager.getActiveChatId() === imageChatId;
+        if (req && sameChat) handleImageRequest(req.prompt, req.aspect);
+      });
     }
 
     // Apply settings updates if requested by AI and allowed by user

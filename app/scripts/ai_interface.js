@@ -149,35 +149,29 @@ Current Application Settings:
 - Summary Length: ${window.summaryLengthPreference}
 `;
 
-  // Without a concrete look, every self-portrait came out as a different girl.
-  const avatar = (window.availableModels || []).find(m => m.name === window.currentModelName);
-  const selfLook = avatar && avatar.appearance
-    ? `you look like your avatar: ${avatar.appearance}. Whenever a picture includes you, put that exact look in the description, plus the outfit or pose asked for`
-    : `you look like your anime-style avatar, an adult woman, so a selfie or "draw you" is a drawing of that`;
+  const appearance = currentAvatarAppearance();
+  const selfLook = appearance ? `you look like your avatar: ${appearance}` : 'you look like your anime-style avatar, an adult woman';
 
+  // The picture itself is decided and described by getImageDecision; the
+  // reply only reacts. Writing an exact English tag inside an in-character,
+  // often non-English reply is what the small model kept getting wrong.
   return `${coreIdentity}${customPersona}${summaryContext}${currentSettingsContext}
 
 ${languageRule}
 ${contextInfo.join('\n\n')}
 
-You can draw pictures on request, including pictures of yourself: ${selfLook}. Never turn a picture request down by saying you are an AI, have no body, or can't make images. When the user asks for a picture, photo, selfie or drawing, end your reply with a new line exactly in this form:
-[IMAGE: <short English description of the scene>|<orientation>]
-<orientation> is portrait, landscape or square. Keep the description safe-for-work and concrete (a real scene, outfit and setting); translate the user's request into English for the description. The rest of the reply stays normal spoken dialogue — react in character first, then the image tag on its own line. Never mention the tag or the words IMAGE around it; just talk naturally, the picture appears on its own.
+You can draw pictures, including pictures of yourself (${selfLook}). When the user asks for a picture, photo, selfie or drawing, it is drawn separately and appears in the chat on its own: just react in character, happy to make it for them. Never write out the picture's description, tags or brackets yourself, and never turn a picture request down by saying you are an AI, have no body, or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.
 
 Respond with plain conversational dialogue only — one natural message that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.`;
 }
 
 // conversationContext stores a generated image as its own assistant entry
-// whose content is a "[generated an image: <prompt>]" marker (the reply that
-// asked for it was stored with the tag already stripped). Sent as-is, the
-// model never saw its own [IMAGE: ...] tag in history, copied the marker
-// instead, and no image was drawn. So for the model, the marker becomes the
-// tag again, appended to the reply that triggered it.
+// whose content is a "[generated an image: <prompt>]" marker. Sent as-is, the
+// model copied the marker into later replies. So for the model it becomes a
+// plain "(sent a picture: ...)" note on the reply it belongs to, which
+// parseAIResponse strips if the model echoes it.
 const GENERATED_IMAGE_MARKER_SOURCE = String.raw`\[generated an image:\s*([^\]\n]+?)\s*\]`;
-
-function aspectToOrientation(aspect) {
-  return aspect === '2:3' ? 'portrait' : (aspect === '3:2' ? 'landscape' : 'square');
-}
+const PICTURE_NOTE_SOURCE = String.raw`\(sent a picture:[^)\n]*\)?`;
 
 function contextForModel(context) {
   const out = [];
@@ -188,15 +182,84 @@ function contextForModel(context) {
       out.push({ role: m.role, content: m.content });
       continue;
     }
-    const tag = `[IMAGE: ${marker[1]}|${aspectToOrientation(m.aspect)}]`;
+    const note = `(sent a picture: ${marker[1]})`;
     const prev = out[out.length - 1];
-    if (prev && prev.role === 'assistant' && !/\[IMAGE:/i.test(prev.content)) {
-      prev.content = `${prev.content}\n${tag}`;
+    if (prev && prev.role === 'assistant') {
+      prev.content = `${prev.content}\n${note}`;
     } else {
-      out.push({ role: 'assistant', content: `${m.caption || 'Here, I drew this for you~'}\n${tag}` });
+      out.push({ role: 'assistant', content: `${m.caption || 'Here, I drew this for you~'}\n${note}` });
     }
   }
   return out;
+}
+
+// The avatar on screen's description from model_config.js, or null for
+// avatars without one (user-added models).
+function currentAvatarAppearance() {
+  const avatar = (window.availableModels || []).find(m => m.name === window.currentModelName);
+  return (avatar && avatar.appearance) || null;
+}
+
+const IMAGE_DECISION_SYSTEM_PROMPT = (appearance) => `You are the picture step of a chat app. Read the end of a chat between a user and their anime companion, and decide whether the user's LAST message asks the companion to draw, send or show a picture, photo, selfie or drawing. The chat can be in any language.
+
+Answer with exactly one line and nothing else, either:
+NONE
+or:
+DRAW: <English description>
+
+Answer DRAW only when the last message clearly asks for a picture, or agrees to a picture the companion just offered. Chatting, compliments, questions about pictures and roleplay actions are NONE.
+Answer NONE when the picture would be nude, sexual, in underwear or lingerie, or involve anyone underage.
+
+The description is one line of English (translate if the chat isn't English), 10 to 40 words, describing a concrete scene: who is in it, outfit, pose, setting and mood.
+When the companion is in the picture, describe her as ${appearance || 'an adult anime woman'}, plus the outfit or pose asked for. She is an adult: never describe her or anyone as a child, young, little, small, tiny or petite.`;
+
+// Words that must never reach the image provider, whatever the model wrote.
+const UNSAFE_IMAGE_WORDS = /\b(child|children|kid|kids|loli|underage|minor|toddler|teen|teenage|teenager|little girl|young girl|schoolgirl)\b/i;
+
+// The picture shape is the user's setting (Character > Picture Shape), not the
+// model's pick: one less thing for it to get wrong. Portrait by default
+// because most requests are selfies and outfits (the model's own pick for
+// about 3 in 4 tagged images).
+const IMAGE_ASPECTS = ['2:3', '3:2', '1:1', '9:16', '16:9'];
+
+function getImageAspect() {
+  const saved = AppStorage.getString(AppStorage.KEYS.IMAGE_ASPECT, '2:3');
+  return IMAGE_ASPECTS.includes(saved) ? saved : '2:3';
+}
+window.getImageAspect = getImageAspect;
+
+function parseImageDecision(raw) {
+  const m = String(raw || '').match(/DRAW:\s*([^\n|]+)/i);
+  if (!m) return null;
+  const prompt = m[1].replace(/^[\s"'[<]+|[\s"'\]>]+$/g, '').trim();
+  if (prompt.length < 8 || UNSAFE_IMAGE_WORDS.test(prompt)) return null;
+  return { prompt, aspect: getImageAspect() };
+}
+
+// Decides, in its own small call alongside the chat reply, whether this turn
+// asks for a picture, and writes the English description for it. Resolves
+// with {prompt, aspect} or null, and never throws: a failed decision just
+// means no picture this turn.
+async function getImageDecision(userMessage) {
+  if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) return null;
+  try {
+    const clip = (s) => String(s || '').slice(0, 300);
+    const lines = contextForModel(conversationContext).slice(-6)
+      .map(m => `${m.role === 'user' ? 'User' : 'Companion'}: ${clip(m.content)}`);
+    const last = conversationContext[conversationContext.length - 1];
+    if (!last || last.role !== 'user' || last.content !== userMessage) lines.push(`User: ${clip(userMessage)}`);
+
+    const completion = await callConfiguredLLM([
+      { role: 'system', content: IMAGE_DECISION_SYSTEM_PROMPT(currentAvatarAppearance()) },
+      { role: 'user', content: lines.join('\n') }
+    ], null, 'image_prompt');
+    const decision = parseImageDecision(completion && completion.content);
+    debugLog(`Image decision: ${decision ? `draw "${decision.prompt.substring(0, 60)}" (${decision.aspect})` : 'none'}`, 'info');
+    return decision;
+  } catch (e) {
+    debugError('Image decision failed', e);
+    return null;
+  }
 }
 
 // Builds the full message array for a chat completion. conversationContext
@@ -284,19 +347,27 @@ function normalizeEmotion(emotion) {
   return EMOTION_ANIMATION_SYNONYMS[v] || (ANIMATED_EMOTIONS.includes(v) ? v : 'neutral');
 }
 
-// The persona's image tag. Lenient about the variants:
-// spaces around the pipe ("scene | landscape]") and a dropped closing bracket
-// at the end of a line ("scene|portrait"). The description can't span lines,
-// so an unclosed tag never swallows the dialogue after it.
+// Leftovers of the old inline image protocol, stripped from replies only:
+// pictures are decided by getImageDecision now. Saved chats still hold
+// replies that taught the model these shapes, so it can echo them.
+// The tag, lenient about spaces around the pipe and a dropped "]".
 const IMAGE_TAG_SOURCE = String.raw`\[IMAGE:\s*([^\]|\n]+?)\s*\|\s*(portrait|landscape|square)\s*(?:\]|(?=\n|$))`;
 
-// Headless variant: "...\n\n A girl at a desk|portrait]" with no "[IMAGE:".
-// The model copies it from chat history that an older client corrupted
-// (saved chats restore that history), so it is still a real image request.
-// Kept narrow to avoid eating dialogue: the description must sit alone on its
-// own line and end in "|orientation]", or in a bare "|orientation" only at
-// the very end of the reply. Same capture groups as IMAGE_TAG_SOURCE.
+// Headless variant: "...\n\n A girl at a desk|portrait]" with no "[IMAGE:",
+// from history an older client corrupted. Kept narrow to avoid eating
+// dialogue: the description must sit alone on its own line and end in
+// "|orientation]", or in a bare "|orientation" only at the very end.
 const HEADLESS_IMAGE_TAG_SOURCE = String.raw`(?:^|\n)[ \t]*([^\[\]|\n]{8,}?)[ \t]*\|[ \t]*(portrait|landscape|square)[ \t]*(?:\](?=[ \t]*(?:\n|$))|$)`;
+
+function stripImageArtifacts(s) {
+  return String(s || '')
+    .replace(new RegExp(IMAGE_TAG_SOURCE, 'gi'), '')
+    .replace(new RegExp(HEADLESS_IMAGE_TAG_SOURCE, 'gi'), '\n')
+    .replace(new RegExp(GENERATED_IMAGE_MARKER_SOURCE, 'gi'), '')
+    .replace(new RegExp(PICTURE_NOTE_SOURCE, 'gi'), '')
+    .replace(/\[IMAGE:[^\]]*\]?/gi, '')
+    .replace(/\n{3,}/g, '\n\n');
+}
 
 // Parses a raw completion into {reply, emotion, ...}, treating plain
 // conversational text as the expected shape. Well-formed JSON (a model
@@ -305,26 +376,12 @@ const HEADLESS_IMAGE_TAG_SOURCE = String.raw`(?:^|\n)[ \t]*([^\[\]|\n]{8,}?)[ \t
 function parseAIResponse(rawContent, plainTextFallback = null) {
   let raw = (rawContent || '').trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
 
-  // Image protocol, stripped FIRST so the tag never reaches emotion
-  // inference, TTS language detection, or the streaming preview. The
-  // description is written in English by design; the visible/spoken reply
-  // stays in the conversation language.
-  let imageRequest = null;
-  // The history marker is accepted too: chats saved before contextForModel
-  // taught the model to answer with it, and it still means "draw this".
-  const imageTopMatch = raw.match(new RegExp(IMAGE_TAG_SOURCE, 'i'))
-    || raw.match(new RegExp(HEADLESS_IMAGE_TAG_SOURCE, 'i'))
-    || raw.match(new RegExp(GENERATED_IMAGE_MARKER_SOURCE, 'i'));
-  if (imageTopMatch) {
-    const orientation = (imageTopMatch[2] || 'square').toLowerCase();
-    imageRequest = {
-      prompt: imageTopMatch[1].trim(),
-      aspect: orientation === 'portrait' ? '2:3' : (orientation === 'landscape' ? '3:2' : '1:1'),
-    };
-    raw = raw.replace(imageTopMatch[0], '\n').replace(/\n{3,}/g, '\n\n').trim();
-  } else if (/\[IMAGE:/i.test(raw)) {
-    raw = raw.replace(/\[IMAGE:[^\]]*\]?/gi, '').replace(/\n{3,}/g, '\n\n').trim();
-  }
+  // Pictures are decided by getImageDecision, never by the reply. A model
+  // that still writes a tag (copied from chats saved under the old inline
+  // protocol) or echoes the history note gets it stripped, so it never shows,
+  // gets spoken, or skews emotion inference.
+  const hadImageArtifact = stripImageArtifacts(raw) !== raw;
+  raw = stripImageArtifacts(raw).trim();
 
   let data = null;
   try {
@@ -338,7 +395,6 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
     if (parsed && typeof parsed === 'object' && 'reply' in parsed && typeof parsed.reply === 'string' && parsed.reply.trim() !== '') {
       data = parsed;
       data.emotion = normalizeEmotion(data.emotion);
-      if (imageRequest) data.imageRequest = imageRequest;
     }
   } catch (parseError) {
     data = null;
@@ -355,13 +411,12 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
       if (salvaged && (!plainTextFallback || salvaged.length > text.length)) text = salvaged;
     }
     data = { reply: text, emotion: inferEmotion(text) };
-    if (imageRequest) data.imageRequest = imageRequest;
     debugLog(`AI returned natural plain text response, inferred emotion: ${data.emotion}`, 'info');
   }
 
   if (!data.reply || data.reply.trim() === '') {
-    // A pure image turn (only the tag) is valid: keep a minimal spoken line.
-    if (data.imageRequest) {
+    // A reply that was only a leftover tag: keep a minimal spoken line.
+    if (hadImageArtifact) {
       data.reply = 'Here, let me show you~';
     } else {
       throw new Error('BlankAIResponse');
@@ -581,21 +636,18 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     // Incrementally surfaces the reply text while it is arriving. Plain text
     // is the expected shape; the "reply" key detection is legacy defense for
     // a model that starts streaming a JSON object anyway.
-    // Strip the image protocol tag from the streamed preview: the tag is an
-    // internal instruction, never visible text, and its English content would
-    // poison TTS language detection if it leaked into the spoken reply.
-    // Display-only: fullContent must keep the raw tag, or a tag split across
-    // chunks loses its "[IMAGE:" head mid-stream and the final parse sees only
-    // "...|portrait]" (no image, tag tail leaks into chat). The third replace
-    // hides a tag head still arriving ("[", "[IMA", ...).
-    const stripImageTags = (s) => s
-      .replace(new RegExp(IMAGE_TAG_SOURCE, 'gi'), '')
-      .replace(new RegExp(HEADLESS_IMAGE_TAG_SOURCE, 'gi'), '\n')
-      .replace(new RegExp(GENERATED_IMAGE_MARKER_SOURCE, 'gi'), '')
-      .replace(/\[IMAGE:[^\]]*\]?/gi, '')
+    // Old-protocol image leftovers are hidden from the preview too (see
+    // stripImageArtifacts). Display-only: fullContent keeps the raw text so
+    // the final parse sees whole tags, not ones split across chunks. The
+    // trailing replaces hide a tag or note still arriving ("[IMA", "(sent a").
+    const PICTURE_NOTE_HEAD = '(sent a picture:';
+    const stripImageTags = (s) => stripImageArtifacts(s)
       .replace(/\[generated an image:[^\]]*$/i, '')
-      .replace(/\[(?:I(?:M(?:A(?:G(?:E)?)?)?)?)?$/i, '')
-      .replace(/\n{3,}/g, '\n\n');
+      .replace(/\([^)\n]*$/, (tail) => {
+        const t = tail.toLowerCase();
+        return (PICTURE_NOTE_HEAD.startsWith(t) || t.startsWith(PICTURE_NOTE_HEAD)) ? '' : tail;
+      })
+      .replace(/\[(?:I(?:M(?:A(?:G(?:E)?)?)?)?)?$/i, '');
 
     const emitProgress = () => {
       const visible = stripImageTags(fullContent);
