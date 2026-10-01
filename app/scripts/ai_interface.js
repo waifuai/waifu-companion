@@ -237,6 +237,12 @@ function normalizeEmotion(emotion) {
   return EMOTION_ANIMATION_SYNONYMS[v] || (ANIMATED_EMOTIONS.includes(v) ? v : 'neutral');
 }
 
+// The persona's image tag. Lenient about the variants:
+// spaces around the pipe ("scene | landscape]") and a dropped closing bracket
+// at the end of a line ("scene|portrait"). The description can't span lines,
+// so an unclosed tag never swallows the dialogue after it.
+const IMAGE_TAG_SOURCE = String.raw`\[IMAGE:\s*([^\]|\n]+?)\s*\|\s*(portrait|landscape|square)\s*(?:\]|(?=\n|$))`;
+
 // Parses a raw completion into {reply, emotion, ...}, treating plain
 // conversational text as the expected shape. Well-formed JSON (a model
 // emitting it despite the prompt) is unwrapped; malformed JSON is salvaged
@@ -249,7 +255,7 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
   // description is written in English by design; the visible/spoken reply
   // stays in the conversation language.
   let imageRequest = null;
-  const imageTopMatch = raw.match(/\[IMAGE:\s*([^\]|]+)\|(portrait|landscape|square)\s*\]/i);
+  const imageTopMatch = raw.match(new RegExp(IMAGE_TAG_SOURCE, 'i'));
   if (imageTopMatch) {
     imageRequest = {
       prompt: imageTopMatch[1].trim(),
@@ -520,7 +526,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     // "...|portrait]" (no image, tag tail leaks into chat). The third replace
     // hides a tag head still arriving ("[", "[IMA", ...).
     const stripImageTags = (s) => s
-      .replace(/\[IMAGE:\s*[^\]|]+\|(?:portrait|landscape|square)\s*\]/gi, '')
+      .replace(new RegExp(IMAGE_TAG_SOURCE, 'gi'), '')
       .replace(/\[IMAGE:[^\]]*\]?/gi, '')
       .replace(/\[(?:I(?:M(?:A(?:G(?:E)?)?)?)?)?$/i, '')
       .replace(/\n{3,}/g, '\n\n');
