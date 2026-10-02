@@ -665,6 +665,26 @@
           </div>
         </div>
         <div class="settings-item">
+          <label for="bgPromptInput" data-ui-key="bgPromptLabel">✨ AI Background</label>
+          <input id="bgPromptInput" class="settings-select" placeholder="e.g., starry night sky over a quiet lake">
+          <button id="generateBgBtn" data-ui-key="generateBgBtn">Generate Background</button>
+          <button id="generateBgFromContextBtn" data-ui-key="generateBgFromContextBtn">Generate from Conversation</button>
+          <div class="value-display" id="bgGenerateStatus" aria-live="polite"></div>
+        </div>
+        <div class="settings-item">
+          <label for="bgAutoMode" data-ui-key="bgAutoModeLabel">🔄 Change With the Story</label>
+          <select id="bgAutoMode" class="settings-select">
+            <option value="scene" selected>When the scene changes</option>
+            <option value="every">Every N messages</option>
+            <option value="off">Off</option>
+          </select>
+          <div id="bgAutoEveryRow" style="display: none; margin-top: 6px;">
+            <label for="bgAutoEveryN" data-ui-key="bgAutoEveryLabel">Change every N messages</label>
+            <input id="bgAutoEveryN" class="settings-select" type="number" min="4" max="100" step="1" value="10">
+          </div>
+          <div class="value-display" data-ui-desc="bgAutoModeDesc">Draws a new background when the chat moves somewhere new. It never replaces a background you picked yourself.</div>
+        </div>
+        <div class="settings-item">
           <label for="bgUrlInput" data-ui-key="bgUrlLabel">🌐 Custom Background URL</label>
           <input id="bgUrlInput" class="settings-select" placeholder="https://example.com/image.jpg">
           <button id="applyBgUrlBtn" data-ui-key="applyBgUrlBtn">Set Background</button>

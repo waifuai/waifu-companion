@@ -81,6 +81,13 @@ window.UI_STRINGS = {
     bgOpacityLabel: '🖼️ Background Image Opacity',
     
     backgroundSettingsTitle: '🖼️ Background',
+    bgPromptLabel: '✨ AI Background',
+    bgPromptPlaceholder: 'e.g., starry night sky over a quiet lake',
+    generateBgBtn: 'Generate Background',
+    generateBgFromContextBtn: 'Generate from Conversation',
+    bgAutoModeLabel: '🔄 Change With the Story',
+    bgAutoEveryLabel: 'Change every N messages',
+    bgAutoModeDesc: 'Draws a new background when the chat moves somewhere new. It never replaces a background you picked yourself.',
     bgUrlLabel: '🌐 Custom Background URL',
     bgUrlPlaceholder: 'https://example.com/image.jpg',
     applyBgUrlBtn: 'Set Background',

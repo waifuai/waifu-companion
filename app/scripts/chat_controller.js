@@ -450,6 +450,10 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     // translation and rewording of the connection-error text.
     const isErrorReply = aiResponse.isError === true;
 
+    // Change With the Story counts real user turns only; it runs in the
+    // background and decides itself whether this turn needs a new background.
+    if (!isAmbient && !isErrorReply && typeof maybeAutoBackground === 'function') maybeAutoBackground();
+
     // Render the picture once the decision is in, without blocking. No caption
     // from the reply: it is already its own bubble, and passing it repeated
     // the same text under the image. A decision that lands after the user

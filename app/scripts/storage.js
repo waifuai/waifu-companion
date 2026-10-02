@@ -102,6 +102,13 @@
     CURRENT_BACKGROUND_URL: 'currentBackgroundUrl',
     BG_LIBRARY: 'bgLibrary',
     BG_FIT_MODE: 'bgFitMode',
+    // 'default' | 'auto' | 'manual'. Change With the Story only replaces
+    // 'default' and 'auto' backgrounds.
+    BG_SOURCE: 'bgSource',
+    BG_CLEARED: 'bgCleared',
+    BG_SCENE: 'bgScene',
+    BG_AUTO_MODE: 'bgAutoMode',
+    BG_AUTO_EVERY_N: 'bgAutoEveryN',
 
     // YouTube
     YOUTUBE_SMALL_MODE: 'youtubeSmallMode',

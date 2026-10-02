@@ -231,6 +231,7 @@ async function applyInterfaceLanguage(langCode) {
     'customModelUrl': 'modelUrlPlaceholder',
     'customModelImage': 'modelImagePlaceholder',
     'bgUrlInput': 'bgUrlPlaceholder',
+    'bgPromptInput': 'bgPromptPlaceholder',
     'conversationSummary': 'conversationSummaryPlaceholder',
     'messageInput': 'messageInputPlaceholder',
     'settingsSearch': 'searchSettingsPlaceholder'

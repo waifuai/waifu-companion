@@ -762,11 +762,34 @@ async function handleResetLanguages() {
   debugLog('Language settings reset to English (US), UI reverted to English, and Preferences pane texts reset.', 'info');
 }
 
-function applyBackgroundImage(url) {
+// source: 'manual' (the user picked it), 'auto' (Change With the Story) or
+// 'default'. Change With the Story never replaces a 'manual' background.
+function applyBackgroundImage(url, source = 'manual') {
   if (!url) return; 
   const bgLayer = document.getElementById('bgLayer');
   if (bgLayer) bgLayer.style.backgroundImage = `url("${url}")`;
   S.setString(K.CURRENT_BACKGROUND_URL, url);
+  S.setString(K.BG_SOURCE, source);
+  S.remove(K.BG_CLEARED);
+}
+
+// Shown when the user never set a background, so a new chat doesn't open on
+// a blank screen. Picked by local time and not stored, so it follows the clock.
+const DEFAULT_BACKGROUNDS = [
+  { until: 5, url: 'assets/backgrounds/night.webp', scene: 'a bedroom at night with a window view of a glowing city skyline and stars' },
+  { until: 10, url: 'assets/backgrounds/morning.webp', scene: 'a cozy bedroom with a large window in soft morning sunlight' },
+  { until: 17, url: 'assets/backgrounds/day.webp', scene: 'a sunny park path with cherry blossom trees under a blue sky' },
+  { until: 21, url: 'assets/backgrounds/evening.webp', scene: 'a warm cafe at sunset with golden light through the windows' },
+  { until: 24, url: 'assets/backgrounds/night.webp', scene: 'a bedroom at night with a window view of a glowing city skyline and stars' }
+];
+
+function applyDefaultBackground() {
+  const hour = new Date().getHours();
+  const pick = DEFAULT_BACKGROUNDS.find(b => hour < b.until) || DEFAULT_BACKGROUNDS[0];
+  const bgLayer = document.getElementById('bgLayer');
+  if (bgLayer) bgLayer.style.backgroundImage = `url("${pick.url}")`;
+  S.setString(K.BG_SOURCE, 'default');
+  S.setString(K.BG_SCENE, pick.scene);
 }
 
 function saveToBgLibrary(url, prompt) {
@@ -812,11 +835,207 @@ function handleClearBackground(){
   const bgLayer = document.getElementById('bgLayer');
   if (bgLayer) bgLayer.style.backgroundImage = '';
   S.remove(K.CURRENT_BACKGROUND_URL);
+  // Remembered so the default background doesn't come back on reload, and
+  // Change With the Story leaves the blank screen alone.
+  S.setBoolean(K.BG_CLEARED, true);
+  S.setString(K.BG_SOURCE, 'manual');
   debugLog('Background cleared and removed from storage.', 'info');
 
   if (typeof trackEvent === 'function') {
     trackEvent('background_changed', { type: 'cleared' });
   }
+}
+
+/* AI backgrounds (generated through WaifuAI Cloud's /image) */
+
+// Appended to every background prompt: the avatar stands in front of the
+// background, so a second character in it would compete with her.
+const BG_PROMPT_SUFFIX = 'anime background art, detailed scenery, soft lighting, no people, no characters, empty scene';
+
+const BG_SCENE_SYSTEM_PROMPT = (force) => `You pick the background scenery for a chat app. You get the current background and the latest messages of a chat between a user and an anime companion. Work out where the conversation is taking place now. The chat can be in any language.
+
+Answer with exactly one line and nothing else, either:
+SAME
+or:
+SCENE: <English description>
+
+${force
+    ? 'Always answer SCENE, describing the place that fits the conversation best.'
+    : "Answer SCENE only when the conversation has clearly moved to a different place, or the time of day or weather clearly changed. Small talk, feelings and topics that don't name a place are SAME."}
+
+The description is one line of English, 8 to 30 words, describing only the place: setting, time of day, weather, lighting and mood. No people, no characters, no names.`;
+
+const BG_AUTO_MIN_EVERY_N = 4;
+// Change With the Story: messages before the first check while the default
+// background is showing, before the first check after a change, and between
+// checks after that.
+const BG_SCENE_FIRST_CHECK = 3;
+const BG_SCENE_MIN_GAP = 6;
+const BG_SCENE_CHECK_EVERY = 3;
+
+let bgGenerationInFlight = false;
+let bgMessagesSinceChange = 0;
+let bgMessagesSinceCheck = 0;
+
+function setBgStatus(text) {
+  const el = document.getElementById('bgGenerateStatus');
+  if (el) el.textContent = text || '';
+}
+
+// Wide screens get a wide picture, phones a tall one.
+function getBackgroundAspect() {
+  return window.innerWidth >= window.innerHeight ? '16:9' : '9:16';
+}
+
+// Asks the model where the chat is taking place. Resolves with an English
+// scene description, or null for "same place".
+async function getBackgroundScene(force = false) {
+  const messages = (typeof contextForModel === 'function' ? contextForModel(conversationContext || []) : [])
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .slice(-8);
+  if (!messages.length) return null;
+  const clip = (t) => String(t || '').slice(0, 300);
+  const current = S.getString(K.BG_SCENE, '') || '(none)';
+  const input = `Current background: ${current}\n\nLatest messages:\n`
+    + messages.map(m => `${m.role === 'user' ? 'User' : 'Companion'}: ${clip(m.content)}`).join('\n');
+
+  const completion = await callConfiguredLLM([
+    { role: 'system', content: BG_SCENE_SYSTEM_PROMPT(force) },
+    { role: 'user', content: input }
+  ], null, 'background_prompt');
+  const m = String((completion && completion.content) || '').match(/SCENE:\s*([^\n]+)/i);
+  if (!m) return null;
+  const scene = m[1].replace(/^[\s"'[<]+|[\s"'\]>]+$/g, '').trim();
+  if (scene.length < 8 || UNSAFE_IMAGE_WORDS.test(scene)) return null;
+  return scene;
+}
+
+// Draws scene and makes it the background once it has loaded, so the
+// screen never flashes blank. Resolves true when the background changed.
+async function generateBackground(scene, source, eventType) {
+  if (bgGenerationInFlight) { setBgStatus('Already drawing a background…'); return false; }
+  if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) return false;
+  bgGenerationInFlight = true;
+  setBgStatus('Drawing background…');
+  try {
+    const { url } = await window.WaifuProxyAPI.generateImage(`${scene}, ${BG_PROMPT_SUFFIX}`, getBackgroundAspect(), null, 'background');
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('Background image failed to load.'));
+      img.src = url;
+    });
+    saveToBgLibrary(url, scene);
+    renderBackgroundLibrary();
+    setBgStatus('');
+    // The user may have picked a background while this one was drawing: keep
+    // it in the library, but leave their pick on screen.
+    if (source === 'auto' && S.getString(K.BG_SOURCE, 'manual') === 'manual') return false;
+    applyBackgroundImage(url, source);
+    S.setString(K.BG_SCENE, scene);
+    bgMessagesSinceChange = 0;
+    bgMessagesSinceCheck = 0;
+    debugLog(`BG: new background (${eventType}): "${scene.substring(0, 60)}"`, 'info');
+    if (typeof trackEvent === 'function') trackEvent('background_changed', { type: eventType });
+    return true;
+  } catch (e) {
+    debugError('BG generation failed', e);
+    setBgStatus(e && e.blocked
+      ? 'The image service did not allow this background. Try another description.'
+      : e && e.timedOut
+        ? 'The image service took too long. Please try again.'
+        : 'Could not draw the background. Please try again.');
+    return false;
+  } finally {
+    bgGenerationInFlight = false;
+  }
+}
+
+async function handleGenerateBackground() {
+  const input = document.getElementById('bgPromptInput');
+  const prompt = (input?.value || '').trim();
+  if (!prompt) { setBgStatus('Describe the background first.'); return; }
+  if (UNSAFE_IMAGE_WORDS.test(prompt)) { setBgStatus('Try another description.'); return; }
+  await generateBackground(prompt, 'manual', 'ai_prompt');
+}
+
+// The user asked for it, but it follows the story, so Change With the Story
+// keeps updating it ('auto' rather than 'manual').
+async function handleGenerateBackgroundFromContext() {
+  if (bgGenerationInFlight) { setBgStatus('Already drawing a background…'); return; }
+  setBgStatus('Reading the conversation…');
+  let scene = null;
+  try { scene = await getBackgroundScene(true); } catch (e) { debugError('BG scene failed', e); }
+  if (!scene) { setBgStatus('Chat a little first, then try again.'); return; }
+  await generateBackground(scene, 'auto', 'ai_conversation');
+}
+
+function getBgAutoMode() {
+  const mode = S.getString(K.BG_AUTO_MODE, 'scene');
+  return ['scene', 'every', 'off'].includes(mode) ? mode : 'scene';
+}
+
+function getBgAutoEveryN() {
+  const n = parseInt(S.getString(K.BG_AUTO_EVERY_N, '10'), 10);
+  return Math.max(BG_AUTO_MIN_EVERY_N, Math.min(100, isNaN(n) ? 10 : n));
+}
+
+// Called once per real user turn (chat_controller.js). Runs in the background
+// and never throws.
+async function maybeAutoBackground() {
+  try {
+    const mode = getBgAutoMode();
+    if (mode === 'off' || bgGenerationInFlight) return;
+    const source = S.getString(K.BG_SOURCE, 'manual');
+    if (source === 'manual') return;
+    bgMessagesSinceChange++;
+    bgMessagesSinceCheck++;
+
+    if (mode === 'every') {
+      if (bgMessagesSinceChange < getBgAutoEveryN()) return;
+      bgMessagesSinceCheck = 0;
+      const scene = await getBackgroundScene(true);
+      if (scene) await generateBackground(scene, 'auto', 'auto_every');
+      return;
+    }
+
+    const minGap = source === 'default' ? BG_SCENE_FIRST_CHECK : BG_SCENE_MIN_GAP;
+    if (bgMessagesSinceChange < minGap) return;
+    if (bgMessagesSinceChange > minGap && bgMessagesSinceCheck < BG_SCENE_CHECK_EVERY) return;
+    bgMessagesSinceCheck = 0;
+    const scene = await getBackgroundScene(false);
+    debugLog(`BG: scene check: ${scene ? `"${scene.substring(0, 60)}"` : 'same'}`, 'info');
+    if (scene) await generateBackground(scene, 'auto', 'auto_scene');
+  } catch (e) {
+    debugError('BG auto update failed', e);
+  }
+}
+
+function syncBgAutoControls() {
+  const mode = getBgAutoMode();
+  const select = document.getElementById('bgAutoMode');
+  if (select) select.value = mode;
+  const row = document.getElementById('bgAutoEveryRow');
+  if (row) row.style.display = mode === 'every' ? '' : 'none';
+  const n = document.getElementById('bgAutoEveryN');
+  if (n) n.value = String(getBgAutoEveryN());
+}
+
+function handleBgAutoModeChange(mode) {
+  S.setString(K.BG_AUTO_MODE, mode);
+  // Turning it on is a request to follow the story, so from now on it may
+  // replace the background the user had picked.
+  if (mode !== 'off' && S.getString(K.BG_SOURCE, 'manual') === 'manual') S.setString(K.BG_SOURCE, 'auto');
+  bgMessagesSinceChange = 0;
+  bgMessagesSinceCheck = 0;
+  syncBgAutoControls();
+  if (typeof trackEvent === 'function') trackEvent('background_auto_mode_changed', { mode });
+}
+
+function handleBgAutoEveryNChange(value) {
+  const n = Math.max(BG_AUTO_MIN_EVERY_N, Math.min(100, parseInt(value, 10) || 10));
+  S.setString(K.BG_AUTO_EVERY_N, String(n));
+  syncBgAutoControls();
 }
 
 /* Helpers and UI for BG library */

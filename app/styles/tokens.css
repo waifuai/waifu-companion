@@ -30,7 +30,8 @@ body {
   background-attachment: fixed;
   background-repeat: no-repeat;
   opacity: var(--bg-image-opacity, 1);
-  transition: opacity 0.3s ease;
+  /* background-image crossfades in Chromium and Safari; elsewhere it swaps. */
+  transition: opacity 0.3s ease, background-image 0.8s ease;
   pointer-events: none;
 }
 

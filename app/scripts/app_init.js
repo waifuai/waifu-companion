@@ -311,7 +311,13 @@ function initModelControls() {
 
 function initBackgrounds() {
   try {
-    const bg = AppStorage.getString(AppStorage.KEYS.CURRENT_BACKGROUND_URL, ''); if (bg) applyBackgroundImage(bg);
+    // Restores the layer only: applyBackgroundImage would also overwrite where
+    // the background came from. Saved backgrounds from before BG_SOURCE
+    // existed count as the user's own pick.
+    const bg = AppStorage.getString(AppStorage.KEYS.CURRENT_BACKGROUND_URL, '');
+    const bgLayer = document.getElementById('bgLayer');
+    if (bg) { if (bgLayer) bgLayer.style.backgroundImage = `url("${bg}")`; }
+    else if (!AppStorage.getBoolean(AppStorage.KEYS.BG_CLEARED, false)) applyDefaultBackground();
     const fit = AppStorage.getString(AppStorage.KEYS.BG_FIT_MODE, 'cover-center'); if (typeof applyBackgroundFit === 'function') applyBackgroundFit(fit);
   } catch(e) { debugError('BG load failed', e); }
   if (typeof renderBackgroundLibrary === 'function') renderBackgroundLibrary();
@@ -326,6 +332,13 @@ function initBackgrounds() {
   document.getElementById('bgViewerPrevBtn')?.addEventListener('click', () => stepBgViewer(-1));
   document.getElementById('bgViewerNextBtn')?.addEventListener('click', () => stepBgViewer(1));
   document.getElementById('clearBgBtn')?.addEventListener('click', handleClearBackground);
+
+  document.getElementById('generateBgBtn')?.addEventListener('click', handleGenerateBackground);
+  document.getElementById('bgPromptInput')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleGenerateBackground(); });
+  document.getElementById('generateBgFromContextBtn')?.addEventListener('click', handleGenerateBackgroundFromContext);
+  syncBgAutoControls();
+  document.getElementById('bgAutoMode')?.addEventListener('change', (e) => handleBgAutoModeChange(e.target.value));
+  document.getElementById('bgAutoEveryN')?.addEventListener('change', (e) => handleBgAutoEveryNChange(e.target.value));
 
   ['bgFitContainBtn','bgFitCoverBtn','bgFitStretchBtn','bgFitCoverTopBtn','bgFitCoverCenterBtn','bgFitCoverBottomBtn','bgFitContainTopBtn','bgFitContainCenterBtn','bgFitContainBottomBtn','bgFitFitWidthBtn','bgFitFitHeightBtn'].forEach(id => {
     const modes = {bgFitContainBtn:'contain',bgFitCoverBtn:'cover',bgFitStretchBtn:'stretch',bgFitCoverTopBtn:'cover-top',bgFitCoverCenterBtn:'cover-center',bgFitCoverBottomBtn:'cover-bottom',bgFitContainTopBtn:'contain-top',bgFitContainCenterBtn:'contain-center',bgFitContainBottomBtn:'contain-bottom',bgFitFitWidthBtn:'fit-width',bgFitFitHeightBtn:'fit-height'};

@@ -49,6 +49,7 @@ function getClientSettings() {
       voice_browser: Boolean(window.enableFallbackVoice),
       stt_engine: window.sttEngine || '',
       background_set: Boolean(S.getString(K.CURRENT_BACKGROUND_URL, '')),
+      bg_auto_mode: S.getString(K.BG_AUTO_MODE, 'scene'),
       bg_library_size: S.getJSON(K.BG_LIBRARY, []).length,
       custom_models: S.getJSON(K.USER_MODELS, []).length,
       ambient_mode: S.getBoolean(K.IS_AMBIENT_QUEUE_ENABLED, false),
@@ -115,8 +116,9 @@ const WaifuProxyAPI = {
   },
 
   // Free image generation. Resolves with { url } on success; throws an
-  // Error with .blocked = true when the request was not allowed.
-  async generateImage(prompt, aspect = '1:1', seed = null) {
+  // Error with .blocked = true when the request was not allowed. purpose
+  // 'background' makes the proxy log it as kind 'background'.
+  async generateImage(prompt, aspect = '1:1', seed = null, purpose = null) {
     const params = new URLSearchParams({ text: prompt, aspect });
     if (seed !== null && seed !== undefined && !isNaN(Number(seed))) {
       params.set('seed', String(parseInt(seed, 10)));
@@ -126,6 +128,7 @@ const WaifuProxyAPI = {
     if (sid) headers['x-session-id'] = sid;
     const vid = getVisitorId();
     if (vid) headers['x-visitor-id'] = vid;
+    if (purpose) headers['X-Waifu-Purpose'] = purpose;
     const res = await fetch(this.IMAGE_URL + '?' + params.toString(), { headers });
     if (!res.ok) {
       let body = null;
