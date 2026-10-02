@@ -224,7 +224,7 @@ The description is one line of English (translate if the chat isn't English), 10
 When the companion is in the picture, describe her as ${appearance || 'an anime girl'}, plus the outfit or pose asked for.`;
 
 // Words that must never reach the image provider, whatever the model wrote.
-const UNSAFE_IMAGE_WORDS = /\b()\b/i;
+const UNSAFE_IMAGE_WORDS = /\b(zugzwang|zebra)\b/i;
 
 // The picture shape is the user's setting (Character > Picture Shape), not the
 // model's pick: one less thing for it to get wrong. Portrait by default
