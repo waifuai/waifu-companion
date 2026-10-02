@@ -88,6 +88,16 @@
           "@type": "Question",
           "name": "Does my AI waifu remember our conversations?",
           "acceptedAnswer": { "@type": "Answer", "text": "Yes. WaifuAI keeps conversation memory and a customizable persona, so your companion stays consistent between sessions. Memory lives in your browser, not on a server." }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need to log in to WaifuAI?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. There is no login page and no password. WaifuAI opens straight into the chat, and nothing you type is tied to an account." }
+        },
+        {
+          "@type": "Question",
+          "name": "How is WaifuAI different from other AI waifu apps?",
+          "acceptedAnswer": { "@type": "Answer", "text": "WaifuAI is free, needs no account, runs in the browser without an install, and is open source, so you can read the code or run it yourself. Your companion is an animated Live2D character with a voice, not just a chat window." }
         }
       ]
     }
@@ -226,6 +236,21 @@
             color: #fff;
         }
 
+        .about {
+            max-width: 720px;
+            margin: 0 auto 3rem;
+            padding: 0 1.5rem;
+        }
+        .about h2 {
+            font-size: 1.2rem;
+            color: #fff;
+            margin: 1.75rem 0 0.5rem;
+        }
+        .about h2:first-child { margin-top: 0; }
+        .about p { font-size: 0.95rem; color: #a5a5b8; line-height: 1.65; }
+        .about a { color: #60a5fa; text-decoration: none; }
+        .about a:hover { text-decoration: underline; }
+
         .faq {
             max-width: 720px;
             margin: 0 auto 3rem;
@@ -338,7 +363,7 @@
             <span class="cta-sub">Free AI model and voice included · opens instantly</span>
         </a>
 
-        <p class="trust"><strong>500+ people</strong> used WaifuAI this year, across 50 countries · Open source · Nothing to install</p>
+        <p class="trust"><strong>1,800+ people</strong> have chatted with WaifuAI · Open source · Nothing to install</p>
 
         <p class="alt-links">
             <a href="https://websim.com/@thewaifuai/vtuber1" target="_blank" rel="noopener" data-cta="websim"
@@ -381,6 +406,26 @@
         </a>
     </div>
 
+    <section class="about">
+        <h2>Free AI waifu chat in your browser</h2>
+        <p>WaifuAI is an AI waifu chat you open in any browser. Pick an anime character, say hi, and she answers in her own personality. The hosted version comes with a free AI model and free voices, so there is no subscription to pay for and no account to create.</p>
+
+        <h2>An anime AI chatbot with a Live2D body</h2>
+        <p>Most AI waifu chatbots are a profile picture next to text. In WaifuAI your companion is an animated Live2D character who blinks, moves and reacts while you talk. Choose from more than 50 <a href="./app/docs/models.html">Live2D models</a>, or add your own.</p>
+
+        <h2>Talk to her with your voice</h2>
+        <p>Your AI waifu reads her replies out loud, with several <a href="./app/docs/voice.html">voices and languages</a> to choose from, including Kokoro voices that run on your own device. Hold the microphone button to talk back instead of typing.</p>
+
+        <h2>Make your own waifu</h2>
+        <p>Write her persona: who she is, how she talks and what she likes. She keeps <a href="./app/docs/memory.html">memory</a> of your conversations, so she remembers you between sessions. All of it is stored in your browser, not on a server.</p>
+
+        <h2>Pictures and backgrounds</h2>
+        <p>Ask her to draw something, or for a selfie, and she sends you a picture. The background follows the story too: move the chat to a beach at sunset and the scene changes with you.</p>
+
+        <h2>Chat in your language</h2>
+        <p>She understands and answers in many languages, including Russian, Japanese, Spanish, German and Chinese. Pick your language in the settings and she replies in it.</p>
+    </section>
+
     <h2 class="section-title">Questions</h2>
     <section class="faq">
         <details>
@@ -402,6 +447,14 @@
         <details>
             <summary>Does my AI waifu remember our conversations?</summary>
             <p>Yes. WaifuAI keeps conversation <a href="./app/docs/memory.html">memory</a> and a customizable persona, so your companion stays consistent between sessions. Memory lives in your browser, not on a server.</p>
+        </details>
+        <details>
+            <summary>Do I need to log in to WaifuAI?</summary>
+            <p>No. There is no login page and no password. WaifuAI opens straight into the chat, and nothing you type is tied to an account.</p>
+        </details>
+        <details>
+            <summary>How is WaifuAI different from other AI waifu apps?</summary>
+            <p>WaifuAI is free, needs no account, runs in the browser without an install, and is open source, so you can read the code or run it yourself. Your companion is an animated Live2D character with a voice, not just a chat window.</p>
         </details>
         <details>
             <summary>Can I change the character, voice and background?</summary>
