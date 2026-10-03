@@ -191,6 +191,28 @@
             margin-top: 0.15rem;
         }
 
+        /* Second app, offered under the main button */
+        .alt-app {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            max-width: 420px;
+            margin: 0 auto 1rem;
+            padding: 0.5rem 0.9rem 0.5rem 0.5rem;
+            border: 1px solid #262640;
+            border-radius: 12px;
+            background: #10101f;
+            color: #e0e0e0;
+            text-decoration: none;
+            text-align: left;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .alt-app:hover { border-color: #c084fc; transform: translateY(-1px); }
+        .alt-app img { width: 112px; height: auto; border-radius: 8px; flex-shrink: 0; display: block; }
+        .alt-app strong { display: block; font-size: 0.98rem; }
+        .alt-app small { display: block; font-size: 0.8rem; color: #9a9aae; margin-top: 0.15rem; line-height: 1.35; }
+        .alt-app .new { color: #ff6b9d; font-weight: 700; }
+
         .trust {
             font-size: 0.85rem;
             color: #7b7b8c;
@@ -330,8 +352,8 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .cta-primary, .project-card, .shot a, .shot img { transition: none; }
-            .cta-primary:hover, .shot a:hover { transform: none; }
+            .cta-primary, .project-card, .shot a, .shot img, .alt-app { transition: none; }
+            .cta-primary:hover, .shot a:hover, .alt-app:hover { transform: none; }
         }
     </style>
 </head>
@@ -361,6 +383,17 @@
            onclick="gtag('event','cta_click',{cta_location:'hero',cta_target:'app'})">
             Start Chatting — Free
             <span class="cta-sub">Free AI model and voice included · opens instantly</span>
+        </a>
+
+        <a href="https://waifuai.github.io/waifu-sprites/?utm_source=waifuai.com&amp;utm_medium=landing&amp;utm_campaign=hero_choice"
+           class="alt-app" data-cta="waifu_sprites"
+           onclick="gtag('event','cta_click',{cta_location:'hero',cta_target:'waifu_sprites'})">
+            <img src="./assets/waifu-sprites-card.webp" width="320" height="168" loading="lazy" decoding="async"
+                 alt="Aurora, the animated companion in Waifu Sprites">
+            <span>
+                <strong><span class="new">New:</span> Waifu Sprites</strong>
+                <small>A different companion, animated with video expressions. Also free, nothing to install.</small>
+            </span>
         </a>
 
         <p class="trust"><strong>1,800+ people</strong> have chatted with WaifuAI · Open source · Nothing to install</p>
