@@ -34,8 +34,8 @@
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-friendly site description">
-    <link rel="preload" as="image" href="./assets/hero-app-mobile.webp" type="image/webp" media="(max-width: 600px)" fetchpriority="high">
-    <link rel="preload" as="image" href="./assets/hero-app.webp" type="image/webp" media="(min-width: 601px)" fetchpriority="high">
+    <link rel="preload" as="image" href="./assets/hero-app-mobile.webp" type="image/webp" fetchpriority="high">
+    <link rel="preload" as="image" href="./assets/hero-sprites-mobile.webp" type="image/webp" fetchpriority="high">
 
     <script type="application/ld+json">
     {
@@ -134,37 +134,37 @@
             margin-bottom: 1.5rem;
         }
 
-        /* Hero screenshot — intrinsic width/height on the img prevents layout shift */
-        .shot { margin: 0 auto 1.35rem; }
-        .shot a {
-            display: block;
-            text-decoration: none;
-            cursor: pointer;
-            border-radius: 14px;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        /* Two apps side by side, equal weight, order shuffled per visit */
+        .choice {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 0 auto 1.25rem;
         }
-        .shot a:hover {
-            transform: translateY(-2px);
-        }
-        .shot a:hover img {
-            border-color: #c084fc;
-            box-shadow: 0 20px 50px rgba(192, 132, 252, 0.3);
-        }
-        .shot img {
-            width: 100%;
-            height: auto;
-            display: block;
+        .pick {
+            display: flex;
+            flex-direction: column;
             border: 1px solid #262640;
             border-radius: 14px;
+            overflow: hidden;
             background: #10101f;
+            color: #e0e0e0;
+            text-decoration: none;
             box-shadow: 0 18px 50px rgba(0,0,0,0.55);
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         }
-        .shot figcaption {
-            margin-top: 0.6rem;
-            font-size: 0.8rem;
-            color: #6f6f80;
-            text-align: center;
+        .pick:hover { transform: translateY(-2px); border-color: #c084fc; box-shadow: 0 20px 50px rgba(192, 132, 252, 0.3); }
+        .pick img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; background: #0d1326; }
+        .pick-body { display: flex; flex-direction: column; flex: 1; padding: 0.9rem 1rem 1rem; gap: 0.35rem; }
+        .pick-body strong { font-size: 1.1rem; }
+        .pick-body small { font-size: 0.85rem; color: #9a9aae; line-height: 1.4; flex: 1; }
+        .pick-btn {
+            margin-top: 0.4rem;
+            padding: 0.7rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, #ff6b9d, #c084fc);
         }
 
         .cta-primary {
@@ -190,28 +190,6 @@
             opacity: 0.9;
             margin-top: 0.15rem;
         }
-
-        /* Second app, offered under the main button */
-        .alt-app {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
-            max-width: 420px;
-            margin: 0 auto 1rem;
-            padding: 0.5rem 0.9rem 0.5rem 0.5rem;
-            border: 1px solid #262640;
-            border-radius: 12px;
-            background: #10101f;
-            color: #e0e0e0;
-            text-decoration: none;
-            text-align: left;
-            transition: border-color 0.15s, transform 0.15s;
-        }
-        .alt-app:hover { border-color: #c084fc; transform: translateY(-1px); }
-        .alt-app img { width: 112px; height: auto; border-radius: 8px; flex-shrink: 0; display: block; }
-        .alt-app strong { display: block; font-size: 0.98rem; }
-        .alt-app small { display: block; font-size: 0.8rem; color: #9a9aae; margin-top: 0.15rem; line-height: 1.35; }
-        .alt-app .new { color: #ff6b9d; font-weight: 700; }
 
         .trust {
             font-size: 0.85rem;
@@ -347,13 +325,17 @@
             .hero { padding: 1.75rem 1rem 1.5rem; }
             .hero h1 { font-size: 1.95rem; }
             .hero .tagline { font-size: 1rem; margin-bottom: 1.25rem; }
-            .shot { border-radius: 12px; margin-bottom: 1.25rem; }
+            .choice { gap: 0.6rem; }
+            .pick-body { padding: 0.6rem 0.6rem 0.7rem; }
+            .pick-body strong { font-size: 0.95rem; }
+            .pick-body small { font-size: 0.75rem; }
+            .pick-btn { font-size: 0.85rem; padding: 0.6rem 0.3rem; }
             .cta-primary { font-size: 1.08rem; padding: 1rem 1rem; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .cta-primary, .project-card, .shot a, .shot img, .alt-app { transition: none; }
-            .cta-primary:hover, .shot a:hover, .alt-app:hover { transform: none; }
+            .cta-primary, .project-card, .pick { transition: none; }
+            .cta-primary:hover, .pick:hover { transform: none; }
         }
     </style>
 </head>
@@ -361,40 +343,45 @@
 
     <section class="hero">
         <h1>WaifuAI — Your Free AI Waifu Companion</h1>
-        <p class="tagline">An animated Live2D character that talks back, remembers you, and has a personality you choose. No sign-up, no install, no paywall.</p>
+        <p class="tagline">An animated anime companion that talks back, remembers you, and has a personality you choose. Pick one to start. No sign-up, no install, no paywall.</p>
 
-        <figure class="shot">
-            <a href="./app/" data-cta="hero_image"
-               onclick="gtag('event','cta_click',{cta_location:'hero_image',cta_target:'app'})"
-               aria-label="Open WaifuAI Web App">
+        <div class="choice" id="choice">
+            <a href="./app/" class="pick" data-cta="app"
+               onclick="gtag('event','cta_click',{cta_location:'hero_choice',cta_target:'app',cta_position:this.dataset.pos})">
                 <picture>
-                    <source media="(max-width: 600px)" srcset="./assets/hero-app-mobile.webp" type="image/webp" width="800" height="1000">
-                    <source media="(max-width: 600px)" srcset="./assets/hero-app-mobile.jpg" type="image/jpeg" width="800" height="1000">
-                    <source srcset="./assets/hero-app.webp" type="image/webp" width="1280" height="720">
-                    <img src="./assets/hero-app.jpg" width="1280" height="720" fetchpriority="high" decoding="async"
-                         alt="The WaifuAI app running: an animated Live2D anime character with a live chat conversation and voice input below her.">
+                    <source srcset="./assets/hero-app-mobile.webp" type="image/webp">
+                    <img src="./assets/hero-app-mobile.jpg" width="800" height="1000" fetchpriority="high" decoding="async"
+                         alt="The WaifuAI app: an animated Live2D anime character above a live chat with voice input.">
                 </picture>
+                <span class="pick-body">
+                    <strong>Live2D Companion</strong>
+                    <small>Pick from 50+ Live2D characters who blink, move and react while you talk.</small>
+                    <span class="pick-btn">Chat with Live2D</span>
+                </span>
             </a>
-            <figcaption>This is the actual app — Live2D character, live chat, and voice.</figcaption>
-        </figure>
-
-        <a href="./app/"
-           class="cta-primary" data-cta="app"
-           onclick="gtag('event','cta_click',{cta_location:'hero',cta_target:'app'})">
-            Start Chatting — Free
-            <span class="cta-sub">Free AI model and voice included · opens instantly</span>
-        </a>
-
-        <a href="https://waifuai.github.io/waifu-sprites/?utm_source=waifuai.com&amp;utm_medium=landing&amp;utm_campaign=hero_choice"
-           class="alt-app" data-cta="waifu_sprites"
-           onclick="gtag('event','cta_click',{cta_location:'hero',cta_target:'waifu_sprites'})">
-            <img src="./assets/waifu-sprites-card.webp" width="320" height="168" loading="lazy" decoding="async"
-                 alt="Aurora, the animated companion in Waifu Sprites">
-            <span>
-                <strong><span class="new">New:</span> Waifu Sprites</strong>
-                <small>A different companion, animated with video expressions. Also free, nothing to install.</small>
-            </span>
-        </a>
+            <a href="https://waifuai.github.io/waifu-sprites/?utm_source=waifuai.com&amp;utm_medium=landing&amp;utm_campaign=hero_choice"
+               class="pick" data-cta="waifu_sprites"
+               onclick="gtag('event','cta_click',{cta_location:'hero_choice',cta_target:'waifu_sprites',cta_position:this.dataset.pos})">
+                <picture>
+                    <source srcset="./assets/hero-sprites-mobile.webp" type="image/webp">
+                    <img src="./assets/hero-sprites-mobile.jpg" width="800" height="1000" fetchpriority="high" decoding="async"
+                         alt="Waifu Sprites: Aurora, an anime girl animated with video expressions, behind a live chat.">
+                </picture>
+                <span class="pick-body">
+                    <strong>Waifu Sprites</strong>
+                    <small>Aurora, animated with video expressions that match every reply. She can send pictures too.</small>
+                    <span class="pick-btn">Chat with Aurora</span>
+                </span>
+            </a>
+        </div>
+        <script>
+            // Shuffle which app is on the left so neither gets the position advantage.
+            (function () {
+                var c = document.getElementById('choice');
+                if (Math.random() < 0.5) c.appendChild(c.firstElementChild);
+                for (var i = 0; i < c.children.length; i++) c.children[i].dataset.pos = i ? 'right' : 'left';
+            })();
+        </script>
 
         <p class="trust"><strong>1,800+ people</strong> have chatted with WaifuAI · Open source · Nothing to install</p>
 
