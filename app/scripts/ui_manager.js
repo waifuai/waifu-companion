@@ -128,10 +128,11 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   if (!isUser && imageUrl) {
     const img = document.createElement('img');
     img.className = 'chat-image';
-    img.src = imageUrl;
     img.alt = originalText;
     img.loading = 'lazy';
-    img.addEventListener('click', () => window.open(imageUrl, '_blank'));
+    // imageUrl may be an "idb:" image stored on this device.
+    ImageStore.apply(imageUrl, u => { img.src = u; });
+    img.addEventListener('click', () => { if (img.src) window.open(img.src, '_blank'); });
     messageDiv.appendChild(img);
   }
 

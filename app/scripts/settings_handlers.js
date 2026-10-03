@@ -767,7 +767,7 @@ async function handleResetLanguages() {
 function applyBackgroundImage(url, source = 'manual') {
   if (!url) return; 
   const bgLayer = document.getElementById('bgLayer');
-  if (bgLayer) bgLayer.style.backgroundImage = `url("${url}")`;
+  if (bgLayer) ImageStore.apply(url, u => { bgLayer.style.backgroundImage = `url("${u}")`; });
   S.setString(K.CURRENT_BACKGROUND_URL, url);
   S.setString(K.BG_SOURCE, source);
   S.remove(K.BG_CLEARED);
@@ -802,7 +802,9 @@ function renderBackgroundLibrary() {
   const el = document.getElementById('bgLibrary'); 
   if (!el) return;
   let list = S.getJSON(K.BG_LIBRARY, []);
-  el.innerHTML = list.map((i,idx)=>`<img src="${i.url}" title="${(i.prompt||'').replace(/"/g,'')}" data-url="${i.url}" data-idx="${idx}" class="${(window.bgSelected?.has(i.url)?'selected':'')}">`).join('') || '<div style="color:#aaa;font-size:13px;">No generated backgrounds yet.</div>';
+  // "idb:" entries are images stored on this device; their src is filled in below.
+  el.innerHTML = list.map((i,idx)=>`<img src="${ImageStore.isLocal(i.url)?'':i.url}" title="${(i.prompt||'').replace(/"/g,'')}" data-url="${i.url}" data-idx="${idx}" class="${(window.bgSelected?.has(i.url)?'selected':'')}">`).join('') || '<div style="color:#aaa;font-size:13px;">No generated backgrounds yet.</div>';
+  el.querySelectorAll('img').forEach(img=>{ if (ImageStore.isLocal(img.dataset.url)) ImageStore.apply(img.dataset.url, u => { img.src = u; }); });
   el.querySelectorAll('img').forEach(img=>img.addEventListener('click',()=>{
     if (window.bgSelectionMode){ toggleSelectBg(img.dataset.url); img.classList.toggle('selected'); updateBgSelectionButtons(); }
     else { 
@@ -919,11 +921,12 @@ async function generateBackground(scene, source, eventType) {
   setBgStatus('Drawing background…');
   try {
     const { url } = await window.WaifuProxyAPI.generateImage(`${scene}, ${BG_PROMPT_SUFFIX}`, getBackgroundAspect(), null, 'background');
+    const displayUrl = await ImageStore.resolve(url);
     await new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = resolve;
       img.onerror = () => reject(new Error('Background image failed to load.'));
-      img.src = url;
+      img.src = displayUrl;
     });
     saveToBgLibrary(url, scene);
     renderBackgroundLibrary();
@@ -1061,14 +1064,15 @@ function openBgViewerAt(index){
   const overlay = document.getElementById('bgViewerOverlay');
   const img = document.getElementById('bgViewerImage');
   const counter = document.getElementById('bgViewerCounter');
-  img.src = list[bgViewerIndex].url; counter.textContent = `${bgViewerIndex+1} / ${list.length}`;
+  img.removeAttribute('src'); ImageStore.apply(list[bgViewerIndex].url, u => { img.src = u; }); counter.textContent = `${bgViewerIndex+1} / ${list.length}`;
   overlay.classList.add('visible'); overlay.setAttribute('aria-hidden','false');
 }
 function closeBgViewer(){ const o=document.getElementById('bgViewerOverlay'); o.classList.remove('visible'); o.setAttribute('aria-hidden','true'); }
 function stepBgViewer(dir){
   let list = S.getJSON(K.BG_LIBRARY, []);
   if (!list.length) return; bgViewerIndex = (bgViewerIndex + dir + list.length) % list.length;
-  document.getElementById('bgViewerImage').src = list[bgViewerIndex].url;
+  const viewerImg = document.getElementById('bgViewerImage');
+  viewerImg.removeAttribute('src'); ImageStore.apply(list[bgViewerIndex].url, u => { viewerImg.src = u; });
   document.getElementById('bgViewerCounter').textContent = `${bgViewerIndex+1} / ${list.length}`;
 }
 

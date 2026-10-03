@@ -316,7 +316,7 @@ function initBackgrounds() {
     // existed count as the user's own pick.
     const bg = AppStorage.getString(AppStorage.KEYS.CURRENT_BACKGROUND_URL, '');
     const bgLayer = document.getElementById('bgLayer');
-    if (bg) { if (bgLayer) bgLayer.style.backgroundImage = `url("${bg}")`; }
+    if (bg) { if (bgLayer) ImageStore.apply(bg, u => { bgLayer.style.backgroundImage = `url("${u}")`; }); }
     else if (!AppStorage.getBoolean(AppStorage.KEYS.BG_CLEARED, false)) applyDefaultBackground();
     const fit = AppStorage.getString(AppStorage.KEYS.BG_FIT_MODE, 'cover-center'); if (typeof applyBackgroundFit === 'function') applyBackgroundFit(fit);
   } catch(e) { debugError('BG load failed', e); }

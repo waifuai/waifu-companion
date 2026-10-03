@@ -139,13 +139,23 @@ const WaifuProxyAPI = {
       err.timedOut = res.status === 504;
       throw err;
     }
-    // The proxy reports the final storage URL in X-Image-Url. res.url is the
-    // proxy's own /image URL: rendering or saving that would regenerate the
-    // image on every load, so it is only a fallback for older proxies.
-    const finalUrl = res.headers.get('X-Image-Url') || res.url;
-    // Only the URL is needed; skip downloading the bytes.
+    // The image URL comes in X-Image-Url. Only the URL is needed; skip
+    // downloading the bytes.
+    const finalUrl = res.headers.get('X-Image-Url');
+    if (finalUrl) {
+      try { if (res.body) res.body.cancel().catch(() => { }); } catch (e) { }
+      return { url: finalUrl };
+    }
+    // No URL: the image came as bytes only, under X-Image-Id. Keep it on
+    // this device.
+    const imageId = res.headers.get('X-Image-Id');
+    if (imageId && window.ImageStore) {
+      return { url: await window.ImageStore.put(imageId, await res.blob()) };
+    }
+    // Last resort: res.url is the /image request itself. Rendering or saving
+    // it regenerates the image on every load.
     try { if (res.body) res.body.cancel().catch(() => { }); } catch (e) { }
-    return { url: finalUrl };
+    return { url: res.url };
   },
 
   async createCompletionStream(options) {
