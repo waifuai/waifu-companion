@@ -155,6 +155,16 @@
         }
         .pick:hover { transform: translateY(-2px); border-color: #c084fc; box-shadow: 0 20px 50px rgba(192, 132, 252, 0.3); }
         .pick img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; background: #0d1326; }
+        /* Looping clip that fades in over the screenshot once it plays */
+        .pick-media { position: relative; display: block; }
+        .pick-media video {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        .pick-media video.playing { opacity: 1; }
         .pick-body { display: flex; flex-direction: column; flex: 1; padding: 0.9rem 1rem 1rem; gap: 0.35rem; }
         .pick-body strong { font-size: 1.1rem; }
         .pick-body small { font-size: 0.85rem; color: #9a9aae; line-height: 1.4; flex: 1; }
@@ -348,11 +358,14 @@
         <div class="choice" id="choice">
             <a href="./app/" class="pick" data-cta="app"
                onclick="gtag('event','cta_click',{cta_location:'hero_choice',cta_target:'app',cta_position:this.dataset.pos})">
-                <picture>
-                    <source srcset="./assets/hero-app-mobile.webp" type="image/webp">
-                    <img src="./assets/hero-app-mobile.jpg" width="800" height="1000" fetchpriority="high" decoding="async"
-                         alt="The WaifuAI app: an animated Live2D anime character above a live chat with voice input.">
-                </picture>
+                <span class="pick-media">
+                    <picture>
+                        <source srcset="./assets/hero-app-mobile.webp" type="image/webp">
+                        <img src="./assets/hero-app-mobile.jpg" width="800" height="1000" fetchpriority="high" decoding="async"
+                             alt="The WaifuAI app: an animated Live2D anime character above a live chat with voice input.">
+                    </picture>
+                    <video data-src="./assets/hero-app.mp4" muted loop playsinline preload="none" aria-hidden="true"></video>
+                </span>
                 <span class="pick-body">
                     <strong>Live2D Companion</strong>
                     <small>Pick from 50+ Live2D characters who blink, move and react while you talk.</small>
@@ -362,11 +375,14 @@
             <a href="https://waifuai.github.io/waifu-sprites/?utm_source=waifuai.com&amp;utm_medium=landing&amp;utm_campaign=hero_choice"
                class="pick" data-cta="waifu_sprites"
                onclick="gtag('event','cta_click',{cta_location:'hero_choice',cta_target:'waifu_sprites',cta_position:this.dataset.pos})">
-                <picture>
-                    <source srcset="./assets/hero-sprites-mobile.webp" type="image/webp">
-                    <img src="./assets/hero-sprites-mobile.jpg" width="800" height="1000" fetchpriority="high" decoding="async"
-                         alt="Waifu Sprites: Aurora, an anime girl animated with video expressions, behind a live chat.">
-                </picture>
+                <span class="pick-media">
+                    <picture>
+                        <source srcset="./assets/hero-sprites-mobile.webp" type="image/webp">
+                        <img src="./assets/hero-sprites-mobile.jpg" width="800" height="1000" fetchpriority="high" decoding="async"
+                             alt="Waifu Sprites: Aurora, an anime girl animated with video expressions, behind a live chat.">
+                    </picture>
+                    <video data-src="./assets/hero-sprites.mp4" muted loop playsinline preload="none" aria-hidden="true"></video>
+                </span>
                 <span class="pick-body">
                     <strong>Waifu Sprites</strong>
                     <small>Aurora, animated with video expressions that match every reply. She can send pictures too.</small>
@@ -381,6 +397,31 @@
                 if (Math.random() < 0.5) c.appendChild(c.firstElementChild);
                 for (var i = 0; i < c.children.length; i++) c.children[i].dataset.pos = i ? 'right' : 'left';
             })();
+            // Swap the screenshots for looping clips after the page has loaded, so they
+            // don't slow down first paint. Skipped for reduced motion and data saver.
+            window.addEventListener('load', function () {
+                var conn = navigator.connection;
+                if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || (conn && conn.saveData)) return;
+                var videos = document.querySelectorAll('.pick-media video');
+                function playAll() {
+                    for (var i = 0; i < videos.length; i++) {
+                        if (!videos[i].paused) continue;
+                        var p = videos[i].play();
+                        if (p && p.catch) p.catch(function () {});
+                    }
+                }
+                for (var i = 0; i < videos.length; i++) {
+                    var v = videos[i];
+                    v.addEventListener('playing', function () { this.classList.add('playing'); });
+                    v.autoplay = true;
+                    v.src = v.dataset.src;
+                }
+                playAll();
+                // A tab opened in the background may refuse to start until it's shown.
+                document.addEventListener('visibilitychange', function () {
+                    if (document.visibilityState === 'visible') playAll();
+                });
+            });
         </script>
 
         <p class="trust"><strong>1,800+ people</strong> have chatted with WaifuAI · Open source · Nothing to install</p>
