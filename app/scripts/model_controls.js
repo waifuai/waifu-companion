@@ -42,6 +42,7 @@ function setupWindowResize() {
   __resizeBound = true;
   window.addEventListener("resize", () => {
     app.renderer.resize(window.innerWidth, window.innerHeight);
+    if (window.WaifuEmbed) window.fitEmbedModel?.(currentModel);
     // Deliberately does NOT re-centre the model: that discarded the position
     // the user had dragged it to (and their saved position) on every resize.
   });
@@ -49,14 +50,14 @@ function setupWindowResize() {
 
 function saveModelPosition(url, x, y){
   try {
-    const map = JSON.parse(localStorage.getItem('modelPositions')||'{}');
+    const map = JSON.parse(AppStorage.getItem('modelPositions')||'{}');
     map[url] = { x, y };
-    localStorage.setItem('modelPositions', JSON.stringify(map));
+    AppStorage.setItem('modelPositions', JSON.stringify(map));
   } catch(e){ debugError('Save model position failed', e, { url: url }); }
 }
 
 function loadModelSavedPosition(url){
-  try { return (JSON.parse(localStorage.getItem('modelPositions')||'{}'))[url] || null; }
+  try { return (JSON.parse(AppStorage.getItem('modelPositions')||'{}'))[url] || null; }
   catch(e){ debugLog(`Load model position: parse error for ${url}: ${e.message}`, 'warn', true); return null; }
 }
 
@@ -64,13 +65,14 @@ function resetCurrentModelPosition(){
   if (!currentModel) return;
   currentModel.position.set(window.innerWidth/2, window.innerHeight/2);
   currentModel.scale.set(0.4);
+  if (window.WaifuEmbed) window.fitEmbedModel?.(currentModel);
   try {
-    const map = JSON.parse(localStorage.getItem('modelPositions')||'{}');
+    const map = JSON.parse(AppStorage.getItem('modelPositions')||'{}');
     if (window.currentModelUrl && map[window.currentModelUrl]) { delete map[window.currentModelUrl]; }
-    localStorage.setItem('modelPositions', JSON.stringify(map));
-    const z = JSON.parse(localStorage.getItem('modelZooms')||'{}');
+    AppStorage.setItem('modelPositions', JSON.stringify(map));
+    const z = JSON.parse(AppStorage.getItem('modelZooms')||'{}');
     if (window.currentModelUrl && z[window.currentModelUrl]) { delete z[window.currentModelUrl]; }
-    localStorage.setItem('modelZooms', JSON.stringify(z));
+    AppStorage.setItem('modelZooms', JSON.stringify(z));
   } catch(e){ debugError('Reset model position persist failed', e); }
 }
 
@@ -103,14 +105,14 @@ window.setupZooming = setupZooming;
 
 function saveModelZoom(url, scale){
   try {
-    const map = JSON.parse(localStorage.getItem('modelZooms')||'{}');
+    const map = JSON.parse(AppStorage.getItem('modelZooms')||'{}');
     map[url] = { scale };
-    localStorage.setItem('modelZooms', JSON.stringify(map));
+    AppStorage.setItem('modelZooms', JSON.stringify(map));
   } catch(e){ debugError('Save model zoom failed', e, { url: url }); }
 }
 
 function loadModelSavedZoom(url){
-  try { return (JSON.parse(localStorage.getItem('modelZooms')||'{}'))[url]?.scale || null; }
+  try { return (JSON.parse(AppStorage.getItem('modelZooms')||'{}'))[url]?.scale || null; }
   catch(e){ debugLog(`Load model zoom: parse error for ${url}: ${e.message}`, 'warn', true); return null; }
 }
 

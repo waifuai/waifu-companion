@@ -12,11 +12,11 @@ const GroqAPI = {
   DEFAULT_MODEL: 'llama-3.3-70b-versatile',
 
   getApiKey() {
-    return window.groqApiKey || localStorage.getItem('groqApiKey') || '';
+    return window.groqApiKey || AppStorage.getItem('groqApiKey') || '';
   },
 
   getModel() {
-    return window.groqModel || localStorage.getItem('groqModel') || this.DEFAULT_MODEL;
+    return window.groqModel || AppStorage.getItem('groqModel') || this.DEFAULT_MODEL;
   },
 
   isConfigured() {

@@ -718,7 +718,7 @@ window.updateSummaryMarker = updateSummaryMarker;
 function initChatController() {
   if (window.messageInput) {
     messageInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.isComposing) {
+      if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) {
         e.preventDefault();
         sendMessage();
       }

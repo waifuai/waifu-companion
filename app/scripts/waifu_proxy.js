@@ -24,11 +24,11 @@ function getSessionId() {
 function getVisitorId() {
   try {
     const KEY = 'waifuVisitorId';
-    let id = localStorage.getItem(KEY);
+    let id = AppStorage.getItem(KEY);
     if (!id) {
       id = (crypto.randomUUID && crypto.randomUUID())
         || ('v-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10));
-      localStorage.setItem(KEY, id);
+      AppStorage.setItem(KEY, id);
     }
     return id;
   } catch (e) {

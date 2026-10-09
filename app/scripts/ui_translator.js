@@ -52,7 +52,7 @@ async function translateTutorialSteps(steps, targetLang) {
 }
 
 // Get UI strings for a language - either predefined or AI-translated
-async function getUIStringsForLanguage(langCode) {
+async function getUIStringsForLanguage(langCode, allowInference = true) {
   // If predefined strings exist, use them
   if (window.UI_STRINGS && window.UI_STRINGS[langCode]) {
     return window.UI_STRINGS[langCode];
@@ -62,6 +62,8 @@ async function getUIStringsForLanguage(langCode) {
   if (window.translationCache[langCode]) {
     return window.translationCache[langCode];
   }
+
+  if (!allowInference) return window.UI_STRINGS['en-US'] || {};
 
   if (!window.OpenRouterAPI || !window.OpenRouterAPI.isConfigured()) {
     debugLog('UI strings translation requires OpenRouter API', 'warn');
@@ -109,7 +111,7 @@ async function getUIStringsForLanguage(langCode) {
 
     // Also persist to localStorage for faster future loads
     try {
-      localStorage.setItem(`uiStrings_${langCode}`, JSON.stringify(translatedStrings));
+      AppStorage.setItem(`uiStrings_${langCode}`, JSON.stringify(translatedStrings));
     } catch(e) {
       debugError('Could not cache UI strings to localStorage', e, { key: `uiStrings_${langCode}` });
     }
@@ -128,7 +130,7 @@ function loadCachedTranslations() {
   if (langCode === 'en-US' || !langCode) return;
 
   try {
-    const cached = localStorage.getItem(`uiStrings_${langCode}`);
+    const cached = AppStorage.getItem(`uiStrings_${langCode}`);
     if (cached) {
       window.translationCache[langCode] = JSON.parse(cached);
       debugLog(`Loaded cached UI translations for ${langCode}`, 'info');
@@ -138,15 +140,15 @@ function loadCachedTranslations() {
   }
 }
 
-async function applyInterfaceLanguage(langCode) {
+async function applyInterfaceLanguage(langCode, allowInference = true) {
   window.currentInterfaceLanguage = langCode;
 
   try {
-    localStorage.setItem('interfaceLanguage', langCode);
+    AppStorage.setItem('interfaceLanguage', langCode);
   } catch(e) { debugLog(`Failed to persist interfaceLanguage: ${e.message}`, 'warn', true); }
 
   // Get UI strings (predefined or AI-translated)
-  const uiStrings = await getUIStringsForLanguage(langCode);
+  const uiStrings = await getUIStringsForLanguage(langCode, allowInference);
 
   if (!uiStrings || Object.keys(uiStrings).length === 0) {
     debugLog(`No UI strings available for language: ${langCode}`, 'warn');

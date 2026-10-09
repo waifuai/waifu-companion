@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Live2D embed preview</title>
+  <style>
+    body { margin: 0; padding: 24px; background: #0b1020; color: #edf2ff; font: 15px system-ui, sans-serif; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    p { color: #a7b5ce; max-width: 720px; line-height: 1.5; }
+    .frames { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    figure { margin: 0; max-width: 100%; }
+    figcaption { margin: 12px 0; color: #a7b5ce; }
+    iframe { display: block; width: 480px; max-width: 100%; height: 480px; border: 1px solid #33415c; border-radius: 16px; box-sizing: border-box; }
+    .mobile { width: 320px; }
+    a { color: #9db9ff; }
+    @media (max-width: 550px) { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <h1>Live2D embed preview</h1>
+  <p>Try chatting, opening settings, and turning voice on. These frames allow scripts but block native form submission. Chat requests use the normal WaifuAI service.</p>
+  <div class="frames">
+    <figure>
+      <figcaption>480 × 480 Player Card</figcaption>
+      <iframe title="Live2D Player Card" src="./?embed=x" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" allow="autoplay; microphone"></iframe>
+    </figure>
+    <figure>
+      <figcaption>320 × 480 narrow card</figcaption>
+      <iframe class="mobile" title="Narrow Live2D card" src="./?embed=x" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" allow="autoplay; microphone"></iframe>
+    </figure>
+  </div>
+  <p><a href="./?embed=x">Open embed directly</a> · <a href="./">Open full app</a></p>
+</body>
+</html>

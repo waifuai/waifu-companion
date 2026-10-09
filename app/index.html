@@ -1,5 +1,6 @@
 <html>
   <head>
+    <script src="scripts/embed_mode.js"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-MJCT26J1BK'); </script>
 
     <!-- Core Meta -->
@@ -11,11 +12,11 @@
     <meta name="description" content="Chat with your own AI waifu companion. Free and open-source — Live2D animations, local voice (Kokoro TTS), custom personas, and memory. No login required. 500+ users across 50 countries.">
     <meta name="keywords" content="AI companion, waifu AI, free AI girlfriend, Live2D chatbot, open source AI waifu, AI waifu chat, character AI alternative, anime AI companion, kokoro TTS, OpenRouter AI">
     <meta name="author" content="WaifuAI">
-    <link rel="canonical" href="https://waifuai.com/">
+    <link rel="canonical" href="https://waifuai.com/app/">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://waifuai.com/">
+    <meta property="og:url" content="https://waifuai.com/app/">
     <meta property="og:title" content="WaifuAI – Free AI Companion with Live2D & Voice">
     <meta property="og:description" content="Open-source AI companion with Live2D animations, local TTS voice, memory, and custom personas. Free to use, no login needed.">
     <meta property="og:image" content="https://waifuai.com/assets/og-cover.jpg">
@@ -26,7 +27,10 @@
     <meta property="og:locale" content="en_US">
 
     <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:card" content="player">
+    <meta name="twitter:player" content="https://waifuai.com/app/?embed=x">
+    <meta name="twitter:player:width" content="480">
+    <meta name="twitter:player:height" content="480">
     <meta name="twitter:site" content="@thewaifuai">
     <meta name="twitter:title" content="WaifuAI – Free AI Companion with Live2D & Voice">
     <meta name="twitter:description" content="Open-source AI waifu companion. Live2D, voice, memory, custom personas. Free, no login.">
@@ -72,8 +76,14 @@
     <link rel="stylesheet" href="styles/overlays.css">
     <link rel="stylesheet" href="styles/debug.css">
     <link rel="stylesheet" href="styles/responsive.css">
+    <link rel="stylesheet" href="styles/embed.css">
   </head>
   <body>
+    <div class="embed-toolbar" aria-label="Live2D companion controls">
+      <strong>WaifuAI · Live2D</strong>
+      <button id="embedVoiceBtn" type="button" aria-pressed="false">Voice off</button>
+      <a href="https://waifuai.com/app/" target="_blank" rel="noopener noreferrer">Full app ↗</a>
+    </div>
     <noscript>
       <div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">
         <h1>WaifuAI – Free AI Companion</h1>

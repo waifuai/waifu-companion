@@ -189,13 +189,13 @@ function showWelcomeHint() {
   const div = document.createElement('div');
   div.className = 'welcome-hint';
   div.id = 'welcomeHint';
-  div.innerHTML =
+  div.innerHTML = window.WaifuEmbed ? 'Say hi — I can chat or draw a picture for you.' :
     'Say hi and chat with me \u2014 or just ask me to draw something, like <i>draw a cozy cafe at sunset</i>. Keep it SFW and I will paint it. You can also use <b>/image [prompt] [portrait|landscape|square]</b> for exact control.';
 
   // Only advertise the mic if it's actually available (STT hides it, and
   // removes this line, when no speech engine works in this browser).
   const micBtn = document.getElementById('micBtn');
-  if (micBtn && micBtn.style.display !== 'none') {
+  if (!window.WaifuEmbed && micBtn && micBtn.style.display !== 'none') {
     const mic = document.createElement('div');
     mic.className = 'welcome-hint-mic';
     mic.textContent = (typeof getUIString === 'function' && getUIString('welcomeHintMic'))

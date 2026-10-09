@@ -66,6 +66,7 @@ async function loadModel(modelUrl, source = 'user') {
       }
     } catch(e){ debugError('Failed to restore model zoom', e, { url: modelUrl }); }
 
+    window.fitEmbedModel?.(model);
     app.stage.addChild(model);
 
     // Create particle system

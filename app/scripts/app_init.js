@@ -63,7 +63,9 @@ function initSettingsPanel() {
   const isSmallScreen = window.innerWidth <= 768;
   const lastOpenRaw = AppStorage.getString(AppStorage.KEYS.SETTINGS_PANEL_LAST_OPEN, '');
   const hasLastOpenState = lastOpenRaw !== '';
-  if (alwaysShowSettings) {
+  if (window.WaifuEmbed) {
+    initialSettingsVisible = false;
+  } else if (alwaysShowSettings) {
     initialSettingsVisible = true;
   } else if (isSmallScreen) {
     // Keep settings closed on mobile so it doesn't obstruct the avatar and chat
@@ -103,7 +105,7 @@ async function initLanguage() {
   const savedInterfaceLanguage = AppStorage.getString(AppStorage.KEYS.INTERFACE_LANGUAGE, selectedLanguageCode);
   window.currentInterfaceLanguage = savedInterfaceLanguage;
   if (typeof loadCachedTranslations === 'function') loadCachedTranslations();
-  if (typeof applyInterfaceLanguage === 'function') await applyInterfaceLanguage(savedInterfaceLanguage);
+  if (typeof applyInterfaceLanguage === 'function') await applyInterfaceLanguage(savedInterfaceLanguage, !window.WaifuEmbed);
   debugLog(`Interface language initialized to: ${savedInterfaceLanguage}`, 'info');
 
   populateLanguageSelector();
@@ -153,7 +155,7 @@ function initVoiceProviders() {
   const oldEnableVoice = AppStorage.getString(AppStorage.KEYS.ENABLE_VOICE, null);
   const storedAutoTtsLang = AppStorage.getString(AppStorage.KEYS.ENABLE_AUTO_TTS_LANG, null);
 
-  window.enablePrimaryVoice = storedPrimary !== null ? (storedPrimary === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
+  window.enablePrimaryVoice = storedPrimary !== null ? (storedPrimary === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : !window.WaifuEmbed);
   window.enableFallbackVoice = storedFallback !== null ? (storedFallback === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : false);
   window.enableKokoro = AppStorage.getBoolean(AppStorage.KEYS.ENABLE_KOKORO, false);
   window.enableAutoTtsLang = storedAutoTtsLang !== null ? (storedAutoTtsLang === 'true') : true;
@@ -400,7 +402,7 @@ function initAutomation() {
   if (enableUserMessageQueueCheckbox) { enableUserMessageQueueCheckbox.checked = window.isUserMessageQueueEnabled; enableUserMessageQueueCheckbox.addEventListener('change', window.handleEnableUserMessageQueueChange); }
 
   const enableAmbientQueueCheckbox = document.getElementById('enableAmbientQueueCheckbox');
-  window.isAmbientQueueEnabled = AppStorage.getBoolean(AppStorage.KEYS.IS_AMBIENT_QUEUE_ENABLED, false);
+  window.isAmbientQueueEnabled = !window.WaifuEmbed && AppStorage.getBoolean(AppStorage.KEYS.IS_AMBIENT_QUEUE_ENABLED, false);
   if (enableAmbientQueueCheckbox) { enableAmbientQueueCheckbox.checked = window.isAmbientQueueEnabled; enableAmbientQueueCheckbox.addEventListener('change', window.handleEnableAmbientQueueChange); }
 
   const ambientDelaySlider = document.getElementById('ambientDelay');
@@ -653,7 +655,7 @@ function initUIListeners() {
 }
 
 function initPanels() {
-  initializeDraggablePanels();
+  if (!window.WaifuEmbed) initializeDraggablePanels();
   debugLog('Draggable panels initialized.', 'info');
 }
 
@@ -675,7 +677,7 @@ function initMouseTracking() {
 function initMisc() {
   document.getElementById('openModelGalleryBtn')?.addEventListener('click', () => { if (typeof trackEvent === 'function') trackEvent('model_gallery_opened'); window.openModelGallery?.(); });
   document.getElementById('resetLanguagesBtn')?.addEventListener('click', handleResetLanguages);
-  if (typeof window.preloadKokoroInBackground === 'function') window.preloadKokoroInBackground();
+  if (!window.WaifuEmbed && typeof window.preloadKokoroInBackground === 'function') window.preloadKokoroInBackground();
 }
 
 // --- Helpers (moved from old global scope) ---
@@ -804,6 +806,8 @@ async function runBootSequence() {
       debugError(`Boot module "${mod.name}" failed`, e);
     }
   }
+  window.initEmbedControls?.();
+  window.waifuBootComplete = true;
   debugLog('Boot sequence complete.', 'info');
 }
 

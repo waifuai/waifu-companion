@@ -666,9 +666,9 @@ async function handleResetLanguages() {
     if (window.translationCache) {
       window.translationCache = {};
     }
-    Object.keys(localStorage)
+    AppStorage.keys()
       .filter(k => k.startsWith('uiStrings_'))
-      .forEach(k => localStorage.removeItem(k));
+      .forEach(k => AppStorage.removeItem(k));
   } catch(e) {
     debugError('Failed to clear UI translation cache during language reset', e);
   }

@@ -4,6 +4,17 @@
 (function () {
   'use strict';
 
+  // Cards never read the full app's saved chats, provider keys or preferences.
+  const prefix = window.WaifuEmbed ? 'waifu_x_' : '';
+  const memory = new Map();
+  const storageKey = key => prefix + key;
+  function keys() {
+    let stored = [];
+    try { stored = Object.keys(localStorage).filter(k => k.startsWith(prefix)).map(k => k.slice(prefix.length)); }
+    catch (e) { /* restricted frames can still use the in-memory session */ }
+    return [...new Set([...stored, ...memory.keys()])];
+  }
+
   const STORAGE_KEYS = Object.freeze({
     // UI panels
     SETTINGS_PANEL_LAST_OPEN: 'settingsPanelLastOpen',
@@ -116,7 +127,7 @@
 
   function isStorageAvailable() {
     try {
-      const test = '__storage_test__';
+      const test = storageKey('__storage_test__');
       localStorage.setItem(test, test);
       localStorage.removeItem(test);
       return true;
@@ -126,9 +137,10 @@
   }
 
   function safeGet(key) {
+    if (window.WaifuEmbed && memory.has(key)) return memory.get(key);
     if (!isStorageAvailable()) return null;
     try {
-      return localStorage.getItem(key);
+      return localStorage.getItem(storageKey(key));
     } catch (e) {
       if (typeof debugLog === 'function') {
         debugLog(`Storage read error for key "${key}": ${e.message}`, 'warn');
@@ -150,9 +162,9 @@
   // failure than the write itself failing.
   function reclaimSpace() {
     try {
-      const uiCacheKeys = Object.keys(localStorage).filter(k => k.startsWith('uiStrings_'));
+      const uiCacheKeys = keys().filter(k => k.startsWith('uiStrings_'));
       if (uiCacheKeys.length > 0) {
-        uiCacheKeys.forEach(k => localStorage.removeItem(k));
+        uiCacheKeys.forEach(k => { memory.delete(k); localStorage.removeItem(storageKey(k)); });
         if (typeof debugLog === 'function') {
           debugLog(`Storage: cleared ${uiCacheKeys.length} cached UI translation(s) to free space.`, 'warn');
         }
@@ -161,10 +173,10 @@
     } catch (e) { /* keep going */ }
 
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.BG_LIBRARY);
+      const raw = localStorage.getItem(storageKey(STORAGE_KEYS.BG_LIBRARY));
       const list = raw ? JSON.parse(raw) : [];
       if (Array.isArray(list) && list.length > 10) {
-        localStorage.setItem(STORAGE_KEYS.BG_LIBRARY, JSON.stringify(list.slice(0, 10)));
+        localStorage.setItem(storageKey(STORAGE_KEYS.BG_LIBRARY), JSON.stringify(list.slice(0, 10)));
         if (typeof debugLog === 'function') {
           debugLog(`Storage: trimmed background library from ${list.length} to 10 entries.`, 'warn');
         }
@@ -194,16 +206,17 @@
   // through, so every caller — chat history, settings, model lists — gets
   // quota handling for free instead of throwing mid-write.
   function safeSet(key, value) {
-    if (!isStorageAvailable()) return false;
+    if (window.WaifuEmbed) memory.set(key, String(value));
+    if (!isStorageAvailable()) return Boolean(window.WaifuEmbed);
     try {
-      localStorage.setItem(key, value);
+      localStorage.setItem(storageKey(key), value);
       return true;
     } catch (e) {
       if (!isQuotaError(e)) {
         if (typeof debugLog === 'function') {
           debugLog(`Storage write error for key "${key}": ${e.message}`, 'error');
         }
-        return false;
+        return Boolean(window.WaifuEmbed);
       }
 
       if (typeof debugLog === 'function') {
@@ -211,7 +224,7 @@
       }
       if (reclaimSpace()) {
         try {
-          localStorage.setItem(key, value);
+          localStorage.setItem(storageKey(key), value);
           return true;
         } catch (e2) { /* fall through */ }
       }
@@ -219,15 +232,16 @@
       if (typeof debugLog === 'function') {
         debugLog(`Storage: could not free enough space for "${key}". This change will not persist.`, 'error');
       }
-      notifyStorageFull();
-      return false;
+      if (!window.WaifuEmbed) notifyStorageFull();
+      return Boolean(window.WaifuEmbed);
     }
   }
 
   function safeRemove(key) {
-    if (!isStorageAvailable()) return false;
+    memory.delete(key);
+    if (!isStorageAvailable()) return Boolean(window.WaifuEmbed);
     try {
-      localStorage.removeItem(key);
+      localStorage.removeItem(storageKey(key));
       return true;
     } catch (e) {
       if (typeof debugLog === 'function') {
@@ -300,6 +314,10 @@
 
   window.AppStorage = Object.freeze({
     KEYS: STORAGE_KEYS,
+    getItem: safeGet,
+    setItem: safeSet,
+    removeItem: safeRemove,
+    keys,
     getString,
     getBoolean,
     getNumber,

@@ -10,19 +10,19 @@ const OpenAICompatibleAPI = {
   DEFAULT_MODEL: 'gpt-3.5-turbo',
 
   getBaseUrl() {
-    return window.openaiCompatibleBaseUrl || localStorage.getItem('openaiCompatibleBaseUrl') || '';
+    return window.openaiCompatibleBaseUrl || AppStorage.getItem('openaiCompatibleBaseUrl') || '';
   },
 
   getApiKey() {
-    return window.openaiCompatibleApiKey || localStorage.getItem('openaiCompatibleApiKey') || '';
+    return window.openaiCompatibleApiKey || AppStorage.getItem('openaiCompatibleApiKey') || '';
   },
 
   getModel() {
-    return window.openaiCompatibleModel || localStorage.getItem('openaiCompatibleModel') || this.DEFAULT_MODEL;
+    return window.openaiCompatibleModel || AppStorage.getItem('openaiCompatibleModel') || this.DEFAULT_MODEL;
   },
 
   getCorsProxy() {
-    return window.openaiCompatibleCorsProxy || localStorage.getItem('openaiCompatibleCorsProxy') || '';
+    return window.openaiCompatibleCorsProxy || AppStorage.getItem('openaiCompatibleCorsProxy') || '';
   },
 
   getApiUrl() {

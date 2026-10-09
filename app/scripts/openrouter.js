@@ -19,11 +19,11 @@ const OpenRouterAPI = {
   SITE_URL: 'https://waifuai.com',
 
   getApiKey() {
-    return localStorage.getItem('openRouterApiKey') || '';
+    return AppStorage.getItem('openRouterApiKey') || '';
   },
 
   setApiKey(apiKey) {
-    localStorage.setItem('openRouterApiKey', apiKey);
+    AppStorage.setItem('openRouterApiKey', apiKey);
   },
 
   normalizeModel(model, fallbackModel) {
@@ -32,7 +32,7 @@ const OpenRouterAPI = {
   },
 
   getStoredModel(storageKey, fallbackModel) {
-    const storedModel = localStorage.getItem(storageKey);
+    const storedModel = AppStorage.getItem(storageKey);
     if (storedModel === null) {
       return fallbackModel;
     }
@@ -41,7 +41,7 @@ const OpenRouterAPI = {
   },
 
   isModelEnabled(storageKey, defaultValue = true) {
-    const storedValue = localStorage.getItem(storageKey);
+    const storedValue = AppStorage.getItem(storageKey);
     if (storedValue === null) {
       return defaultValue;
     }
@@ -54,7 +54,7 @@ const OpenRouterAPI = {
   },
 
   setModel(model) {
-    localStorage.setItem('openRouterModel', model);
+    AppStorage.setItem('openRouterModel', model);
   },
 
   getFallbackModels(primaryModel = this.getModel()) {

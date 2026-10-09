@@ -1,0 +1,42 @@
+/* Only the Player Card uses this fixed avatar + chat layout. */
+.embed-toolbar { display: none; }
+html.waifu-embed, .waifu-embed body { width: 100%; height: 100%; overflow: hidden; }
+.waifu-embed .embed-toolbar {
+  display: flex; position: fixed; inset: 0 52px auto 0; height: 40px;
+  padding: 0 10px; gap: 8px; align-items: center; z-index: 10000;
+  font-size: 12px; box-sizing: border-box;
+}
+.waifu-embed .embed-toolbar strong { margin-right: auto; white-space: nowrap; }
+.waifu-embed .embed-toolbar a, .waifu-embed .embed-toolbar button {
+  color: var(--text-main); background: var(--glass-bg); border: 1px solid var(--glass-border);
+  padding: 5px 8px; border-radius: 8px; font: inherit; text-decoration: none; cursor: pointer;
+}
+.waifu-embed .settings-button { top: 4px; right: 8px; width: 32px; height: 32px; }
+.waifu-embed .chat-container {
+  left: 8px !important; bottom: 8px !important; width: calc(100% - 16px) !important;
+  height: 44% !important; min-height: 0; min-width: 0; max-width: none; max-height: none;
+  padding: 0; transform: none !important; resize: none; touch-action: auto;
+}
+.waifu-embed .chat-container::after { display: none; }
+.waifu-embed .chat-header { height: 28px; padding: 0 8px; cursor: default; font-size: 12px; }
+.waifu-embed .chat-content { padding: 6px; margin-top: 0; height: auto; }
+.waifu-embed .chat-history { min-height: 0; padding: 2px; margin-bottom: 4px; }
+.waifu-embed .chat-input { gap: 4px; flex-shrink: 0; }
+.waifu-embed #messageInput { min-width: 0; font-size: 16px; padding: 8px; }
+.waifu-embed .chat-input button { padding: 8px; font-size: 12px; }
+.waifu-embed .message { font-size: 13px; margin: 5px 0; padding: 6px 8px 22px; max-width: 90%; }
+.waifu-embed .settings-panel {
+  top: 44px !important; left: 8px !important; right: 8px !important;
+  width: calc(100% - 16px) !important; max-height: calc(100% - 52px);
+  box-sizing: border-box; padding: 16px; transform: none !important;
+}
+.waifu-embed .chat-sidebar {
+  left: 8px; bottom: 8px; width: calc(100% - 16px); height: 65%; max-height: 65%;
+  box-sizing: border-box;
+}
+.waifu-embed .nowtime, .waifu-embed .controls,
+.waifu-embed #radioPlayer, .waifu-embed .debug-panel { display: none !important; }
+@media (max-width: 340px) {
+  .waifu-embed .embed-toolbar { gap: 4px; padding: 0 6px; font-size: 11px; }
+  .waifu-embed .embed-toolbar a, .waifu-embed .embed-toolbar button { padding: 5px; }
+}

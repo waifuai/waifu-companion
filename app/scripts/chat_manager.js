@@ -30,22 +30,22 @@ function _saveChatData(chatId, data) {
 }
 
 function _deleteChatData(chatId) {
-  localStorage.removeItem('chatData_' + chatId);
+  AppStorage.removeItem('chatData_' + chatId);
 }
 
 // --- Public API ---
 
 // Get the currently active chat ID
 function getActiveChatId() {
-  return localStorage.getItem(ACTIVE_CHAT_KEY) || null;
+  return AppStorage.getItem(ACTIVE_CHAT_KEY) || null;
 }
 
 // Set the active chat ID
 function setActiveChatId(chatId) {
   if (chatId) {
-    localStorage.setItem(ACTIVE_CHAT_KEY, chatId);
+    AppStorage.setItem(ACTIVE_CHAT_KEY, chatId);
   } else {
-    localStorage.removeItem(ACTIVE_CHAT_KEY);
+    AppStorage.removeItem(ACTIVE_CHAT_KEY);
   }
 }
 
@@ -214,9 +214,9 @@ function migrateLegacyChat() {
   const index = _getChatIndex();
   if (index.length > 0) return; // Already migrated
 
-  const savedContext = localStorage.getItem('conversationContext');
-  const savedSummary = localStorage.getItem('conversationSummary') || '';
-  const savedCount = parseInt(localStorage.getItem('messageCountSinceLastSummary') || '0');
+  const savedContext = AppStorage.getItem('conversationContext');
+  const savedSummary = AppStorage.getItem('conversationSummary') || '';
+  const savedCount = parseInt(AppStorage.getItem('messageCountSinceLastSummary') || '0');
 
   if (savedContext) {
     try {
@@ -314,6 +314,7 @@ function _relativeTime(timestamp) {
 
 // Generate a chat title using the LLM based on recent messages
 async function generateChatTitle(chatId, force = false) {
+  if (window.WaifuEmbed && !force) return;
   const data = _getChatData(chatId);
   if (!data) return;
 
@@ -371,7 +372,7 @@ function toggleChatSidebar() {
   const sidebar = document.getElementById('chatSidebar');
   if (!sidebar) return;
   const isVisible = sidebar.classList.toggle('visible');
-  try { localStorage.setItem('chatSidebarVisible', isVisible.toString()); } catch(e) {}
+  try { AppStorage.setItem('chatSidebarVisible', isVisible.toString()); } catch(e) {}
 }
 
 // --- UI Event Handlers ---

@@ -4,7 +4,7 @@
 // CSS can use. Ordinary URLs pass through unchanged.
 
 const ImageStore = (() => {
-  const DB_NAME = 'waifuImages';
+  const DB_NAME = window.WaifuEmbed ? 'waifuImagesEmbed' : 'waifuImages';
   const STORE = 'images';
   const PREFIX = 'idb:';
   let dbPromise = null;
@@ -29,15 +29,21 @@ const ImageStore = (() => {
 
   // Saves blob under id and resolves with the "idb:<id>" value to persist.
   async function put(id, blob) {
-    const db = await openDb();
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put(blob, id);
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
-    objectUrls.set(id, URL.createObjectURL(blob));
+    if (window.WaifuEmbed) objectUrls.set(id, URL.createObjectURL(blob));
+    try {
+      const db = await openDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put(blob, id);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+      if (!objectUrls.has(id)) objectUrls.set(id, URL.createObjectURL(blob));
+    } catch (e) {
+      if (!window.WaifuEmbed) throw e;
+      // A sandbox may block IndexedDB. Keep this frame's picture in memory.
+    }
     return PREFIX + id;
   }
 
