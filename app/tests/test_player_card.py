@@ -39,7 +39,7 @@ class PlayerCardTests(unittest.TestCase):
         self.page.on('console', lambda m: self.boot_errors.append(m.text) if 'Boot module' in m.text else None)
 
     def tearDown(self):
-        self.context.unroute_all(behavior='ignoreErrors')
+        self.context.unroute_all(behavior='wait')
         self.context.close()
 
     def route(self, route):
@@ -121,6 +121,8 @@ class PlayerCardTests(unittest.TestCase):
         self.assertEqual(len([c for c in self.calls if c['_purpose'] == 'chat']), 2)
         self.assertFalse(any(c['_purpose'] == 'title' for c in self.calls))
         self.assertEqual(frame.evaluate('ChatManager.getAllChats()[0].messageCount'), 4)
+        frame.locator('.message.model-message').first.focus()
+        self.assertTrue(frame.locator('.message.model-message').first.locator('.message-actions').is_visible())
         frame.locator('.settings-button').click()
         self.assertTrue(frame.locator('#settingsPanel').is_visible())
         frame.locator('.settings-button').click()
@@ -149,7 +151,15 @@ class PlayerCardTests(unittest.TestCase):
             bounds = frame.evaluate('(() => {const b = currentModel.getBounds(); return {x:b.x, y:b.y, width:b.width, height:b.height}})()')
             self.assertGreater(bounds['height'], 50)
             self.assertGreaterEqual(bounds['y'], 35)
-            self.assertLess(bounds['y'] + bounds['height'], height * .56)
+            chat_top = frame.locator('.chat-container').evaluate('(el) => el.getBoundingClientRect().top')
+            self.assertGreater(bounds['height'], height * .70, 'Avatar should have portrait prominence')
+            self.assertGreater(chat_top - bounds['y'], height * .40, 'Keep upper portrait clear of chat')
+            frame.locator('#messageInput').fill('Keep this draft')
+            frame.locator('#embedChatBtn').click()
+            self.assertFalse(frame.locator('.chat-container').is_visible())
+            frame.locator('#embedChatBtn').click()
+            self.assertTrue(frame.locator('#messageInput').is_visible())
+            self.assertEqual(frame.locator('#messageInput').input_value(), 'Keep this draft')
 
     def test_storage_isolation_and_full_app(self):
         self.context.add_init_script("if (location.hostname === 'companion.test') { localStorage.setItem('openRouterApiKey','full-app-test-key'); localStorage.setItem('conversationContext', '[{\"role\":\"user\",\"content\":\"Private full app chat\"}]'); }")
@@ -209,7 +219,7 @@ class PlayerCardTests(unittest.TestCase):
             self.assertEqual(self.page.locator(f'meta[name="{name}"]').get_attribute('content'), value)
         self.assertEqual(self.page.locator('link[rel="canonical"]').get_attribute('href'), 'https://waifuai.com/app/')
         self.page.wait_for_function('window.waifuBootComplete && window.currentModel', timeout=60000)
-        self.assertFalse(self.page.evaluate('window.WaifuEmbed'))
+        self.assertTrue(self.page.evaluate('window.WaifuEmbed'))
         self.assertTrue(self.page.locator('#sendMessageBtn').is_visible())
         self.assertFalse(self.calls)
         self.assertFalse(self.errors, self.errors)

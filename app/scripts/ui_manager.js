@@ -46,6 +46,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   const messageDiv = document.createElement("div");
   messageDiv.id = nextMessageId();
   messageDiv.className = `message ${isUser ? "user-message" : "model-message"}`;
+  if (window.WaifuEmbed) messageDiv.tabIndex = 0;
   
   // Stagger entry for multiple messages if needed
   const existingMessages = chatHistory.querySelectorAll('.message').length;
@@ -301,6 +302,7 @@ function createStreamingMessage(languageCode = 'en-US') {
   const messageDiv = document.createElement("div");
   messageDiv.id = nextMessageId();
   messageDiv.className = `message model-message streaming-message`;
+  if (window.WaifuEmbed) messageDiv.tabIndex = 0;
   
   // Stagger entry animation
   const existingMessages = chatHistory.querySelectorAll('.message').length;

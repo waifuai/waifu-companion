@@ -7,8 +7,10 @@ the exact `/app/` URL whose older image card may already be cached by X.
 
 The `/app/` HTML provides static Player Card metadata regardless of `card`.
 It advertises a 480 × 480 player at `https://waifuai.com/app/?embed=x`.
-Only `embed=x` selects the compact layout; `card=player-v1` is the sharing
-URL variant. The homepage keeps its normal image card. X acceptance and cache
+Both `embed=x` and the `card=player-v1` sharing variant select the compact
+portrait layout. The avatar fills the scene, messages float over the lower
+40%, and the toolbar's chat button hides/restores the conversation. The
+homepage keeps its normal image card. X acceptance and cache
 behavior still need verification in an actual post.
 
 Serve the repository root with `python -m http.server 8767 --bind 127.0.0.1`
