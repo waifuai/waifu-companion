@@ -63,6 +63,9 @@ function handleVoiceChange(event) {
 }
 
 function handleManualVoiceSelection() {
+    // In cards the selected voice is the starting voice; only the explicit
+    // auto-language switch locks it, matching Sprites' controls.
+    if (window.WaifuEmbed) return;
     // A manual voice pick means the user wants THEIR voice everywhere:
     // turn the automatic per-language routing off (they can re-enable it).
     if (window.enableAutoTtsLang === false) return;

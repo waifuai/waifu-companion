@@ -23,15 +23,22 @@ window.initEmbedControls = function () {
   syncLegacyEnableVoiceCheckbox();
   syncVoiceControlsVisibility();
   const button = document.getElementById('embedVoiceBtn');
+  let restoreFallback = window.enableFallbackVoice;
   const update = () => {
     button.textContent = window.enableVoice ? 'Voice on' : 'Voice off';
     button.setAttribute('aria-pressed', String(window.enableVoice));
   };
   button.addEventListener('click', () => {
     const enabled = !window.enableVoice;
+    if (!enabled) restoreFallback = window.enableFallbackVoice;
     const primary = document.getElementById('enableTikTokVoiceCheckbox');
     primary.checked = enabled;
     primary.dispatchEvent(new Event('change'));
+    if (enabled) {
+      const fallback = document.getElementById('enableFallbackVoiceCheckbox');
+      fallback.checked = restoreFallback;
+      fallback.dispatchEvent(new Event('change'));
+    }
     if (!enabled) {
       ['enableFallbackVoiceCheckbox', 'enableKokoroVoiceCheckbox'].forEach(id => {
         const checkbox = document.getElementById(id);

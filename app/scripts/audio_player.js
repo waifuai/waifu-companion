@@ -161,7 +161,8 @@ function resolveVoiceForText(text, voiceId) {
   const lang = scriptLang || detectLatinVoiceLang(text);
   if (!lang) return { voiceId, lang: null };
   const base = lang.split('-')[0].toLowerCase();
-  const matches = (v) => v.language === lang || (v.language || '').split('-')[0].toLowerCase() === base;
+  const matches = (v) => (!window.WaifuEmbed || v.provider === 'tiktok') &&
+    (v.language === lang || (v.language || '').split('-')[0].toLowerCase() === base);
   const pinnedId = PREFERRED_LANG_VOICE_IDS[lang];
   const pinned = pinnedId ? voices.find(v => v.id === pinnedId && matches(v)) : null;
   const female = voices.find(v => matches(v) && v.gender === 'female');
@@ -382,7 +383,9 @@ async function fetchTTSBuffer(textChunk, voiceId) {
       fellBack = true;
     }
   } else if (provider === 'browser' && window.enablePrimaryVoice !== false) {
-    return { kind: 'browser', text: textChunk, voiceId: routed.voiceId, lang: routed.lang, provider: 'browser', fellBack: false };
+    // A browser voice selection keeps its gender/provider when auto routing
+    // supplies a language, rather than inheriting a routed TikTok voice.
+    return { kind: 'browser', text: textChunk, voiceId: window.WaifuEmbed ? voiceId : routed.voiceId, lang: routed.lang, provider: 'browser', fellBack: false };
   } else if (window.enablePrimaryVoice === false) {
     debugLog('TTS: Primary voice disabled.', 'info');
     fellBack = true;

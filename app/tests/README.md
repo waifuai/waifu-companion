@@ -16,9 +16,16 @@ behavior still need verification in an actual post.
 Serve the repository root with `python -m http.server 8767 --bind 127.0.0.1`
 and open `http://127.0.0.1:8767/app/embed-preview.html` to try the desktop and
 narrow iframe layouts. Chatting there uses the normal proxy. Loading the card
-does not make an inference or speech request. New visitors have TikTok US
-English female voice (`en_us_001`) enabled; replies are spoken after chatting.
-Saved voice/mute choices are restored. Ambient mode starts off; automatic chat
+does not make an inference or speech request. New visitors have a female TikTok
+voice matching their browser language, or US English (`en_us_001`) if no female
+voice matches. Replies are spoken after chatting. Automatic language routing
+starts on: reply text chooses a matching female TikTok voice (Japanese uses
+`jp_003`); English or uncertain text keeps the selected voice. Choosing a voice
+does not disable routing in the card; turn off Auto TTS Language to lock it.
+Browser fallback starts on if TikTok fails, unless a saved preference disables
+it. Language detection uses script/word hints, including Sprites' approximate
+Spanish-to-Portuguese and Malay/Tagalog-to-Indonesian mappings.
+Saved voice/mute/automatic-language choices are restored. Ambient mode starts off; automatic chat
 titles and Kokoro background preload are disabled. Voice can be muted with
 the card button or changed in settings.
 

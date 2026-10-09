@@ -36,6 +36,8 @@ class PlayerCardTests(unittest.TestCase):
         self.context = self.browser.new_context(viewport={'width': 650, 'height': 650})
         self.context.set_default_timeout(10000)
         self.calls, self.errors, self.boot_errors, self.tts_calls = [], [], [], []
+        self.reply = 'Mock reply received.'
+        self.tts_fail = False
         self.context.route('**/*', self.route)
         self.page = self.context.new_page()
         self.page.on('pageerror', lambda e: self.errors.append(str(e)))
@@ -65,7 +67,7 @@ class PlayerCardTests(unittest.TestCase):
             request = route.request.post_data_json
             request['_purpose'] = route.request.headers.get('x-waifu-purpose', 'chat')
             self.calls.append(request)
-            content = 'NO_IMAGE' if request['_purpose'] == 'image_decision' else 'Mock reply received.'
+            content = 'NO_IMAGE' if request['_purpose'] == 'image_decision' else self.reply
             if request.get('stream'):
                 event = {'choices': [{'delta': {'content': content}}]}
                 route.fulfill(headers=cors, content_type='text/event-stream', body='data: ' + json.dumps(event) + '\n\ndata: [DONE]\n\n')
@@ -73,6 +75,9 @@ class PlayerCardTests(unittest.TestCase):
                 route.fulfill(headers=cors, content_type='application/json', body=json.dumps({'choices': [{'message': {'content': content}}]}))
         elif url.hostname == 'ottsy.weilbyte.dev':
             self.tts_calls.append(route.request.post_data_json)
+            if self.tts_fail:
+                route.fulfill(status=503, headers=cors, body='Mock speech outage')
+                return
             audio = io.BytesIO()
             with wave.open(audio, 'wb') as wav:
                 wav.setparams((1, 2, 22050, 0, 'NONE', 'not compressed'))
@@ -239,6 +244,72 @@ class PlayerCardTests(unittest.TestCase):
         played = frame.evaluate('Array.from(dataLayer.find(e => e[0] === "event" && e[1] === "tts_played"))[2]')
         self.assertEqual(played, {'provider': 'tiktok', 'fell_back': False})
         self.assertEqual(frame.evaluate('getTTSAudioContext().state'), 'running')
+        self.assertFalse(self.errors, self.errors)
+
+    def test_browser_language_and_japanese_reply(self):
+        self.context.add_init_script("Object.defineProperty(navigator, 'language', {value: 'ja-JP'})")
+        frame = self.open_app()
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'jp_001')
+        self.assertEqual(frame.evaluate('window.selectedLanguageCode'), 'en-US')
+        self.assertTrue(frame.evaluate('window.enableAutoTtsLang && window.enableFallbackVoice'))
+        self.reply = 'こんにちは。'
+        frame.locator('#messageInput').fill('Say hello in Japanese')
+        frame.locator('#sendMessageBtn').click()
+        frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')
+        self.assertEqual(self.tts_calls[0]['voice'], 'jp_003')
+        self.assertEqual(self.tts_calls[0]['text'], self.reply)
+        self.assertEqual(frame.evaluate('AppStorage.getString(AppStorage.KEYS.SELECTED_VOICE_ID)'), 'jp_001')
+        self.assertFalse(self.errors, self.errors)
+
+    def test_browser_language_without_female_tiktok_voice(self):
+        self.context.add_init_script("Object.defineProperty(navigator, 'language', {value: 'fr-FR'})")
+        frame = self.open_app()
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_001')
+
+    def test_auto_routing_and_manual_voice_lock(self):
+        frame = self.open_app()
+        frame.locator('.settings-button').click()
+        frame.locator('[data-submenu="group-voice"]').click()
+        frame.locator('#voiceSelector').select_option('en_us_002')
+        self.assertTrue(frame.locator('#enableAutoTtsLangCheckbox').is_checked())
+        samples = [('こんにちは。', 'jp_003'), ('Hallo, ich bin hier und ich liebe dich.', 'de_001'),
+                   ('Aku sayang kamu dan ingin tahu kabar kamu.', 'id_001'),
+                   ('Eu gosto muito de você e estou aqui.', 'br_001'),
+                   ('Hello, I am here for you.', 'en_us_002'), ('OK', 'en_us_002')]
+        for text, expected in samples:
+            with self.subTest(text=text):
+                frame.evaluate('text => fetchTTSBuffer(text, window.selectedVoiceId)', text)
+                self.assertEqual(self.tts_calls[-1]['voice'], expected)
+                self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_002')
+        frame.locator('#enableAutoTtsLangCheckbox').uncheck()
+        frame.evaluate('fetchTTSBuffer("こんにちは。", window.selectedVoiceId)')
+        self.assertEqual(self.tts_calls[-1]['voice'], 'en_us_002')
+        frame.goto(APP + '?embed=x')
+        frame.wait_for_function('window.waifuBootComplete === true', timeout=60000)
+        self.assertFalse(frame.evaluate('window.enableAutoTtsLang'))
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_002')
+        self.assertFalse(self.errors, self.errors)
+
+    def test_language_aware_browser_fallback_and_mute(self):
+        frame = self.open_app()
+        frame.locator('#embedVoiceBtn').click()
+        self.assertFalse(frame.evaluate('window.enableVoice'))
+        frame.locator('#embedVoiceBtn').click()
+        self.assertTrue(frame.evaluate('window.enableFallbackVoice'))
+        self.tts_fail = True
+        resolved = frame.evaluate('fetchTTSBuffer("こんにちは。", window.selectedVoiceId)')
+        self.assertEqual(resolved, {'kind': 'browser', 'text': 'こんにちは。', 'voiceId': 'browser-female',
+                                    'lang': 'ja-JP', 'provider': 'browser', 'fellBack': True})
+        self.assertEqual(self.tts_calls[-1]['voice'], 'jp_003')
+        before = len(self.tts_calls)
+        browser = frame.evaluate('fetchTTSBuffer("こんにちは。", "browser-male")')
+        self.assertEqual(browser['voiceId'], 'browser-male')
+        self.assertEqual(browser['lang'], 'ja-JP')
+        self.assertFalse(browser['fellBack'])
+        self.assertEqual(len(self.tts_calls), before)
+        # Explicit fallback-off continues to be respected during an outage.
+        frame.evaluate('window.enableFallbackVoice = false')
+        self.assertIsNone(frame.evaluate('fetchTTSBuffer("Hallo, ich bin hier.", window.selectedVoiceId)'))
         self.assertFalse(self.errors, self.errors)
 
     def test_fresh_share_page(self):

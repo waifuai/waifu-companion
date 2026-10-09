@@ -122,11 +122,14 @@ function initVoice() {
   const isSelectedVoiceValid = availableVoices.some(v => v.id === selectedVoiceId);
 
   if (!savedVoiceId || !isSelectedVoiceValid) {
-    const baseLangCode = selectedLanguageCode.split('-')[0];
+    // Cards follow the visitor's browser language, just like Sprites. Their
+    // response/interface language remains a separate preference.
+    const baseLangCode = (window.WaifuEmbed ? (navigator.language || 'en') : selectedLanguageCode).split('-')[0].toLowerCase();
     const langFemaleVoice = availableVoices.find(v => v.language.startsWith(baseLangCode) && v.gender === 'female' && v.provider === 'tiktok');
     const langConfig = languages.find(l => l.code === selectedLanguageCode);
     const defaultForLang = langConfig ? langConfig.defaultVoiceId : null;
     if (langFemaleVoice) selectedVoiceId = langFemaleVoice.id;
+    else if (window.WaifuEmbed) selectedVoiceId = 'en_us_001';
     else if (defaultForLang && availableVoices.some(v => v.id === defaultForLang)) selectedVoiceId = defaultForLang;
     else selectedVoiceId = availableVoices.find(v => v.provider === 'tiktok')?.id || 'none';
     AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID, selectedVoiceId);
@@ -156,7 +159,7 @@ function initVoiceProviders() {
   const storedAutoTtsLang = AppStorage.getString(AppStorage.KEYS.ENABLE_AUTO_TTS_LANG, null);
 
   window.enablePrimaryVoice = storedPrimary !== null ? (storedPrimary === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
-  window.enableFallbackVoice = storedFallback !== null ? (storedFallback === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : false);
+  window.enableFallbackVoice = storedFallback !== null ? (storedFallback === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : !!window.WaifuEmbed);
   window.enableKokoro = AppStorage.getBoolean(AppStorage.KEYS.ENABLE_KOKORO, false);
   window.enableAutoTtsLang = storedAutoTtsLang !== null ? (storedAutoTtsLang === 'true') : true;
 

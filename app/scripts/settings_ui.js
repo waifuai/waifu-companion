@@ -520,6 +520,13 @@ function populateVoiceSelector() {
   } else if (window.WaifuEmbed && availableVoices.some(v => v.id === savedVoiceId)) {
     // Rebuilding the card's language menu must not overwrite its saved voice.
     selectedVoiceId = savedVoiceId;
+  } else if (window.WaifuEmbed) {
+    // This menu is built before initVoice runs. Use the card's browser default
+    // here too, so it doesn't save an app-language default as a manual choice.
+    const browserLang = (navigator.language || 'en').split('-')[0].toLowerCase();
+    selectedVoiceId = availableVoices.find(v => v.provider === 'tiktok' && v.gender === 'female' &&
+      (v.language || '').split('-')[0].toLowerCase() === browserLang)?.id || 'en_us_001';
+    AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID, selectedVoiceId);
   } else {
     // Always use the appropriate default voice for the current language
     // This ensures voice switches when language changes
