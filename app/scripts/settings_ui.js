@@ -517,6 +517,9 @@ function populateVoiceSelector() {
   const savedVoiceId = AppStorage.getString(AppStorage.KEYS.SELECTED_VOICE_ID, '');
   if (savedVoiceId === 'none') {
     selectedVoiceId = 'none';
+  } else if (window.WaifuEmbed && availableVoices.some(v => v.id === savedVoiceId)) {
+    // Rebuilding the card's language menu must not overwrite its saved voice.
+    selectedVoiceId = savedVoiceId;
   } else {
     // Always use the appropriate default voice for the current language
     // This ensures voice switches when language changes

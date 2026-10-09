@@ -4,10 +4,13 @@ Run from the repo root: python app/tests/test_player_card.py
 Requires Playwright + Chromium. CDN renderer/model assets are read and cached;
 analytics, inference, image decisions, speech and radio never reach production.
 """
+import base64
+import io
 import json
 import mimetypes
 from pathlib import Path
 import unittest
+import wave
 from urllib.parse import unquote, urlparse
 
 from playwright.sync_api import sync_playwright
@@ -32,7 +35,7 @@ class PlayerCardTests(unittest.TestCase):
     def setUp(self):
         self.context = self.browser.new_context(viewport={'width': 650, 'height': 650})
         self.context.set_default_timeout(10000)
-        self.calls, self.errors, self.boot_errors = [], [], []
+        self.calls, self.errors, self.boot_errors, self.tts_calls = [], [], [], []
         self.context.route('**/*', self.route)
         self.page = self.context.new_page()
         self.page.on('pageerror', lambda e: self.errors.append(str(e)))
@@ -68,6 +71,13 @@ class PlayerCardTests(unittest.TestCase):
                 route.fulfill(headers=cors, content_type='text/event-stream', body='data: ' + json.dumps(event) + '\n\ndata: [DONE]\n\n')
             else:
                 route.fulfill(headers=cors, content_type='application/json', body=json.dumps({'choices': [{'message': {'content': content}}]}))
+        elif url.hostname == 'ottsy.weilbyte.dev':
+            self.tts_calls.append(route.request.post_data_json)
+            audio = io.BytesIO()
+            with wave.open(audio, 'wb') as wav:
+                wav.setparams((1, 2, 22050, 0, 'NONE', 'not compressed'))
+                wav.writeframes(b'\0\0' * 5512)
+            route.fulfill(headers=cors, content_type='application/json', body=json.dumps({'success': True, 'data': base64.b64encode(audio.getvalue()).decode()}))
         elif url.hostname in ('cdn.jsdelivr.net', 'cdnjs.cloudflare.com'):
             # These are the app's real PIXI/Cubism libraries and default model.
             key = route.request.url
@@ -91,11 +101,15 @@ class PlayerCardTests(unittest.TestCase):
         self.assertFalse(self.errors, self.errors)
         self.assertFalse(self.boot_errors, self.boot_errors)
         self.assertFalse(self.calls, 'Loading a card must not make inference requests')
+        self.assertFalse(self.tts_calls, 'Loading a card must not request speech')
         return frame
 
     def check_chat(self, **kwargs):
         frame = self.open_app(**kwargs)
         field = frame.locator('#messageInput')
+        self.assertTrue(frame.evaluate('window.enableVoice && window.enablePrimaryVoice'))
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_001')
+        frame.locator('#embedVoiceBtn').click()
         self.assertFalse(frame.evaluate('window.enableVoice'))
         field.click()
         field.press_sequentially('Send with button')
@@ -199,15 +213,33 @@ class PlayerCardTests(unittest.TestCase):
 
     def test_restored_card_starts_quietly(self):
         self.context.add_init_script('''if (location.hostname === 'companion.test') {
-            localStorage.setItem('waifu_x_enablePrimaryVoice', 'true');
-            localStorage.setItem('waifu_x_enableKokoro', 'true');
+            localStorage.setItem('waifu_x_enablePrimaryVoice', 'false');
+            localStorage.setItem('waifu_x_enableFallbackVoice', 'false');
+            localStorage.setItem('waifu_x_enableKokoro', 'false');
+            localStorage.setItem('waifu_x_selectedVoiceId', 'en_us_002');
             localStorage.setItem('waifu_x_isAmbientQueueEnabled', 'true');
             localStorage.setItem('waifu_x_interfaceLanguage', 'zz-test');
             localStorage.setItem('waifu_x_openRouterApiKey', 'embed-test-key');
         }''')
         frame = self.open_app()
         self.assertFalse(frame.evaluate('window.enableVoice || window.isAmbientQueueEnabled || window.enableKokoro'))
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_002')
         self.assertFalse(self.calls)
+
+    def test_default_voice_plays_after_send(self):
+        frame = self.open_app()
+        self.assertTrue(frame.evaluate('window.enablePrimaryVoice && window.enableVoice'))
+        self.assertEqual(frame.locator('#embedVoiceBtn').inner_text(), 'Voice on')
+        frame.locator('#messageInput').fill('Hi!')
+        frame.locator('#sendMessageBtn').click()
+        frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')
+        self.assertEqual(len(self.tts_calls), 1)
+        self.assertEqual(self.tts_calls[0]['voice'], 'en_us_001')
+        self.assertEqual(self.tts_calls[0]['text'], 'Mock reply received.')
+        played = frame.evaluate('Array.from(dataLayer.find(e => e[0] === "event" && e[1] === "tts_played"))[2]')
+        self.assertEqual(played, {'provider': 'tiktok', 'fell_back': False})
+        self.assertEqual(frame.evaluate('getTTSAudioContext().state'), 'running')
+        self.assertFalse(self.errors, self.errors)
 
     def test_fresh_share_page(self):
         self.page.goto(APP + '?card=player-v1')

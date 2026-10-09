@@ -18,12 +18,8 @@ window.fitEmbedModel = function (model) {
 
 window.initEmbedControls = function () {
   if (!window.WaifuEmbed) return;
-  // Every new frame starts silent; voice is an explicit action in the card.
-  window.enablePrimaryVoice = window.enableFallbackVoice = window.enableKokoro = window.enableVoice = false;
-  ['enableTikTokVoiceCheckbox', 'enableFallbackVoiceCheckbox', 'enableKokoroVoiceCheckbox'].forEach(id => {
-    const checkbox = document.getElementById(id);
-    if (checkbox) checkbox.checked = false;
-  });
+  // Boot restores the card's voice choices. New visitors have TikTok voice on;
+  // no speech is requested until they chat or explicitly play a message.
   syncLegacyEnableVoiceCheckbox();
   syncVoiceControlsVisibility();
   const button = document.getElementById('embedVoiceBtn');

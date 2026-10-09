@@ -16,9 +16,11 @@ behavior still need verification in an actual post.
 Serve the repository root with `python -m http.server 8767 --bind 127.0.0.1`
 and open `http://127.0.0.1:8767/app/embed-preview.html` to try the desktop and
 narrow iframe layouts. Chatting there uses the normal proxy. Loading the card
-does not make an inference request. Each card starts silent with ambient mode
-off; automatic chat titles and Kokoro background preload are disabled. Voice
-can be enabled with the card button or settings.
+does not make an inference or speech request. New visitors have TikTok US
+English female voice (`en_us_001`) enabled; replies are spoken after chatting.
+Saved voice/mute choices are restored. Ambient mode starts off; automatic chat
+titles and Kokoro background preload are disabled. Voice can be muted with
+the card button or changed in settings.
 
 Cards use `waifu_x_` browser storage and `waifuImagesEmbed` IndexedDB, separate
 from the full app's conversations, provider keys, pictures and preferences.

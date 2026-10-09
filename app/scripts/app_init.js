@@ -155,7 +155,7 @@ function initVoiceProviders() {
   const oldEnableVoice = AppStorage.getString(AppStorage.KEYS.ENABLE_VOICE, null);
   const storedAutoTtsLang = AppStorage.getString(AppStorage.KEYS.ENABLE_AUTO_TTS_LANG, null);
 
-  window.enablePrimaryVoice = storedPrimary !== null ? (storedPrimary === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : !window.WaifuEmbed);
+  window.enablePrimaryVoice = storedPrimary !== null ? (storedPrimary === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : true);
   window.enableFallbackVoice = storedFallback !== null ? (storedFallback === 'true') : (oldEnableVoice !== null ? (oldEnableVoice === 'true') : false);
   window.enableKokoro = AppStorage.getBoolean(AppStorage.KEYS.ENABLE_KOKORO, false);
   window.enableAutoTtsLang = storedAutoTtsLang !== null ? (storedAutoTtsLang === 'true') : true;
