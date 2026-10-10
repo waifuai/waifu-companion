@@ -37,6 +37,15 @@ function getVisitorId() {
   }
 }
 
+function getRequestIdentityHeaders() {
+  const headers = {};
+  const sid = getSessionId();
+  if (sid) headers['x-session-id'] = sid;
+  const vid = getVisitorId();
+  if (vid) headers['x-visitor-id'] = vid;
+  return headers;
+}
+
 // Feature-usage. Sent as a body field rather than system-prompt lines so the
 // model never sees it. Booleans and short ids only: no URLs, keys or free text.
 function getClientSettings() {
@@ -87,14 +96,10 @@ const WaifuProxyAPI = {
 
     const purpose = typeof options.purpose === 'string' ? options.purpose : 'chat';
 
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { ...getRequestIdentityHeaders(), 'Content-Type': 'application/json' };
     if (purpose !== 'chat') {
       headers['X-Waifu-Purpose'] = purpose;
     } else {
-      const sid = getSessionId();
-      if (sid) headers['x-session-id'] = sid;
-      const vid = getVisitorId();
-      if (vid) headers['x-visitor-id'] = vid;
       // The proxy rebuilds the upstream request from known fields, so this
       // never reaches the model provider.
       const clientSettings = getClientSettings();
@@ -123,11 +128,7 @@ const WaifuProxyAPI = {
     if (seed !== null && seed !== undefined && !isNaN(Number(seed))) {
       params.set('seed', String(parseInt(seed, 10)));
     }
-    const headers = {};
-    const sid = getSessionId();
-    if (sid) headers['x-session-id'] = sid;
-    const vid = getVisitorId();
-    if (vid) headers['x-visitor-id'] = vid;
+    const headers = getRequestIdentityHeaders();
     if (purpose) headers['X-Waifu-Purpose'] = purpose;
     const res = await fetch(this.IMAGE_URL + '?' + params.toString(), { headers });
     if (!res.ok) {
@@ -172,7 +173,9 @@ const WaifuProxyAPI = {
     if (opts.language) form.append('language', opts.language);
     if (opts.prompt) form.append('prompt', opts.prompt);
 
-    const res = await fetch(this.TRANSCRIBE_URL, { method: 'POST', body: form });
+    const res = await fetch(this.TRANSCRIBE_URL, {
+      method: 'POST', headers: getRequestIdentityHeaders(), body: form
+    });
     let body = null;
     try { body = await res.json(); } catch (e) { }
     if (!res.ok) {
