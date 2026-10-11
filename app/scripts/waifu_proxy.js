@@ -124,6 +124,8 @@ const WaifuProxyAPI = {
   // Free image generation. Resolves with { url } on success; throws an
   // Error with .blocked = true when the request was not allowed. purpose
   // 'background' makes the proxy log it as kind 'background'.
+  // Transient server failures (5xx without a content block, network
+  // errors) are re-requested once; blocks and 429 overload are final.
   async generateImage(prompt, aspect = '1:1', seed = null, purpose = null) {
     const params = new URLSearchParams({ text: prompt, aspect });
     if (seed !== null && seed !== undefined && !isNaN(Number(seed))) {
@@ -131,33 +133,42 @@ const WaifuProxyAPI = {
     }
     const headers = getRequestIdentityHeaders();
     if (purpose) headers['X-Waifu-Purpose'] = purpose;
-    const res = await fetch(this.IMAGE_URL + '?' + params.toString(), { headers });
-    if (!res.ok) {
-      let body = null;
-      try { body = await res.json(); } catch (e) { }
-      const err = new Error((body && body.error) || 'Image generation failed.');
-      err.blocked = Boolean(body && body.blocked);
-      // The proxy answers 504 when the image provider took too long.
-      err.timedOut = res.status === 504;
-      throw err;
-    }
-    // The image URL comes in X-Image-Url. Only the URL is needed; skip
-    // downloading the bytes.
-    const finalUrl = res.headers.get('X-Image-Url');
-    if (finalUrl) {
+    for (let attempt = 0; ; attempt++) {
+      let res;
+      try {
+        res = await fetch(this.IMAGE_URL + '?' + params.toString(), { headers });
+      } catch (e) {
+        if (attempt === 0) continue; // network error: one more try
+        throw e;
+      }
+      if (!res.ok) {
+        let body = null;
+        try { body = await res.json(); } catch (e) { }
+        const err = new Error((body && body.error) || 'Image generation failed.');
+        err.blocked = Boolean(body && body.blocked);
+        // The proxy answers 504 when the image provider took too long.
+        err.timedOut = res.status === 504;
+        if (res.status >= 500 && !err.blocked && attempt === 0) continue;
+        throw err;
+      }
+      // The image URL comes in X-Image-Url. Only the URL is needed; skip
+      // downloading the bytes.
+      const finalUrl = res.headers.get('X-Image-Url');
+      if (finalUrl) {
+        try { if (res.body) res.body.cancel().catch(() => { }); } catch (e) { }
+        return { url: finalUrl };
+      }
+      // No URL: the image came as bytes only, under X-Image-Id. Keep it on
+      // this device.
+      const imageId = res.headers.get('X-Image-Id');
+      if (imageId && window.ImageStore) {
+        return { url: await window.ImageStore.put(imageId, await res.blob()) };
+      }
+      // Last resort: res.url is the /image request itself. Rendering or saving
+      // it regenerates the image on every load.
       try { if (res.body) res.body.cancel().catch(() => { }); } catch (e) { }
-      return { url: finalUrl };
+      return { url: res.url };
     }
-    // No URL: the image came as bytes only, under X-Image-Id. Keep it on
-    // this device.
-    const imageId = res.headers.get('X-Image-Id');
-    if (imageId && window.ImageStore) {
-      return { url: await window.ImageStore.put(imageId, await res.blob()) };
-    }
-    // Last resort: res.url is the /image request itself. Rendering or saving
-    // it regenerates the image on every load.
-    try { if (res.body) res.body.cancel().catch(() => { }); } catch (e) { }
-    return { url: res.url };
   },
 
   async createCompletionStream(options) {
