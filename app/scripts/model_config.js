@@ -58,5 +58,72 @@ window.availableModels = [
   { name: "Grizzly MkV", url: "https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model/%E5%B0%91%E5%A5%B3%E6%AC%A1%E5%85%83/054/c_5006.model3.json", image: "assets/50.png", appearance: "an anime girl with long golden-blonde hair, green eyes, a gold headpiece and a confident smile" }
 ];
 
+// Popularity of each model, from GA4 model_changed events on waifuai.com
+// (2026-02-22 .. 2026-10-10, computed with analytics-sync). Score = distinct
+// users who deliberately picked the model in the gallery or picker
+// (source='user') plus distinct pre-October 2026 users whose events predate
+// source-dimension registration; Hiyori counts picks only because as the
+// default its boot loads are automatic, not chosen. The gallery and the
+// settings dropdown sort by this score (see modelComparator in utils.js);
+// models without an entry (new or user-added) rank after the listed ones.
+window.MODEL_POPULARITY = {
+  "Haru": 256,
+  "Mao": 214,
+  "Mori Miko": 148,
+  "Senko": 102,
+  "Rice": 97,
+  "Z46": 83,
+  "Richelieu": 73,
+  "Noshiro": 72,
+  "Vampire": 70,
+  "Hiyori": 68,
+  "Ibuki": 68,
+  "Houshou Marine": 61,
+  "Yukikaze": 58,
+  "Ping Hai": 57,
+  "Grizzly MkV": 54,
+  "Richelieu (Summer)": 50,
+  "Z23": 48,
+  "Cleveland": 46,
+  "Bremerton": 45,
+  "Laffey (Summer)": 44,
+  "Hermione": 43,
+  "Akashi": 42,
+  "Honolulu": 42,
+  "AK-12": 37,
+  "C-MS (The Virtuous Peony)": 37,
+  "ADS (The Little Mermaid)": 35,
+  "Eldridge": 29,
+  "Fubuki": 29,
+  "Laffey": 29,
+  "Noel Vermillion": 28,
+  "Rimuru Tempest": 27,
+  "Unicorn": 27,
+  "Contender": 26,
+  "IWS 2000": 25,
+  "Unicorn (Oath Skin)": 25,
+  "M1918 (A Reader's Tale)": 23,
+  "Type 95 (Summer Cicada)": 23,
+  "AK-12 (Silent Cyan)": 19,
+  "Type 97 (Moonlit Ciceronia)": 19,
+  "AN-94": 16,
+  "PKP (A Lullaby for You)": 16,
+  "Platelet": 16,
+  "G11 (Frog-Witch)": 15,
+  "WA2000 (Op. Manta Ray)": 15,
+  "SAT8 (Sweet-Hearted Shotgun)": 14,
+  "MDR (Cocktail Observer)": 13,
+  "Shuna": 13,
+  "FAL (FAL's Fantasia)": 12,
+  "P90": 11,
+  "Kar98k (A Doll's Ballad)": 10,
+  "P226 (A Letter from Her)": 10,
+  "M950A (Grassy-Green Memories)": 8,
+  "Type 95 (Jade Orchid)": 8,
+  "PA-15 (Bloomin' Peony)": 6,
+  "PA-15": 5,
+  "RFB (RFB Steals the Show)": 2
+};
+
 // Default model to load
 window.defaultModelUrl = window.availableModels.find(m => m.name === "Hiyori").url; // Load Hiyori by default
