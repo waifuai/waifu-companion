@@ -44,8 +44,11 @@
   document.addEventListener('keydown',(e)=>{
     if (e.key==='Escape' && overlay()?.classList.contains('visible')) closeModelGallery();
   });
+  // The × button and any click that is not on a model card (backdrop, grid
+  // gaps or padding) close the gallery; cards keep their own select handlers.
+  document.getElementById('modelGalleryCloseBtn')?.addEventListener('click', closeModelGallery);
   overlay()?.addEventListener('click',(e)=>{
-    if (e.target === overlay()) closeModelGallery();
+    if (!e.target.closest('.model-card')) closeModelGallery();
   });
 
   window.openModelGallery = openModelGallery;
