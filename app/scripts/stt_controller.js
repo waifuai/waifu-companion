@@ -19,6 +19,9 @@
 (function(){
   let recognition = null;
   window.sttFinalTranscript = '';
+  // Text the input already held when dictation started; recogniser output is
+  // always rebuilt on top of it, never merged into it.
+  let sttPresetText = '';
 
   // Proxy recording state
   let mediaStream = null;
@@ -175,8 +178,10 @@
 
     recognition.onstart = () => {
       setMicState('listening');
-      // Initialize with current input value but don't double up
-      window.sttFinalTranscript = window.messageInput.value ? window.messageInput.value + ' ' : '';
+      // Keep text typed before dictation as a fixed prefix; everything the
+      // recogniser produces is rebuilt from its results snapshot (onresult).
+      sttPresetText = window.messageInput.value ? window.messageInput.value + ' ' : '';
+      window.sttFinalTranscript = sttPresetText;
       debugLog('STT: Recognition started.', 'info');
     };
     recognition.onerror = (e) => {
@@ -209,18 +214,24 @@
       debugLog('STT: Recognition ended.', 'info');
     };
     recognition.onresult = (event) => {
+      // Rebuild from the full results snapshot on every event: browsers can
+      // re-deliver results from index 0 or revise earlier ones, and the old
+      // accumulate-from-resultIndex logic duplicated that text (2026-10-11).
+      let final_transcript = '';
       let interim_transcript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
+      for (let i = 0; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
-          window.sttFinalTranscript += event.results[i][0].transcript;
+          final_transcript += event.results[i][0].transcript;
         } else {
           interim_transcript += event.results[i][0].transcript;
         }
       }
-      
+      // The unfinalized tail is kept too, so stopping mid-word does not
+      // drop the last few words.
+      window.sttFinalTranscript = sttPresetText + final_transcript + interim_transcript;
+
       if (window.messageInput) {
-        // Show interim results being appended to the final transcript
-        window.messageInput.value = (window.sttFinalTranscript + interim_transcript).trim();
+        window.messageInput.value = window.sttFinalTranscript.trim();
       }
     };
     return true;
