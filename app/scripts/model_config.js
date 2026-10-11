@@ -65,7 +65,8 @@ window.availableModels = [
 // source-dimension registration; Hiyori counts picks only because as the
 // default its boot loads are automatic, not chosen. The gallery and the
 // settings dropdown sort by this score (see modelComparator in utils.js);
-// models without an entry (new or user-added) rank after the listed ones.
+// the default model is pinned to the front regardless of score, and models
+// without an entry (new or user-added) rank after the listed ones.
 window.MODEL_POPULARITY = {
   "Haru": 256,
   "Mao": 214,

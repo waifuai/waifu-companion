@@ -1,9 +1,12 @@
-// Sorts models by popularity (MODEL_POPULARITY in model_config.js), most
-// popular first; ties and unrated models (new or user-added) fall back to
-// name order, with purely numeric names ordered numerically (and single-digit
-// names before multi-digit ones) after named models. Was copy-pasted verbatim
-// into three call sites (app_init.js, settings_handlers.js x2).
+// Sorts the default model first (it's what visitors start with), then models
+// by popularity (MODEL_POPULARITY in model_config.js), most popular first;
+// ties and unrated models (new or user-added) fall back to name order, with
+// purely numeric names ordered numerically (and single-digit names before
+// multi-digit ones) after named models. Was copy-pasted verbatim into three
+// call sites (app_init.js, settings_handlers.js x2).
 function modelComparator(a, b) {
+  const da = a.url === window.defaultModelUrl ? 0 : 1, db = b.url === window.defaultModelUrl ? 0 : 1;
+  if (da !== db) return da - db;
   const pop = window.MODEL_POPULARITY || {};
   const pa = pop[a.name] || 0, pb = pop[b.name] || 0;
   if (pa !== pb) return pb - pa;
