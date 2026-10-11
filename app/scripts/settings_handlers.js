@@ -901,6 +901,26 @@ async function getBackgroundScene(force = false) {
   if (!messages.length) return null;
   const clip = (t) => String(t || '').slice(0, 300);
   const current = S.getString(K.BG_SCENE, '') || '(none)';
+
+  // Scheduled Change With the Story checks only: WaifuAI Cloud first says
+  // whether the current scene still fits. A confident "keep" skips the
+  // writing call below; any other answer, including no answer, runs the
+  // judgment unchanged. Forced and manual generations always go straight to
+  // the writing call.
+  if (!force && window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function') {
+    const answers = await window.WaifuProxyAPI.decide(['background_action_v1'], {
+      current_scene: clip(current),
+      recent_messages: messages.map(m => ({ role: m.role, text: clip(m.content) }))
+    });
+    const background = answers && answers.background_action_v1;
+    // This task's confidence runs lower than the others'; 0.2 is already the
+    // top of its range for a fitting scene.
+    if (background && background.choice_id === 'keep' && (background.confidence ?? 0) >= 0.2) {
+      debugLog('BG: cloud says the scene still fits, skipping the writing call', 'info');
+      return null;
+    }
+  }
+
   const input = `Current background: ${current}\n\nLatest messages:\n`
     + messages.map(m => `${m.role === 'user' ? 'User' : 'Companion'}: ${clip(m.content)}`).join('\n');
 

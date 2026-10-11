@@ -79,6 +79,7 @@ const WaifuProxyAPI = {
   API_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/chat/completions',
   IMAGE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/image',
   TRANSCRIBE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/transcribe',
+  DECISIONS_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/decisions',
   DEFAULT_MODEL: 'waifuai-v1',
 
   getModel() {
@@ -161,6 +162,33 @@ const WaifuProxyAPI = {
 
   async createCompletionStream(options) {
     return performLLMRequest(this.buildRequest(options, true));
+  },
+
+  // Asks WaifuAI Cloud to make one or more small fixed choices for this turn
+  // (picture, background scene, expression). The set of tasks is the server's;
+  // this client only names task ids and supplies the conversation state each
+  // task documents. Resolves { <task>: { choice_id, confidence } } on an ok
+  // answer, or null when the endpoint is unavailable, the request was
+  // rejected or the answer was not ok — callers keep their local behavior on
+  // null. Never throws.
+  async decide(tasks, state) {
+    try {
+      const res = await fetch(this.DECISIONS_URL, {
+        method: 'POST',
+        headers: { ...getRequestIdentityHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: (crypto.randomUUID && crypto.randomUUID()) || null,
+          tasks,
+          state
+        })
+      });
+      if (!res.ok) return null;
+      const body = await res.json();
+      if (!body || body.status !== 'ok' || !body.answers) return null;
+      return body.answers;
+    } catch (e) {
+      return null;
+    }
   },
 
   // Voice input (speech-to-text) through WaifuAI Cloud. Sends a recorded audio

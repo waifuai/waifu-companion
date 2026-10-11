@@ -279,6 +279,23 @@ async function getImageDecision(userMessage) {
     const clip = (s) => String(s || '').slice(0, 300);
     const prevReply = [...contextForModel(conversationContext)].reverse().find(m => m.role === 'assistant');
     if (!PICTURE_REQUEST_WORDS.test(userMessage || '') && !(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))) return null;
+
+    // WaifuAI Cloud makes the draw/no-draw call first. A confident "no"
+    // skips the writing call below; any other answer — or no answer — runs
+    // the existing judgment unchanged.
+    if (typeof window.WaifuProxyAPI.decide === 'function') {
+      const answers = await window.WaifuProxyAPI.decide(['picture_action_v1'], {
+        user_message: clip(userMessage),
+        previous_reply: prevReply ? clip(prevReply.content) : undefined,
+        picture_offered: Boolean(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))
+      });
+      const picture = answers && answers.picture_action_v1;
+      if (picture && picture.choice_id === 'none' && (picture.confidence ?? 0) >= 0.6) {
+        debugLog('Image decision: cloud says no picture, skipping the writing call', 'info');
+        return null;
+      }
+    }
+
     const input = `Companion's previous message: ${prevReply ? clip(prevReply.content) : '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
 
     const completion = await callConfiguredLLM([
@@ -335,6 +352,36 @@ function inferEmotion(text) {
   if (lower.includes('😊') || lower.includes('😀') || lower.includes('🥰') || lower.includes('💕') || lower.includes('happy') || lower.includes('joy') || lower.includes('love') || lower.includes('!') || lower.includes('جميل') || lower.includes('شكرا') || lower.includes('مرحبا') || lower.includes('أهلا')) return 'happy';
   if (lower.includes('🤔') || lower.includes('hmm') || lower.includes('...') || lower.includes('let me think') || lower.includes('أعتقد') || lower.includes('?') || lower.includes('؟')) return 'thoughtful';
   return 'neutral';
+}
+
+// Expression upgrade for the finished reply: WaifuAI Cloud reads how the
+// companion is expressing itself (multilingual, sarcasm, roleplay — what the
+// keyword guess structurally cannot judge) and the answer re-applies the
+// animation when confident. The keyword guess keeps having set the initial
+// expression; on no answer or low confidence nothing changes here. Resolves
+// quietly; never throws.
+async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion) {
+  try {
+    if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function')) return;
+    const clip = (s) => String(s || '').slice(0, 300);
+    // The finished reply was already pushed onto the context, so the window
+    // excludes it: it arrives on its own as the primary evidence.
+    const recent = [...conversationContext].slice(-5, -1)
+      .map(m => ({ role: m.role, text: clip(m.content) }))
+      .filter(e => e.text);
+    const answers = await window.WaifuProxyAPI.decide(['live2d_emotion_v1'], {
+      reply: String(reply || '').slice(0, 1200),
+      user_message: clip(userMessage),
+      recent_context: recent
+    });
+    const answer = answers && answers.live2d_emotion_v1;
+    if (answer && (answer.confidence ?? 0) >= 0.5) {
+      debugLog(`Emotion decision: ${answer.choice_id} (confidence ${answer.confidence ?? 'n/a'})`, 'info');
+      applyEmotion(answer.choice_id);
+    }
+  } catch (e) {
+    debugError('Emotion decision failed', e);
+  }
 }
 
 // Salvages the "reply" field from a malformed JSON wrapper — the failure mode

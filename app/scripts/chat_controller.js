@@ -130,6 +130,53 @@ async function sendMessage() {
 // /image flow: draws a picture through the image endpoint and drops it into
 // the chat. The prompt goes out as-is; a short in-character caption is added
 // and stored so chat reloads and the LLM context both know the image exists.
+// Maps an emotion label to the expression and pose it plays. One function so
+// the keyword guess on the streaming reply and the decision upgrade for the
+// finished reply apply the exact same animation per label; unknown labels
+// render as the neutral expression.
+function applyEmotionAnimation(emotion) {
+  if (!currentModel) return;
+  switch (emotion) {
+    case "happy":
+      currentModel.expression("f04");
+      currentAnimationState.targetBodyAngle = Math.random() * 10 - 5;
+      setTimeout(() => { currentAnimationState.targetBodyAngle = 0; }, 3000);
+      break;
+    case "sad":
+      currentModel.expression("f03");
+      currentModel.internalModel.coreModel.setParameterValueById("ParamBrowY", -1);
+      currentAnimationState.targetHeadAngle = -8;
+      setTimeout(() => { currentAnimationState.targetHeadAngle = 0; }, 4000);
+      break;
+    case "surprised":
+      currentModel.expression("f02");
+      currentModel.internalModel.coreModel.setParameterValueById("ParamEyeLOpen", 2);
+      currentModel.internalModel.coreModel.setParameterValueById("ParamEyeROpen", 2);
+      currentAnimationState.targetHeadAngle = (Math.random() - 0.5) * 15;
+      setTimeout(() => { currentAnimationState.targetHeadAngle = 0; }, 2000);
+      break;
+    case "thoughtful":
+      currentModel.expression("f04");
+      currentModel.internalModel.coreModel.setParameterValueById("ParamBrowY", 0.5);
+      currentAnimationState.targetHeadAngle = Math.random() > 0.5 ? 12 : -12;
+      setTimeout(() => { currentAnimationState.targetHeadAngle = 0; }, 5000);
+      break;
+    case "excited":
+      currentModel.motion("tap_body");
+      currentModel.expression("f01");
+      currentAnimationState.targetBodyAngle = 15;
+      setTimeout(() => {
+        currentAnimationState.targetBodyAngle = -10;
+        setTimeout(() => { currentAnimationState.targetBodyAngle = 0; }, 1000);
+      }, 1000);
+      break;
+    default:
+      currentModel.expression("f00");
+      currentAnimationState.targetHeadAngle = 0;
+      currentAnimationState.targetBodyAngle = 0;
+  }
+}
+
 async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
   // Non-blocking: the chat stays usable while the image renders. The
   // placeholder bubble is replaced in place when the image lands. Images
@@ -507,45 +554,12 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     }
 
     if (currentModel && !isErrorReply) {
-      // Enhanced emotion responses with more varied animations
-      switch (aiResponse.emotion) {
-        case "happy":
-          currentModel.expression("f04");
-          currentAnimationState.targetBodyAngle = Math.random() * 10 - 5;
-          setTimeout(() => { currentAnimationState.targetBodyAngle = 0; }, 3000);
-          break;
-        case "sad":
-          currentModel.expression("f03");
-          currentModel.internalModel.coreModel.setParameterValueById("ParamBrowY", -1);
-          currentAnimationState.targetHeadAngle = -8;
-          setTimeout(() => { currentAnimationState.targetHeadAngle = 0; }, 4000);
-          break;
-        case "surprised":
-          currentModel.expression("f02");
-          currentModel.internalModel.coreModel.setParameterValueById("ParamEyeLOpen", 2);
-          currentModel.internalModel.coreModel.setParameterValueById("ParamEyeROpen", 2);
-          currentAnimationState.targetHeadAngle = (Math.random() - 0.5) * 15;
-          setTimeout(() => { currentAnimationState.targetHeadAngle = 0; }, 2000);
-          break;
-        case "thoughtful":
-          currentModel.expression("f04");
-          currentModel.internalModel.coreModel.setParameterValueById("ParamBrowY", 0.5);
-          currentAnimationState.targetHeadAngle = Math.random() > 0.5 ? 12 : -12;
-          setTimeout(() => { currentAnimationState.targetHeadAngle = 0; }, 5000);
-          break;
-        case "excited":
-          currentModel.motion("tap_body");
-          currentModel.expression("f01");
-          currentAnimationState.targetBodyAngle = 15;
-          setTimeout(() => {
-            currentAnimationState.targetBodyAngle = -10;
-            setTimeout(() => { currentAnimationState.targetBodyAngle = 0; }, 1000);
-          }, 1000);
-          break;
-        default:
-          currentModel.expression("f00");
-          currentAnimationState.targetHeadAngle = 0;
-          currentAnimationState.targetBodyAngle = 0;
+      // The keyword guess sets the initial expression; WaifuAI Cloud's read
+      // of the finished reply then upgrades it when confident. Both paths
+      // apply the exact same animation per label (applyEmotionAnimation).
+      applyEmotionAnimation(aiResponse.emotion);
+      if (!isAmbient && typeof upgradeEmotionFromDecision === 'function') {
+        upgradeEmotionFromDecision(message, originalReply, applyEmotionAnimation);
       }
     }
 
