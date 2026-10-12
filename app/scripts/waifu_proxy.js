@@ -125,7 +125,8 @@ const WaifuProxyAPI = {
   // Error with .blocked = true when the request was not allowed. purpose
   // 'background' makes the proxy log it as kind 'background'.
   // Transient server failures (5xx without a content block, network
-  // errors) are re-requested once; blocks and 429 overload are final.
+  // errors) are re-requested once with a new seed; blocks and 429 overload
+  // are final.
   async generateImage(prompt, aspect = '1:1', seed = null, purpose = null) {
     const params = new URLSearchParams({ text: prompt, aspect });
     if (seed !== null && seed !== undefined && !isNaN(Number(seed))) {
@@ -134,6 +135,13 @@ const WaifuProxyAPI = {
     const headers = getRequestIdentityHeaders();
     if (purpose) headers['X-Waifu-Purpose'] = purpose;
     for (let attempt = 0; ; attempt++) {
+      if (attempt > 0) {
+        let retrySeed = Math.floor(Math.random() * 2147483647);
+        if (params.has('seed') && retrySeed === Number(params.get('seed'))) {
+          retrySeed = (retrySeed + 1) % 2147483647;
+        }
+        params.set('seed', String(retrySeed));
+      }
       let res;
       try {
         res = await fetch(this.IMAGE_URL + '?' + params.toString(), { headers });
