@@ -267,6 +267,13 @@ const PICTURE_OFFER_WORDS = new RegExp([
   'صور|عکس|تصویر|תמונ|फोटो|तस्वीर|படம்|รูป|ภาพ|写真|絵|照片|图片|画|畫|사진|그림',
 ].join('|'), 'iu');
 
+function clipPictureContext(text) {
+  const clean = stripImageArtifacts(text).trim();
+  // Offers and scene choices often close a long reply. Keep that ending as
+  // well as its opening, within the endpoint's 300-character context limit.
+  return clean.length <= 300 ? clean : `${clean.slice(0, 100)}\n...\n${clean.slice(-195)}`;
+}
+
 // Decides, in its own small call alongside the chat reply, whether this turn
 // asks for a picture, and writes the English description for it. Resolves
 // with {prompt, aspect} or null, and never throws: a failed decision just
@@ -279,6 +286,7 @@ async function getImageDecision(userMessage) {
     const clip = (s) => String(s || '').slice(0, 300);
     const prevReply = [...contextForModel(conversationContext)].reverse().find(m => m.role === 'assistant');
     if (!PICTURE_REQUEST_WORDS.test(userMessage || '') && !(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))) return null;
+    const previous = prevReply ? clipPictureContext(prevReply.content) : undefined;
 
     // WaifuAI Cloud makes the draw/no-draw call first. A confident "no"
     // skips the writing call below; any other answer — or no answer — runs
@@ -286,7 +294,7 @@ async function getImageDecision(userMessage) {
     if (typeof window.WaifuProxyAPI.decide === 'function') {
       const answers = await window.WaifuProxyAPI.decide(['picture_action_v1'], {
         user_message: clip(userMessage),
-        previous_reply: prevReply ? clip(prevReply.content) : undefined,
+        previous_reply: previous,
         picture_offered: Boolean(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))
       });
       const picture = answers && answers.picture_action_v1;
@@ -296,7 +304,7 @@ async function getImageDecision(userMessage) {
       }
     }
 
-    const input = `Companion's previous message: ${prevReply ? clip(prevReply.content) : '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
+    const input = `Companion's previous message: ${previous || '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
 
     const completion = await callConfiguredLLM([
       { role: 'system', content: IMAGE_DECISION_SYSTEM_PROMPT(currentAvatarAppearance()) },
