@@ -375,7 +375,7 @@ async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion) {
       recent_context: recent
     });
     const answer = answers && answers.live2d_emotion_v1;
-    if (answer && (answer.confidence ?? 0) >= 0.5) {
+    if (answer && (answer.confidence ?? 0) >= 0.4) {
       debugLog(`Emotion decision: ${answer.choice_id} (confidence ${answer.confidence ?? 'n/a'})`, 'info');
       applyEmotion(answer.choice_id);
     }
