@@ -226,6 +226,8 @@ function initPersona() {
 
   const savedTrigger = AppStorage.getNumber(AppStorage.KEYS.SUMMARY_TRIGGER_COUNT, NaN);
   if (!Number.isNaN(savedTrigger)) window.summaryTriggerCount = savedTrigger;
+  window.summaryTriggerCount = clampMemorySetting(window.summaryTriggerCount);
+  AppStorage.setNumber(AppStorage.KEYS.SUMMARY_TRIGGER_COUNT, window.summaryTriggerCount);
   const triggerSlider = document.getElementById('summaryTriggerCount');
   const triggerVal = document.getElementById('summaryTriggerCountValue');
   if (triggerSlider) triggerSlider.value = window.summaryTriggerCount;

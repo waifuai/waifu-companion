@@ -331,7 +331,7 @@ async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '')
 
   const messages = [
     { role: 'system', content: buildSystemPrompt(targetLanguageName, contextInfo) },
-    ...contextForModel(conversationContext)
+    ...contextForModel(conversationContext.slice(-clampMemorySetting(maxMemorySize)))
   ];
 
   const lastMsg = conversationContext[conversationContext.length - 1];

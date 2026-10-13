@@ -7,11 +7,16 @@ function handleAlwaysShowSettingsChange(event) {
   debugLog(`Always show Settings on load changed to: ${value}`, 'info');
 }
 
+function clampMemorySetting(value) {
+  return Math.min(20, Math.max(5, parseInt(value, 10) || 20));
+}
+
 function updateMemorySize(value) {
   // Re-fetch element in case it was replaced by translation
   const valEl = document.getElementById('memorySizeValue');
-  maxMemorySize = parseInt(value);
-  if (valEl) valEl.textContent = value;
+  maxMemorySize = clampMemorySetting(value);
+  if (memorySizeInput) memorySizeInput.value = maxMemorySize;
+  if (valEl) valEl.textContent = maxMemorySize;
 
   // The trim is irreversible, and this runs on every `input` tick while the
   // slider is dragged: sliding 30 -> 5 -> 30 permanently discarded 25
@@ -414,7 +419,7 @@ function handleSavePersona() {
   const core = (coreTextarea?.value || "").trim();
   const user = (userTextarea?.value || "").trim();
   const summary = (summaryTextarea?.value || "").trim();
-  const trigger = parseInt(triggerSlider?.value || "10");
+  const trigger = clampMemorySetting(triggerSlider?.value);
   const length = lengthSelect?.value || "concise";
   
   window.corePersonaPrompt = core;
@@ -534,7 +539,8 @@ function handleResetPersona() {
 }
 
 function handleSummaryTriggerCountChange(event) {
-    const val = parseInt(event.target.value);
+    const val = clampMemorySetting(event.target.value);
+    event.target.value = val;
     window.summaryTriggerCount = val;
     const valEl = document.getElementById('summaryTriggerCountValue');
     if (valEl) valEl.textContent = val;

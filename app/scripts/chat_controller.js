@@ -328,7 +328,7 @@ async function maybeSummarizeConversation() {
   if (isSummarizing) return;
   if (Date.now() - lastSummarizeFailureTime < SUMMARIZE_FAILURE_COOLDOWN_MS) return;
 
-  const trigger = window.summaryTriggerCount || 20;
+  const trigger = Math.min(clampMemorySetting(maxMemorySize), clampMemorySetting(window.summaryTriggerCount));
   if (window.messageCountSinceLastSummary < trigger) return;
   if (conversationContext.length <= trigger) return;
 
