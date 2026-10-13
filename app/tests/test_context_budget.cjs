@@ -106,3 +106,19 @@ test('impossible summary envelopes fail without a shrinking-loop stall', () => {
   assert.throws(() => b.compressionTask([{ id: 'a', text: 'x' }], { summary: '' },
     messages => ({ messages, extra: 'x'.repeat(32768) })), { code: 'context_too_large' });
 });
+
+test('activeSummary returns bounded prompt summary without mutating legacy memory', () => {
+  assert.equal(b.activeSummary(''), '');
+  assert.equal(b.activeSummary('Compact memory'), 'Compact memory');
+  assert.equal(b.activeSummary({ summary: 'Compact memory' }), 'Compact memory');
+  const huge = 'Older legacy facts. '.repeat(1000);
+  const state = { summary: huge, progress: null };
+  const active1 = b.activeSummary(state);
+  assert.ok(b.bytes(active1) <= 4096);
+  assert.equal(state.summary, huge);
+  state.progress = { legacy: { source: huge, offset: 5000, summary: 'Partially condensed facts' } };
+  const active2 = b.activeSummary(state);
+  assert.equal(active2, 'Partially condensed facts');
+  assert.equal(state.summary, huge);
+});
+

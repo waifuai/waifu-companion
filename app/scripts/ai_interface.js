@@ -127,8 +127,11 @@ function buildSystemPrompt(targetLanguageName, contextInfo) {
     ? `\n\nAdditional Personality Instructions: ${window.userPersonaPrompt.trim()}`
     : "";
 
-  const summaryContext = (window.conversationSummary && window.conversationSummary.trim())
-    ? `\n\nExisting Conversation Summary: ${window.conversationSummary.trim()}`
+  const activeSummary = window.ConversationBudget
+    ? window.ConversationBudget.activeSummary({ summary: window.conversationSummary, progress: window.summaryProgress })
+    : (window.conversationSummary || '');
+  const summaryContext = (activeSummary && activeSummary.trim())
+    ? `\n\nExisting Conversation Summary: ${activeSummary.trim()}`
     : "";
 
   const currentSettingsContext = `
@@ -324,12 +327,6 @@ async function getImageDecision(userMessage) {
 // before storage in chat_controller.js); image entries go through
 // contextForModel.
 async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '') {
-  if (window.ConversationBudget.bytes(window.conversationSummary) > window.ConversationBudget.limits.summary) {
-    await maybeSummarizeConversation(false);
-    if (window.ConversationBudget.bytes(window.conversationSummary) > window.ConversationBudget.limits.summary) {
-      throw window.ConversationBudget.error('memory_pending', 'Older memory is being compressed. Use Update Summary from Chat to continue; your messages are kept.');
-    }
-  }
   const contextInfo = await buildContextInfo();
   const targetLanguageName = (!targetLanguageCode || targetLanguageCode === 'en-US')
     ? null

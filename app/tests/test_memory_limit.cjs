@@ -11,7 +11,8 @@ function client(memory, trigger, store = new Map()) {
   const elements = new Map(['memorySize', 'memorySizeValue', 'summaryTriggerCount', 'summaryTriggerCountValue']
     .map(id => [id, { value: 20, textContent: '', addEventListener() {} }]));
   const ctx = vm.createContext({
-    document: { getElementById: id => elements.get(id) || null, addEventListener() {} },
+    document: { getElementById: id => elements.get(id) || null, addEventListener() {},
+      documentElement: { style: { getPropertyValue: () => '0.9' } } },
     AppStorage: { KEYS: keys, getNumber: (key, fallback) => store.get(key) ?? fallback,
       getString: (key, fallback) => store.get(key) ?? fallback, getJSON: (key, fallback) => store.get(key) ?? fallback,
       setNumber: (key, value) => store.set(key, value), setString: (key, value) => store.set(key, value),
@@ -158,3 +159,24 @@ test('automatic partial compression runs once per user turn and failure has a co
   assert.equal(await ctx.maybeSummarizeConversation(), false);
   assert.equal(calls, 2);
 });
+
+test('oversized legacy summary never blocks chat or prompts the user, using active summary within budget', async () => {
+  const { ctx } = client();
+  const legacySummary = 'Older facts about user and story. '.repeat(500);
+  ctx.conversationSummary = legacySummary;
+  ctx.conversationContext = [
+    { role: 'user', content: 'prior question' },
+    { role: 'assistant', content: 'prior answer' }
+  ];
+  ctx.buildContextInfo = async () => [];
+  const messages = await ctx.buildChatMessages('new message', 'en-US');
+  assert.ok(messages.length >= 2);
+  const sysMsg = messages.find(m => m.role === 'system');
+  assert.ok(sysMsg);
+  assert.ok(sysMsg.content.includes('Existing Conversation Summary:'));
+  assert.ok(Buffer.byteLength(sysMsg.content, 'utf8') < 10000);
+  assert.equal(ctx.conversationSummary, legacySummary);
+  const body = { model: 'waifuai-v1', messages, max_tokens: 2500, stream: true };
+  assert.ok(Buffer.byteLength(JSON.stringify(body), 'utf8') <= 32768);
+});
+

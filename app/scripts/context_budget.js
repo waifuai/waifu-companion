@@ -100,7 +100,19 @@
     return { summary, progress: task.partial ? { partial: task.partial } : null,
       ...(task.legacy ? { backup: task.source } : {}) };
   }
-  const api = { limits, bytes, jsonBytes, validateSummary, checkBody, pack, prefix, signature, summaryMessages, compressionTask, accept, error };
+  function activeSummary(state) {
+    if (!state) return '';
+    const text = typeof state === 'string' ? state : String(state.summary || '');
+    if (bytes(text) <= limits.summary) return text;
+    const progress = typeof state === 'object' && state.progress;
+    if (progress && progress.legacy && progress.legacy.summary) {
+      const ps = String(progress.legacy.summary);
+      if (bytes(ps) <= limits.summary) return ps;
+      return prefix(ps, limits.summary);
+    }
+    return prefix(text, limits.summary);
+  }
+  const api = { limits, bytes, jsonBytes, validateSummary, checkBody, pack, prefix, signature, summaryMessages, compressionTask, accept, activeSummary, error };
   root.ConversationBudget = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
