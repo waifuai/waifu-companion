@@ -125,113 +125,73 @@ function playAudioBuffer(audioBuffer, label = '') {
 }
 window.playAudioBuffer = playAudioBuffer;
 
-// --- Language routing: route TTS voice by the reply's script ---
-// Short code -> BCP47 lang tag. Script-range detection for non-Latin scripts;
-// Latin-script stopword hints are handled by detectLatinVoiceLang below.
-// null means "keep the user's chosen voice".
-const DETECTED_VOICE_LANG_TAGS = {
-  ru: 'ru-RU', ar: 'ar-SA', ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN',
-  th: 'th-TH', hi: 'hi-IN', he: 'he-IL', el: 'el-GR',
-  id: 'id-ID', de: 'de-DE', pt: 'pt-BR'
-};
-
-// Japanese female voice pinned by the design doc (jp_003 = F2).
-const PREFERRED_LANG_VOICE_IDS = { ja: 'jp_003' };
-
-function detectVoiceLang(text) {
-  if (!text) return null;
-  if (/[\u0400-\u04FF]/.test(text)) return 'ru';
-  if (/[\u0600-\u06FF]/.test(text)) return 'ar';
-  if (/[\u3040-\u30FF]/.test(text)) return 'ja'; // Kana BEFORE Han, else ja reads as zh
-  if (/[\uAC00-\uD7AF]/.test(text)) return 'ko';
-  if (/[\u4E00-\u9FFF]/.test(text)) return 'zh';
-  if (/[\u0E00-\u0E7F]/.test(text)) return 'th';
-  if (/[\u0900-\u097F]/.test(text)) return 'hi';
-  if (/[\u0590-\u05FF]/.test(text)) return 'he';
-  if (/[\u0370-\u03FF]/.test(text)) return 'el';
-  return null;
+// One language plan for a completed spoken reply, shared by all its chunks.
+const ttsLanguageState = window.TTSLanguageRouter ? window.TTSLanguageRouter.create() : null;
+function ttsConversationKey() {
+  return window.ChatManager ? window.ChatManager.getActiveChatId() || 'default' : 'default';
 }
-
-// Resolves { voiceId, lang } for a chunk. lang = BCP47 tag when a script or
-// Latin-script hint was detected (null otherwise). voiceId = best matching
-// configured voice (female
-// first, or the pinned id), or the input voiceId when no configured voice matches.
-function resolveVoiceForText(text, voiceId) {
-  const scriptLang = detectVoiceLang(text);
-  const lang = scriptLang || detectLatinVoiceLang(text);
-  if (!lang) return { voiceId, lang: null };
-  const base = lang.split('-')[0].toLowerCase();
-  const matches = (v) => (!window.WaifuEmbed || v.provider === 'tiktok') &&
-    (v.language === lang || (v.language || '').split('-')[0].toLowerCase() === base);
-  const pinnedId = PREFERRED_LANG_VOICE_IDS[lang];
-  const pinned = pinnedId ? voices.find(v => v.id === pinnedId && matches(v)) : null;
-  const female = voices.find(v => matches(v) && v.gender === 'female');
-  const any = voices.find(matches);
-  const chosen = pinned || female || any;
-  return { voiceId: chosen ? chosen.id : voiceId, lang: DETECTED_VOICE_LANG_TAGS[lang] || null };
+function ttsRoutingFingerprint() {
+  return JSON.stringify([window.enablePrimaryVoice !== false, !!window.enableKokoro, window.enableFallbackVoice !== false, window.selectedKokoroVoiceId || '', window.ttsFallbackVoiceId || '']);
+}
+function prepareTTSRouting(text, force = false) {
+  if (!ttsLanguageState) return null;
+  const speech = typeof stripForTTS === 'function' ? stripForTTS(text) : text;
+  return ttsLanguageState.prepare(speech, { key: ttsConversationKey(), voiceId: window.selectedVoiceId || 'en_us_001', voices,
+    auto: window.enableAutoTtsLang !== false, enabled: force || !!window.enableVoice, fingerprint: ttsRoutingFingerprint() });
+}
+function finishTTSRouting(plan, request, valid = () => true) {
+  return plan && ttsLanguageState ? ttsLanguageState.settle(plan, request, 'live2d_tts_language_v1', valid) : Promise.resolve(plan);
+}
+async function getTTSRouting(text, provided = null, valid = () => true) {
+  let plan = provided ? await provided : prepareTTSRouting(text);
+  const voiceId = window.selectedVoiceId || 'en_us_001';
+  const signature = JSON.stringify([ttsConversationKey(), voiceId, window.enableAutoTtsLang !== false, ttsRoutingFingerprint()]);
+  if (plan && plan.signature !== signature) plan = prepareTTSRouting(text);
+  if (plan && plan.needsDecision && !plan.finished && !plan.pending && valid()) {
+    let request = null;
+    if (window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function') {
+      const recent = (window.conversationContext || []).slice(-4).map(m => ({ role: m.role, text: String(m.content || '').slice(0, 300) }));
+      request = window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: plan.text.slice(0, 1200), conversation_language: plan.previousLang, recent_context: recent });
+    }
+    plan = await finishTTSRouting(plan, request, valid);
+  } else if (plan && plan.pending && !plan.finished) plan = await plan.pending;
+  return plan;
+}
+function detectVoiceLang(text) {
+  const a = window.TTSLanguageRouter && window.TTSLanguageRouter.analyze(text);
+  return a && a.reason === 'dominant-script' ? window.TTSLanguageRouter.base(a.lang) : null;
+}
+function detectLatinVoiceLang(text) {
+  const a = window.TTSLanguageRouter && window.TTSLanguageRouter.analyze(text);
+  return a && a.strong && a.reason !== 'dominant-script' ? window.TTSLanguageRouter.base(a.lang) : null;
+}
+function resolveVoiceForText(text, voiceId, plan = null) {
+  if (!window.TTSLanguageRouter) return { voiceId, lang: null };
+  const a = plan || window.TTSLanguageRouter.analyze(text);
+  const routed = window.TTSLanguageRouter.selectVoice(voices, voiceId, a.lang, window.enableAutoTtsLang !== false);
+  return { voiceId: routed.voiceId, lang: routed.lang };
 }
 window.detectVoiceLang = detectVoiceLang;
-window.resolveVoiceForText = resolveVoiceForText;
-
-// --- Latin-script language hints (stopword scoring) ---
-// Latin scripts carry no script signal, so score function words for the
-// Latin-script languages that have a matching TikTok voice. English is
-// tracked only as an ambiguity guard; if nothing wins clearly, the user's
-// voice is kept. Both accented and accentless spellings are included, and
-// the id set also covers Malay and Filipino: no tl voice exists, so the phonetically closest voice is Indonesian.
-const LATIN_LANG_HINTS = {
-  en: ['the','and','you','that','have','for','not','with','this','but','what','your','just','like','how','are','was','can','it','is','to','of','in','my','me','we','so','do','if','on','or','at','be','as','an','his','her','they','them','their','would','could','should','there','here','from','about','when','then','than','some','one','all','out','up','who','why','will','well','yeah','okay','ok','love','want','know','think','feel','really','very','much','good','happy','sad','please','thanks','thank','sorry','hello','hey','cute','pretty','beautiful','little','big','day','night','morning','time','right','back','down','over','again','still','only','even','more','most','too','oh','ooh','haha','lol','yes'],
-  id: ['yang','dan','itu','ini','dari','apa','siapa','kenapa','bagaimana','kapan','dimana','mana','tidak','tak','bukan','jangan','aku','kamu','kau','saya','anda','awak','dia','kita','kami','mereka','orang','dengan','untuk','pada','dalam','akan','sudah','udah','belum','pernah','selalu','sering','kadang','bisa','dapat','boleh','harus','mau','ingin','suka','sayang','cinta','hati','senang','sedih','takut','marah','lucu','cantik','manis','baik','jelek','besar','kecil','banyak','sedikit','semua','juga','tapi','tetapi','karena','kalau','jika','kalo','jadi','adalah','ada','tinggal','bicara','ngomong','bilang','kata','tahu','tau','ngerti','paham','lihat','dengar','kasih','beri','buat','buatkan','bikin','makan','gambar','untukmu','untuk','minum','tidur','bangun','jalan','rumah','kerja','sekolah','uang','belajar','teman','keluarga','nama','kabar','halo','terima','maaf','tolong','selamat','banget','nggak','gak','nih','dong','sih','deh','kok','lah','yuk','ayo','mari','oke','nunggu','santai','bantu','sekedar','memang','ternyata','sekarang','nanti','besok','kemarin','pagi','siang','sore','malam','hari',
-    // Filipino/Tagalog (no tl voice upstream; phonetic map -> Indonesian voice)
-    'ang','mga','ako','ikaw','niya','natin','namin','nila','tayo','kayo','sila','ito','iyan','iyon','yun','yan','dito','diyan','doon','sino','saan','paano','bakit','kailan','opo','oo','hindi','wala','meron','dahil','kasi','naman','lang','talaga','grabe','sobra','salamat','kamusta','kumusta','mahal','puso','buhay','ganda','gwapo','asawa','anak','kuya','lola','lolo','tito','tita','pare','kaibigan','mabait','masaya','malungkot','galit','pagod','naku','galing','lahat','tulong','ingat','palagi','muna',
-    // Malay spelling variants (same Indonesian target)
-    'khabar','mahu','jom'],
-  de: ['der','die','das','dem','den','und','oder','aber','ich','wir','ihr','mich','dich','sich','uns','dein','sein','ihre','nicht','kein','keine','ein','eine','einem','einen','ist','bin','bist','sind','war','waren','wird','werden','kann','kannst','können','konnen','muss','will','willst','möchte','mochte','habe','hast','hat','haben','für','fur','auf','von','bei','nach','über','uber','unter','vor','durch','gegen','ohne','um','wie','was','wer','warum','wo','wann','jetzt','dann','wenn','weil','dass','doch','mal','schon','nur','auch','noch','immer','wieder','sehr','gut','schlecht','ja','nein','danke','bitte','hallo','liebe','liebling','schatz','herz','tag','nacht','morgen','gern','gerne'],
-  pt: ['não','nao','sim','você','voce','vocês','voces','sou','eu','ele','ela','nós','mas','com','para','isso','isto','aqui','muito','bem','tudo','nada','bom','boa','dia','noite','tarde','olá','ola','oi','obrigado','obrigada','desculpa','amor','querido','querida','saudade','saudades','coração','coracao','beijo','beijos','gosto','gostei','gente','então','entao','também','tambem','quando','onde','tá','né','acho','certeza','vou','vai','está','esta','estão','estao',
-    // Spanish words fold into the pt bucket on purpose: no es voice exists and
-    // br_001 is the closest female Romance voice (female-first policy).
-    'hola','gracias','muy','señor','señora','señorita','usted','ustedes','eres','del','ellos','ellas','nosotros','tambien','también','puedo','puedes','quiero','quieres','tengo','tienes','dime','dónde','donde','cuando','quién','quien','mío','mía','tuyo','tuya','bueno','buena','buenas','buenos','unos','unas','esto','eso','aquello','allá','luego','entonces','siempre','nunca','mañana','noche','semana','mundo','grande','pequeño','pequeña','malo','feliz','triste','gusto','encanta','corazón','corazon','beso','besos','guapo','guapa','lindo','linda','hermana','hermano','amiga','amigo','casa','vida','tiempo','español','espanol','inglés','ingles','perdón','perdon','favor','adiós','adios','cariño','carino','estoy','estás','estan','están','somos','son','estaba','hablas','hablo','mucho','aunque','hermosa','hermoso','juntos','juntas','sabes','amo','cómo','aquí','dias','día','días','qué','siento','contigo','necesitas','dios','alegra'],
-};
-const LATIN_LANG_HINT_SETS = {};
-for (const hintLang of Object.keys(LATIN_LANG_HINTS)) LATIN_LANG_HINT_SETS[hintLang] = new Set(LATIN_LANG_HINTS[hintLang]);
-
-// Returns a routed language ('id' | 'de' | 'pt') when a Latin-script text
-// clearly matches a supported language, else null (keep the user's voice).
-function detectLatinVoiceLang(text) {
-  const tokens = String(text || '').toLowerCase().split(/[^a-z\u00E0-\u00F6\u00F8-\u00FF0-9']+/).filter(t => t.length >= 2);
-  if (!tokens.length) return null;
-  const scores = {};
-  for (const hintLang of Object.keys(LATIN_LANG_HINT_SETS)) scores[hintLang] = 0;
-  for (const token of tokens) {
-    for (const hintLang of Object.keys(scores)) {
-      if (LATIN_LANG_HINT_SETS[hintLang].has(token)) scores[hintLang]++;
-    }
-  }
-  let best = null, bestScore = 0, tied = false;
-  for (const [hintLang, score] of Object.entries(scores)) {
-    if (score > bestScore) { best = hintLang; bestScore = score; tied = false; }
-    else if (score === bestScore && score > 0) tied = true;
-  }
-  if (!best || best === 'en' || tied) return null;
-  if (bestScore < 2) return null; // needs at least two distinct hits
-  // Short texts may also route with two hits when they cover >=25% of the words
-  // (calibrated on the live corpus: zero false positives; long texts still need three).
-  if (bestScore < 3 && bestScore * 4 < tokens.length) return null;
-  if (bestScore - scores.en < 1) return null; // must clearly beat the English guard
-  return best;
-}
 window.detectLatinVoiceLang = detectLatinVoiceLang;
+window.resolveVoiceForText = resolveVoiceForText;
+window.prepareTTSRouting = prepareTTSRouting;
+window.finishTTSRouting = finishTTSRouting;
+window.getTTSRouting = getTTSRouting;
 
 // Picks a concrete SpeechSynthesisVoice for the requested voice config.
 // langOverride (BCP47) wins over the voice config's own language when a reply's script was detected.
 function selectBrowserVoice(voiceId, langOverride) {
   const available = speechSynthesis.getVoices();
   const voiceConfig = voices.find(v => v.id === voiceId);
-  const targetLang = langOverride || (voiceConfig && voiceConfig.language) || 'en-US';
+  let targetLang = langOverride || (voiceConfig && voiceConfig.language) || 'en-US';
   const targetGender = (voiceConfig && voiceConfig.gender) || 'female';
 
   const baseLang = targetLang.split('-')[0];
-  const langVoices = available.filter(v => v.lang.startsWith(baseLang));
+  let langVoices = available.filter(v => v.lang.toLowerCase().split('-')[0] === baseLang.toLowerCase());
+  if (!langVoices.length && voiceConfig && langOverride) {
+    targetLang = voiceConfig.language;
+    langVoices = available.filter(v => v.lang.toLowerCase().split('-')[0] === targetLang.split('-')[0].toLowerCase());
+  }
 
   if (langVoices.length > 0) {
     const femaleKeywords = ['female', 'woman', 'girl', 'zira', 'hazel', 'susan', 'samantha', 'karen', 'moira', 'tessa', 'fiona', 'kate', 'victoria', 'princess', 'alice'];
@@ -245,7 +205,7 @@ function selectBrowserVoice(voiceId, langOverride) {
     const notOpposite = langVoices.find(v => !oppositeKeywords.some(kw => v.name.toLowerCase().includes(kw)));
     return { voice: keywordMatch || notOpposite || langVoices[0], lang: targetLang };
   }
-  return { voice: available[0] || null, lang: targetLang };
+  return { voice: null, lang: targetLang, unsupported: available.length > 0 };
 }
 
 // Waits (bounded) for the browser to populate its voice list.
@@ -283,11 +243,13 @@ async function speakViaBrowser(textChunk, voiceId, langOverride) {
   }
 
   await waitForBrowserVoices();
+  const selectedBrowserVoice = selectBrowserVoice(voiceId, langOverride);
+  if (selectedBrowserVoice.unsupported) return { lang: null, played: false };
   debugLog(`TTS: Speaking via browser SpeechSynthesis: "${textChunk.substring(0, 50)}..."`, 'info');
 
   await new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(textChunk);
-    const { voice, lang } = selectBrowserVoice(voiceId, langOverride);
+    const { voice, lang } = selectedBrowserVoice;
     utterance.lang = lang;
     if (voice) {
       utterance.voice = voice;
@@ -317,6 +279,7 @@ async function speakViaBrowser(textChunk, voiceId, langOverride) {
 
     speechSynthesis.speak(utterance);
   });
+  return { lang: selectedBrowserVoice.lang, played: true };
 }
 window.speakViaBrowser = speakViaBrowser;
 
@@ -325,7 +288,7 @@ window.speakViaBrowser = speakViaBrowser;
 // Throws on primary-provider errors (with err.status set where known) so the
 // queue manager can see rate limits and pause instead of silently dropping
 // the chunk.
-async function fetchTTSBuffer(textChunk, voiceId) {
+async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
   if (!textChunk.trim()) return null;
 
   debugLog(`TTS: === fetchTTSBuffer START ===`, 'info');
@@ -333,9 +296,20 @@ async function fetchTTSBuffer(textChunk, voiceId) {
   debugLog(`TTS: Input voiceId: "${voiceId}"`, 'info');
 
   const voiceConfig = voices.find(v => v.id === voiceId);
-  const provider = voiceConfig ? voiceConfig.provider : 'tiktok';
-  debugLog(`TTS: Resolved provider: "${provider}" for voiceId: "${voiceId}"`, 'info');
-  const routed = (window.enableAutoTtsLang !== false) ? resolveVoiceForText(textChunk, voiceId) : { voiceId, lang: null };
+  let routed = window.TTSLanguageRouter
+    ? window.TTSLanguageRouter.selectVoice(voices, voiceId, routingPlan ? routingPlan.lang : window.TTSLanguageRouter.analyze(textChunk).lang, window.enableAutoTtsLang !== false)
+    : { voiceId, lang: null, provider: voiceConfig ? voiceConfig.provider : 'tiktok' };
+  if (routed.unsupportedPrimary) {
+    if (window.enableFallbackVoice !== false && window.speechSynthesis) {
+      await waitForBrowserVoices();
+      if (speechSynthesis.getVoices().some(v => v.lang.toLowerCase().split('-')[0] === routed.lang.split('-')[0])) {
+        return { kind: 'browser', text: textChunk, voiceId: voiceConfig && voiceConfig.gender === 'male' ? 'browser-male' : 'browser-female', lang: routed.lang, provider: 'browser', fellBack: true, routingSignature: routingPlan && routingPlan.signature };
+      }
+    }
+    // No installed voice for that language: retain the configured provider.
+    routed = { voiceId, lang: voiceConfig ? voiceConfig.language : 'en-US', provider: voiceConfig ? voiceConfig.provider : 'tiktok', unsupported: true };
+  }
+  const provider = routed.provider;
   if (routed.lang) debugLog(`TTS: Language routing: ${routed.lang} -> voice ${routed.voiceId} (user setting: ${voiceId})`, 'info');
 
   const audioContext = getTTSAudioContext();
@@ -376,7 +350,7 @@ async function fetchTTSBuffer(textChunk, voiceId) {
       for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
       const buffer = await audioContext.decodeAudioData(bytes.buffer);
       debugLog(`TTS: TikTok TTS audio decoded successfully, duration: ${buffer.duration.toFixed(2)}s`, 'info');
-      return { kind: 'buffer', buffer, provider: 'tiktok', fellBack: false };
+      return { kind: 'buffer', buffer, voiceId: routed.voiceId, lang: routed.lang || (voiceConfig && voiceConfig.language), provider: 'tiktok', fellBack: false, unsupported: !!routed.unsupported, routingSignature: routingPlan && routingPlan.signature };
     } catch (err) {
       debugError('TTS: TikTok TTS failed', err, { voiceId, textLen: textChunk.length });
       primaryError = err;
@@ -385,17 +359,18 @@ async function fetchTTSBuffer(textChunk, voiceId) {
   } else if (provider === 'browser' && window.enablePrimaryVoice !== false) {
     // A browser voice selection keeps its gender/provider when auto routing
     // supplies a language, rather than inheriting a routed TikTok voice.
-    return { kind: 'browser', text: textChunk, voiceId: window.WaifuEmbed ? voiceId : routed.voiceId, lang: routed.lang, provider: 'browser', fellBack: false };
+    return { kind: 'browser', text: textChunk, voiceId, lang: routed.lang, provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
   } else if (window.enablePrimaryVoice === false) {
     debugLog('TTS: Primary voice disabled.', 'info');
     fellBack = true;
   }
 
   // 2. Local Kokoro.
-  if (window.enableKokoro && window.isKokoroReady && typeof window.generateKokoroAudioBuffer === 'function') {
+  if ((!routed.lang || routed.lang.split('-')[0] === 'en') && window.enableKokoro && window.isKokoroReady && typeof window.generateKokoroAudioBuffer === 'function') {
     try {
-      const kokoroBuffer = await window.generateKokoroAudioBuffer(textChunk, window.selectedKokoroVoiceId || 'af_heart');
-      if (kokoroBuffer) return { kind: 'buffer', buffer: kokoroBuffer, provider: 'kokoro', fellBack };
+      const kokoroVoice = provider === 'kokoro' ? voiceId : window.selectedKokoroVoiceId || 'af_heart';
+      const kokoroBuffer = await window.generateKokoroAudioBuffer(textChunk, kokoroVoice);
+      if (kokoroBuffer) return { kind: 'buffer', buffer: kokoroBuffer, voiceId: kokoroVoice, lang: (voices.find(v => v.id === kokoroVoice) || {}).language || 'en-US', provider: 'kokoro', fellBack, routingSignature: routingPlan && routingPlan.signature };
     } catch (kokoroErr) {
       debugLog(`TTS: Local Kokoro generation failed: ${kokoroErr.message}`, 'error');
       fellBack = true;
@@ -419,7 +394,8 @@ async function fetchTTSBuffer(textChunk, voiceId) {
     voiceId: window.ttsFallbackVoiceId || 'browser-female',
     lang: routed.lang,
     provider: 'browser',
-    fellBack
+    fellBack,
+    routingSignature: routingPlan && routingPlan.signature
   };
 }
 window.fetchTTSBuffer = fetchTTSBuffer;
@@ -431,7 +407,9 @@ async function playResolvedChunk(resolved, label = '') {
     return;
   }
   if (resolved.kind === 'browser') {
-    await speakViaBrowser(resolved.text, resolved.voiceId, resolved.lang);
+    const played = await speakViaBrowser(resolved.text, resolved.voiceId, resolved.lang);
+    resolved.skipped = !played || !played.played;
+    if (played && played.lang) resolved.lang = played.lang;
     return;
   }
   await playAudioBuffer(resolved.buffer, label);
@@ -447,7 +425,7 @@ window.playResolvedChunk = playResolvedChunk;
 // Previously every error here was swallowed (caught, logged, then the
 // function just fell into `finally` and returned undefined), so the 429
 // handling in tts_queue_manager.js was unreachable dead code.
-async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = null) {
+async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = null, routingPlan = null, valid = () => true) {
   const MAX_SPLIT_ATTEMPTS = 5;
   if (attempt > MAX_SPLIT_ATTEMPTS) {
     debugLog(`TTS: Chunk too long after splits: "${textChunk.substring(0, 30)}..."`, 'error');
@@ -458,7 +436,8 @@ async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = n
   debugLog(`TTS: Playing chunk (attempt ${attempt + 1}): "${textChunk.substring(0, 100)}..." with voice ${voiceId}`, 'info');
 
   try {
-    const resolved = preloaded || await fetchTTSBuffer(textChunk, voiceId);
+    const resolved = preloaded || await fetchTTSBuffer(textChunk, voiceId, routingPlan);
+    if (!valid()) return null;
     await playResolvedChunk(resolved, textChunk.substring(0, 30));
     return resolved;
   } catch (err) {
@@ -470,8 +449,8 @@ async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = n
 
       const firstHalf = textChunk.substring(0, splitPoint);
       const secondHalf = textChunk.substring(splitPoint).trim();
-      const a = firstHalf ? await tryPlaySingleChunk(firstHalf, voiceId, attempt + 1) : null;
-      const b = secondHalf ? await tryPlaySingleChunk(secondHalf, voiceId, attempt + 1) : null;
+      const a = firstHalf && valid() ? await tryPlaySingleChunk(firstHalf, voiceId, attempt + 1, null, routingPlan, valid) : null;
+      const b = secondHalf && valid() ? await tryPlaySingleChunk(secondHalf, voiceId, attempt + 1, null, routingPlan, valid) : null;
       return a || b;
     }
     debugError('TTS: Error playing chunk', err, { textPreview: textChunk.substring(0, 80), voiceId, attempt });

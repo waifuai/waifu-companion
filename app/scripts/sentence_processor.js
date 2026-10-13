@@ -20,7 +20,8 @@ function stripForTTS(text) {
         '\\uD83D[\\uDC00-\\uDFFF]|[\\u2000-\\u2FFF]|\\uD83E[\\uDD00-\\uDFFF])',
         'g'
     );
-    return String(text || '')
+    const speechText = window.TTSLanguageRouter ? window.TTSLanguageRouter.clean(text) : String(text || '');
+    return speechText
         .replace(/\*\s*[^*\n]*\s[^*\n]*\s*\*/g, ' ')  // Drop whole *action* spans: a space inside = stage direction, so speech never narrates them
         .replace(/\*\s*\*/g, ' ')             // Empty ** pairs
         .replace(/\*/g, '')                     // Single-word emphasis keeps its word, bare glyphs go

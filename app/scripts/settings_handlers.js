@@ -1529,7 +1529,8 @@ async function preloadAmbientTTS(text) {
       // fetchTTSBuffer resolves provider by looking up a voiceId in the
       // `voices` list) sent it down the wrong provider path entirely.
       const voiceId = (typeof window.selectedVoiceId === 'string' && window.selectedVoiceId) || 'en_us_001';
-      const resolved = await window.fetchTTSBuffer(firstChunkText, voiceId);
+      const plan = typeof window.getTTSRouting === 'function' ? await window.getTTSRouting(cleanText) : null;
+      const resolved = await window.fetchTTSBuffer(firstChunkText, voiceId, plan);
       if (resolved) {
         // fetchTTSBuffer never plays; a 'browser' descriptor is inert until played.
         window.ambientPreloadTTSBuffer = resolved;

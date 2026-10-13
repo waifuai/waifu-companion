@@ -38,6 +38,10 @@ class PlayerCardTests(unittest.TestCase):
         self.calls, self.errors, self.boot_errors, self.tts_calls = [], [], [], []
         self.reply = 'Mock reply received.'
         self.tts_fail = False
+        self.decision_requests = []
+        self.language_answer = {'choice_id': 'en-US', 'confidence': 0.95}
+        self.hold_decisions = False
+        self.pending_decision = None
         self.context.route('**/*', self.route)
         self.page = self.context.new_page()
         self.page.on('pageerror', lambda e: self.errors.append(str(e)))
@@ -60,6 +64,13 @@ class PlayerCardTests(unittest.TestCase):
                 route.fulfill(status=404, headers=cors)
         elif route.request.method == 'OPTIONS':
             route.fulfill(status=204, headers={**cors, 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, GET, OPTIONS'})
+        elif url.path == '/decisions':
+            request = route.request.post_data_json
+            self.decision_requests.append(request)
+            if self.hold_decisions and 'live2d_tts_language_v1' in request['tasks']:
+                self.pending_decision = route
+            else:
+                self.fulfill_decision(route)
         elif 'workers.dev' in (url.hostname or '') or url.path.endswith('/chat/completions'):
             if route.request.method != 'POST':
                 route.fulfill(status=404, headers=cors)
@@ -93,6 +104,13 @@ class PlayerCardTests(unittest.TestCase):
             route.fulfill(status=status, headers=cors, content_type=content_type, body=body)
         else:
             route.fulfill(headers=cors, content_type='application/javascript', body='')
+
+    def fulfill_decision(self, route):
+        answers = {task: self.language_answer if task == 'live2d_tts_language_v1'
+                   else {'choice_id': 'happy' if task == 'live2d_emotion_v1' else 'none', 'confidence': 0.95}
+                   for task in route.request.post_data_json['tasks']}
+        route.fulfill(headers={'access-control-allow-origin': '*'}, content_type='application/json',
+                      body=json.dumps({'status': 'ok', 'answers': answers}))
 
     def open_app(self, width=480, height=480, sandbox='allow-scripts allow-same-origin', blocked=False, embed=True):
         if blocked:
@@ -242,7 +260,9 @@ class PlayerCardTests(unittest.TestCase):
         self.assertEqual(self.tts_calls[0]['voice'], 'en_us_001')
         self.assertEqual(self.tts_calls[0]['text'], 'Mock reply received.')
         played = frame.evaluate('Array.from(dataLayer.find(e => e[0] === "event" && e[1] === "tts_played"))[2]')
-        self.assertEqual(played, {'provider': 'tiktok', 'fell_back': False})
+        self.assertEqual(played['provider'], 'tiktok')
+        self.assertFalse(played['fell_back'])
+        self.assertEqual(played['voice_lang'], 'en-US')
         self.assertEqual(frame.evaluate('getTTSAudioContext().state'), 'running')
         self.assertFalse(self.errors, self.errors)
 
@@ -256,7 +276,7 @@ class PlayerCardTests(unittest.TestCase):
         frame.locator('#messageInput').fill('Say hello in Japanese')
         frame.locator('#sendMessageBtn').click()
         frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')
-        self.assertEqual(self.tts_calls[0]['voice'], 'jp_003')
+        self.assertEqual(self.tts_calls[0]['voice'], 'jp_001')  # Compatible selected voice is preserved.
         self.assertEqual(self.tts_calls[0]['text'], self.reply)
         self.assertEqual(frame.evaluate('AppStorage.getString(AppStorage.KEYS.SELECTED_VOICE_ID)'), 'jp_001')
         self.assertFalse(self.errors, self.errors)
@@ -299,7 +319,7 @@ class PlayerCardTests(unittest.TestCase):
         self.tts_fail = True
         resolved = frame.evaluate('fetchTTSBuffer("こんにちは。", window.selectedVoiceId)')
         self.assertEqual(resolved, {'kind': 'browser', 'text': 'こんにちは。', 'voiceId': 'browser-female',
-                                    'lang': 'ja-JP', 'provider': 'browser', 'fellBack': True})
+                                    'lang': 'ja-JP', 'provider': 'browser', 'fellBack': True, 'routingSignature': None})
         self.assertEqual(self.tts_calls[-1]['voice'], 'jp_003')
         before = len(self.tts_calls)
         browser = frame.evaluate('fetchTTSBuffer("こんにちは。", "browser-male")')
@@ -326,6 +346,61 @@ class PlayerCardTests(unittest.TestCase):
         self.assertTrue(self.page.locator('#sendMessageBtn').is_visible())
         self.assertFalse(self.calls)
         self.assertFalse(self.errors, self.errors)
+
+
+    def test_tts_clear_french_and_spanish_are_local(self):
+        frame = self.open_app()
+        for text, voice in [('Bonjour, je suis contente de te voir.', 'fr_001'), ('Hola, gracias!', 'es_002')]:
+            self.reply = text
+            before = len(self.tts_calls)
+            frame.locator('#messageInput').fill('Read this reply: ' + voice)
+            frame.locator('#sendMessageBtn').click()
+            frame.wait_for_function('n => dataLayer.filter(e => e[0] === "event" && e[1] === "tts_played").length > n', arg=before)
+            self.assertEqual(self.tts_calls[-1]['voice'], voice)
+        self.assertFalse(any('live2d_tts_language_v1' in r['tasks'] for r in self.decision_requests))
+        self.assertFalse(self.errors, self.errors)
+
+    def test_tts_uncertain_reply_shares_emotion_request(self):
+        frame = self.open_app()
+        self.reply = '*waves gently* Kimi no koe ga yasashikute kokoro ga atatakai.'
+        self.language_answer = {'choice_id': 'ja-JP', 'confidence': 0.95}
+        frame.locator('#messageInput').fill('Please read this')
+        frame.locator('#sendMessageBtn').click()
+        frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')
+        requests = [r for r in self.decision_requests if 'live2d_tts_language_v1' in r['tasks']]
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(requests[0]['tasks'], ['live2d_emotion_v1', 'live2d_tts_language_v1'])
+        self.assertTrue(requests[0]['state']['reply'].startswith('*waves gently*'))
+        self.assertFalse(requests[0]['state']['spoken_reply'].startswith('*'))
+        self.assertEqual(self.tts_calls[0]['voice'], 'jp_003')
+        before = len(self.decision_requests)
+        frame.evaluate('text => playTTS(text, "en-US")', self.reply)
+        frame.wait_for_function('dataLayer.filter(e => e[0] === "event" && e[1] === "tts_played").length >= 2')
+        self.assertEqual(len(self.decision_requests), before)
+        self.assertFalse(self.errors, self.errors)
+
+    def test_tts_stop_rejects_pending_audio(self):
+        frame = self.open_app()
+        self.reply = 'Kimi no koe ga yasashikute kokoro ga atatakai.'
+        self.hold_decisions = True
+        frame.locator('#messageInput').fill('Please read this')
+        frame.locator('#sendMessageBtn').click()
+        frame.wait_for_function('isTTSBusy() && !window.isWaitingForAIResponse')
+        self.assertIsNotNone(self.pending_decision)
+        frame.evaluate('stopTTS()')
+        self.fulfill_decision(self.pending_decision)
+        frame.wait_for_timeout(80)
+        self.assertFalse(self.tts_calls)
+        self.assertFalse(frame.evaluate('isTTSBusy()'))
+        self.assertFalse(self.errors, self.errors)
+
+    def test_tts_available_browser_language_bypasses_primary(self):
+        frame = self.open_app()
+        frame.evaluate("speechSynthesis.getVoices = () => [{name: 'Arabic Female', lang: 'ar-SA'}]")
+        result = frame.evaluate('fetchTTSBuffer("مرحبا كيف حالك اليوم؟", "en_us_001")')
+        self.assertEqual(result['provider'], 'browser')
+        self.assertEqual(result['lang'], 'ar-SA')
+        self.assertFalse(self.tts_calls)
 
 
 if __name__ == '__main__':

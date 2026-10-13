@@ -368,7 +368,7 @@ function inferEmotion(text) {
 // animation when confident. The keyword guess keeps having set the initial
 // expression; on no answer or low confidence nothing changes here. Resolves
 // quietly; never throws.
-async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion) {
+async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion, speechPlan = null, valid = () => true) {
   try {
     if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function')) return;
     const clip = (s) => String(s || '').slice(0, 300);
@@ -377,16 +377,21 @@ async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion) {
     const recent = [...conversationContext].slice(-5, -1)
       .map(m => ({ role: m.role, text: clip(m.content) }))
       .filter(e => e.text);
-    const answers = await window.WaifuProxyAPI.decide(['live2d_emotion_v1'], {
+    const tasks = ['live2d_emotion_v1'];
+    if (speechPlan && speechPlan.needsDecision && !speechPlan.finished && !speechPlan.pending) tasks.push('live2d_tts_language_v1');
+    const answers = await window.WaifuProxyAPI.decide(tasks, {
       reply: String(reply || '').slice(0, 1200),
       user_message: clip(userMessage),
-      recent_context: recent
+      recent_context: recent,
+      ...(tasks.length > 1 ? { conversation_language: speechPlan.previousLang } : {}),
+      ...(tasks.length > 1 && speechPlan.text !== String(reply).trim() ? { spoken_reply: speechPlan.text.slice(0, 1200) } : {})
     });
     const answer = answers && answers.live2d_emotion_v1;
-    if (answer && (answer.confidence ?? 0) >= 0.4) {
+    if (valid() && answer && (answer.confidence ?? 0) >= 0.4) {
       debugLog(`Emotion decision: ${answer.choice_id} (confidence ${answer.confidence ?? 'n/a'})`, 'info');
       applyEmotion(answer.choice_id);
     }
+    return answers;
   } catch (e) {
     debugError('Emotion decision failed', e);
   }

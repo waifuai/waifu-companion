@@ -553,15 +553,22 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       debugLog('Connection-error reply shown to user but kept out of conversation context.', 'warn');
     }
 
+    const speechPlan = !isErrorReply && window.enableVoice && typeof prepareTTSRouting === 'function' ? prepareTTSRouting(originalReply) : null;
+    const validSpeechReply = () => (!window.ChatManager || window.ChatManager.getActiveChatId() === imageChatId) && (!messageId || !!document.getElementById(messageId));
+    let speechDecision = null;
     if (currentModel && !isErrorReply) {
       // The keyword guess sets the initial expression; WaifuAI Cloud's read
       // of the finished reply then upgrades it when confident. Both paths
       // apply the exact same animation per label (applyEmotionAnimation).
       applyEmotionAnimation(aiResponse.emotion);
       if (!isAmbient && typeof upgradeEmotionFromDecision === 'function') {
-        upgradeEmotionFromDecision(message, originalReply, applyEmotionAnimation);
+        speechDecision = upgradeEmotionFromDecision(message, originalReply, applyEmotionAnimation, speechPlan, validSpeechReply);
       }
     }
+    if (speechPlan && speechPlan.needsDecision && !speechPlan.finished && !speechPlan.pending && !speechDecision && window.WaifuProxyAPI) {
+      speechDecision = window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: speechPlan.text.slice(0, 1200), conversation_language: speechPlan.previousLang });
+    }
+    const speechRouting = speechPlan && typeof finishTTSRouting === 'function' ? finishTTSRouting(speechPlan, speechDecision, validSpeechReply) : null;
 
     const langConfig = languages.find(l => l.code === selectedLanguageCode) || languages.find(l => l.code === 'en-US');
     const voiceId = selectedVoiceId || langConfig.defaultVoiceId;
@@ -573,7 +580,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
         // notifyOnComplete=true: fires onAIResponseSpeechFinished when this
         // reply is done speaking, which is what ambient mode waits on. The
         // chat pipeline itself is released below, without waiting for TTS.
-        playTTS(originalReply, selectedLanguageCode, messageId, 0, ttsPreloadBuffer, true);
+        playTTS(originalReply, selectedLanguageCode, messageId, 0, ttsPreloadBuffer, true, speechRouting);
       } catch (e) {
         debugError('TTS call failed (playTTS threw)', e, {
           messageId: messageId,
