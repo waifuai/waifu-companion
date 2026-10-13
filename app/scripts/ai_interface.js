@@ -777,7 +777,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
       if (payload === '[DONE]') return;
       try {
         const parsed = JSON.parse(payload);
-        const content = parsed.choices?.[0]?.delta?.content || '';
+        const content = parsed?.choices?.[0]?.delta?.content || '';
         if (content) {
           fullContent += content;
           emitProgress();
