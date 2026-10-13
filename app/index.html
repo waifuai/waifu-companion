@@ -470,6 +470,7 @@
         <div class="settings-item">
           <label for="conversationSummary" data-ui-key="conversationSummaryLabel">📝 Conversation Summary</label>
           <textarea id="conversationSummary" class="settings-textarea" placeholder="The AI will automatically update this every few messages (see Summary Trigger), but you can edit it here..."></textarea>
+          <div id="summarySizeStatus" role="status">Memory limit: 4 KiB. Older text is kept until compression succeeds.</div>
           <div class="button-row">
             <button id="manualSummarizeBtn" data-ui-key="manualSummarizeBtn">Update Summary from Chat</button>
           </div>
@@ -1026,6 +1027,7 @@
     <script src="scripts/ui_translator.js"></script>
     <script src="scripts/global_state.js"></script>
     <script src="scripts/storage.js"></script>
+    <script src="scripts/context_budget.js"></script>
     <script src="scripts/llm_provider_base.js"></script>
     <script src="scripts/openrouter.js"></script>
     <script src="scripts/groq.js"></script>

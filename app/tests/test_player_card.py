@@ -169,6 +169,69 @@ class PlayerCardTests(unittest.TestCase):
         self.assertFalse(frame.evaluate('window.enableVoice'))
         self.assertFalse(self.errors, self.errors)
 
+    def test_memory_checkpoint_survives_real_chat_reload(self):
+        frame = self.open_app(embed=False)
+        self.reply = 'Compact names and promises.'
+        frame.evaluate('''() => {
+            conversationContext = [{ id: 'long-source', role: 'user', content: '日本語😀\\n'.repeat(8000) },
+                ...Array.from({length: 9}, (_, i) => ({id: 'tail-' + i, role: i % 2 ? 'user' : 'assistant', content: 'Tail ' + i}))];
+            conversationSummary = ''; summaryProgress = null;
+            persistConversationMemory();
+            ChatManager.loadChat(ChatManager.getActiveChatId());
+        }''')
+        self.assertTrue(frame.evaluate('maybeSummarizeConversation(true)'))
+        self.assertEqual(frame.evaluate('summaryProgress.partial.id'), 'long-source')
+        self.assertEqual(frame.evaluate('conversationContext[0].id'), 'long-source')
+        frame.goto(APP)
+        frame.wait_for_function('window.waifuBootComplete === true')
+        self.assertEqual(frame.evaluate('summaryProgress.partial.id'), 'long-source')
+        self.assertEqual(frame.locator('#long-source').count(), 1)
+        for _ in range(8):
+            if not frame.evaluate('Boolean(summaryProgress)'):
+                break
+            self.assertTrue(frame.evaluate('maybeSummarizeConversation(true)'))
+        self.assertFalse(frame.evaluate('Boolean(summaryProgress)'))
+        self.assertFalse(frame.evaluate('conversationContext.some(m => m.id === "long-source")'))
+        self.assertEqual(frame.evaluate('conversationContext.at(-1).id'), 'tail-8')
+        summaries = [c for c in self.calls if c['_purpose'] == 'summary']
+        self.assertGreater(len(summaries), 1)
+        for request in summaries:
+            body = {k: v for k, v in request.items() if k != '_purpose'}
+            self.assertLessEqual(len(json.dumps(body, ensure_ascii=False, separators=(',', ':')).encode()), 32768)
+            self.assertEqual(body['context_budget_version'], 1)
+        self.assertFalse(self.errors, self.errors)
+
+    def test_manual_memory_validation_and_clear_remove_checkpoint(self):
+        frame = self.open_app(embed=False)
+        frame.evaluate('''() => {
+            conversationSummary = 'Original notes'; persistConversationMemory();
+            document.getElementById('conversationSummary').value = '😀'.repeat(1100);
+            handleSavePersona();
+        }''')
+        self.assertEqual(frame.evaluate('conversationSummary'), 'Original notes')
+        self.assertIn('4 KiB', frame.locator('#summarySizeStatus').inner_text())
+        frame.evaluate('''() => {
+            summaryProgress = {partial: {id: 'old', offset: 2}}; summaryBackup = 'Original backup';
+            persistConversationMemory();
+            const createURL = URL.createObjectURL;
+            URL.createObjectURL = blob => { window.memoryExport = blob; return createURL(blob); };
+            ChatManager.exportAllChats();
+        }''')
+        exported = json.loads(frame.evaluate('memoryExport.text()'))
+        self.assertEqual(exported['chats'][0]['summaryBackup'], 'Original backup')
+        frame.evaluate('handleResetPersona()')
+        data = frame.evaluate('ChatManager.getChatData(ChatManager.getActiveChatId())')
+        self.assertIsNone(data['summaryProgress'])
+        self.assertEqual(data['summaryBackup'], '')
+        frame.evaluate('clearChatHistory()')
+        self.assertIsNone(frame.evaluate('summaryProgress'))
+        self.assertEqual(frame.evaluate('summaryBackup'), '')
+        data = frame.evaluate('ChatManager.getChatData(ChatManager.getActiveChatId())')
+        self.assertIsNone(data['summaryProgress'])
+        self.assertEqual(data['summaryBackup'], '')
+        self.assertEqual(data['conversationContext'], [])
+        self.assertFalse(self.errors, self.errors)
+
     def test_sandbox_without_forms(self):
         self.check_chat()
 

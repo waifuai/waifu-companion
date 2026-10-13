@@ -10,7 +10,7 @@
   <body>
     <div class="nav"><a href="index.html">&larr; Back to Docs</a></div>
     <h1>Memory &amp; Context Settings</h1>
-    <p>Waifu Companion provides sophisticated memory management to maintain conversation context while preventing token limit issues.</p>
+    <p>Recent messages and a compact summary help your companion remember the conversation.</p>
 
     <h2>Conversation Memory</h2>
 
@@ -18,14 +18,14 @@
     <ul>
       <li><strong>Range</strong>: 5 to 20 messages</li>
       <li><strong>Default</strong>: 20 messages</li>
-      <li>Controls how many recent messages are included in the AI context</li>
+      <li>Controls the maximum recent messages sent, including your current message. Long messages can leave room for fewer older messages.</li>
     </ul>
 
     <h3>Summary Trigger</h3>
     <ul>
       <li><strong>Range</strong>: 5 to 20 messages</li>
       <li><strong>Default</strong>: 20 messages</li>
-      <li>Automatically triggers conversation summarization after this many messages</li>
+      <li>Starts a memory update when more messages are waiting, or older text becomes too large.</li>
     </ul>
 
     <h3>Summary Length Options</h3>
@@ -33,11 +33,15 @@
       <li><strong>Ultra-Concise</strong>: 1 sentence summary</li>
       <li><strong>Concise</strong>: Short paragraph (default)</li>
       <li><strong>Detailed</strong>: 1-2 paragraphs</li>
-      <li><strong>Comprehensive</strong>: In-depth summary</li>
+      <li><strong>Comprehensive</strong>: More detail within the same memory limit</li>
     </ul>
 
     <h3>Manual Summarization</h3>
     <p>You can manually trigger summarization by clicking "Update Summary from Chat" in Memory Settings. The summary is stored in the "Conversation Summary" text area and can be manually edited.</p>
+    <p>Summaries aim for about 2 KiB and must fit within 4 KiB of UTF-8 text. The size indicator counts bytes, so emoji and some languages use more space per character. An oversized edit keeps your previously saved memory.</p>
+    <p>Memory updates process older text in parts. Pending messages stay saved until their update succeeds. A long message or older oversized summary may need several updates; progress survives a reload. Automatic updates run at most once per user turn and pause for two minutes after failure. You can use the manual button to continue.</p>
+    <p>After an oversized older summary is compressed, its original text remains in the saved chat backup and is included when you export chats.</p>
+    <p>WaifuAI Cloud requests fit within 32 KiB, with up to 16 KiB for older recent messages. Your newest message, personality instructions and accepted summary are preserved. If those alone cannot fit, shorten the message or instructions, or update memory before sending again.</p>
 
     <h2>Context Settings</h2>
     <p>The following information can be included in AI context:</p>

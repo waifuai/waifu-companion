@@ -324,6 +324,12 @@ async function getImageDecision(userMessage) {
 // before storage in chat_controller.js); image entries go through
 // contextForModel.
 async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '') {
+  if (window.ConversationBudget.bytes(window.conversationSummary) > window.ConversationBudget.limits.summary) {
+    await maybeSummarizeConversation(false);
+    if (window.ConversationBudget.bytes(window.conversationSummary) > window.ConversationBudget.limits.summary) {
+      throw window.ConversationBudget.error('memory_pending', 'Older memory is being compressed. Use Update Summary from Chat to continue; your messages are kept.');
+    }
+  }
   const contextInfo = await buildContextInfo();
   const targetLanguageName = (!targetLanguageCode || targetLanguageCode === 'en-US')
     ? null
@@ -331,7 +337,7 @@ async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '')
 
   const messages = [
     { role: 'system', content: buildSystemPrompt(targetLanguageName, contextInfo) },
-    ...contextForModel(conversationContext.slice(-clampMemorySetting(maxMemorySize)))
+    ...contextForModel(conversationContext)
   ];
 
   const lastMsg = conversationContext[conversationContext.length - 1];
@@ -339,13 +345,15 @@ async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '')
     messages.push({ role: 'user', content: userMessage });
   }
 
+  const packed = window.ConversationBudget.pack(messages, m => ({ model: 'waifuai-v1', messages: m, max_tokens: 2500, stream: true }), clampMemorySetting(maxMemorySize));
+
   if (window.showChatContextLogs) {
     debugLog(`--- FULL CHAT CONTEXT SENT TO AI${logLabel ? ` (${logLabel})` : ''} ---`, 'info');
-    messages.forEach((m, idx) => debugLog(`[${idx}] ${m.role.toUpperCase()}: ${m.content}`, 'info'));
+    packed.messages.forEach((m, idx) => debugLog(`[${idx}] ${m.role.toUpperCase()}: ${m.content}`, 'info'));
     debugLog('--- END CHAT CONTEXT ---', 'info');
   }
 
-  return messages;
+  return packed.messages;
 }
 
 // Emotion inference for plain-text replies. The animation switch in
@@ -523,6 +531,12 @@ const CONNECTION_ERROR_REPLY = "Oh no... I'm having trouble connecting. Could we
 // tell a genuine connectivity failure apart from ordinary dialogue via
 // isError, instead of every caller string-comparing the English text.
 function handleAIFailure(error) {
+  if (['context_too_large', 'summary_too_large', 'memory_pending', 'memory_changed'].includes(error && error.code) || (error && error.status === 413)) {
+    const reply = error.code === 'memory_pending'
+      ? 'Older memory needs more compression. Use Update Summary from Chat to continue. Your messages are kept.'
+      : 'This request is too large. Use Update Summary from Chat, or shorten the message or personality instructions. Your messages are kept.';
+    return { reply, emotion: 'sad', isError: true };
+  }
   return { reply: CONNECTION_ERROR_REPLY, emotion: 'sad', isError: true };
 }
 
@@ -593,37 +607,21 @@ async function getTranslatedText(text, targetLangCode, sourceLangCode = 'auto') 
 // meant a failed network call destroyed chat history and produced nothing in
 // exchange.
 async function summarizeConversation(oldMessages, existingSummary) {
-  debugLog(`Summarizing ${oldMessages.length} messages...`, 'info');
-
-  if (!resolveLLMProvider()) {
-    throw new Error('No LLM provider configured for summarization');
+  const budget = window.ConversationBudget;
+  const entries = oldMessages.map((m, i) => ({ id: i, text: `${m.role.toUpperCase()}: ${m.content}` }));
+  const task = budget.compressionTask(entries, { summary: existingSummary || '' },
+    m => ({ model: 'waifuai-v1', messages: m, max_tokens: 2500, stream: false, context_budget_version: 1 }), window.summaryLengthPreference || 'concise');
+  if (!task || task.legacy || task.partial || task.completed.length !== entries.length) {
+    throw budget.error('context_too_large', 'This memory needs bounded batches. Use Update Summary from Chat to continue.');
   }
-
-  const lengthPref = window.summaryLengthPreference || 'concise';
-  let lengthInstruction = "Create a single, concise, and cohesive summary";
-  if (lengthPref === 'ultra-concise') lengthInstruction = "Create an ultra-concise one-sentence summary";
-  else if (lengthPref === 'detailed') lengthInstruction = "Create a detailed summary consisting of 1-2 paragraphs";
-  else if (lengthPref === 'comprehensive') lengthInstruction = "Create a comprehensive, in-depth summary of the conversation history";
-
-  const messagesText = oldMessages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
-  const prompt = `You are a memory compression engine.
-The following is an existing summary of a conversation:
-"${existingSummary || "No previous summary exists."}"
-
-The following are the ${oldMessages.length} oldest messages that were just pushed out of memory:
-${messagesText}
-
-${lengthInstruction} that combines the previous summary and these new messages. Focus on important facts, names, events, and the emotional progress of the relationship. Respond ONLY with the new summary text.`;
-
-  const completion = await callConfiguredLLM([
-    { role: 'system', content: 'You summarize conversations concisely.' },
-    { role: 'user', content: prompt }
-  ], 'llm_summarize', 'summary');
-
-  const summary = completion && completion.content && completion.content.trim();
-  if (!summary) throw new Error('Summarization returned an empty summary');
-  return summary;
+  return requestMemorySummary(task.messages);
 }
+
+async function requestMemorySummary(messages) {
+  const completion = await callConfiguredLLM(messages, 'llm_summarize', 'summary');
+  return window.ConversationBudget.validateSummary(completion && completion.content);
+}
+window.requestMemorySummary = requestMemorySummary;
 
 async function getTransliteration(text, langCode) {
   debugLog(`Getting transliteration for ${langCode}. Original text: "${text.substring(0, 50)}..."`, 'info');

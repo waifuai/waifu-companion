@@ -22,6 +22,9 @@ function deleteMessage(messageElement, content, isUser) {
   if (index === -1) index = conversationContext.findIndex(m => !m.id && m.content === content && m.role === role);
 
   if (index !== -1) {
+    invalidateConversationMemory();
+    window.summaryProgress = null;
+    AppStorage.setJSON(AppStorage.KEYS.SUMMARY_PROGRESS, null);
     conversationContext.splice(index, 1);
     if (AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext)) {
       debugLog(`Message deleted from context: "${content.substring(0, 30)}..."`, 'info');
@@ -276,6 +279,7 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
 // messages and ambient timer belonged to the previous conversation — so a
 // reply could land in, and be saved to, the chat the user had just opened.
 function resetConversationRuntime() {
+  window.invalidateConversationMemory?.();
   // Clear the queue first: stopTTS releases the response, and a non-empty
   // queue at that moment would immediately start sending into the new chat.
   window.userMessageQueue = [];
@@ -304,72 +308,91 @@ function resetConversationRuntime() {
 }
 window.resetConversationRuntime = resetConversationRuntime;
 
-// Drops the oldest messages once the context exceeds the memory size.
-function trimConversationContext() {
-  while (conversationContext.length > maxMemorySize) {
-    conversationContext.shift();
-  }
-}
+// Stored messages are retained until their bounded memory update succeeds.
+// The outgoing request builder chooses its own smaller context.
+function trimConversationContext() { return conversationContext.length; }
 window.trimConversationContext = trimConversationContext;
 
 let isSummarizing = false;
 let lastSummarizeFailureTime = 0;
-const SUMMARIZE_FAILURE_COOLDOWN_MS = 120000; // 2 minutes cooldown after a failed attempt
+let lastAutomaticMemoryTurn = null;
+let memoryMessageSequence = 0;
+const SUMMARIZE_FAILURE_COOLDOWN_MS = 120000;
+window.conversationMemoryRevision = 0;
+function invalidateConversationMemory() { window.conversationMemoryRevision++; }
+window.invalidateConversationMemory = invalidateConversationMemory;
 
-// Compresses the oldest slice of the conversation into the running summary.
-//
-// Messages are removed by identity, never by index. This used to capture
-// `slice(0, trigger)` and then, in a `.then()` that resolved much later, run
-// `splice(0, trigger)` against an array that had been shifted and appended to
-// in the meantime — deleting the wrong messages. It also deleted them even
-// when the summary request had failed, since summarizeConversation used to
-// swallow errors and return the previous summary.
-async function maybeSummarizeConversation() {
-  if (isSummarizing) return;
-  if (Date.now() - lastSummarizeFailureTime < SUMMARIZE_FAILURE_COOLDOWN_MS) return;
+function memoryEntry(message) {
+  if (!message.id) message.id = 'memory-' + Date.now().toString(36) + '-' + (++memoryMessageSequence);
+  const visible = typeof contextForModel === 'function' ? contextForModel([message]) : [message];
+  return { id: message.id, text: visible.map(m => m.role.toUpperCase() + ': ' + m.content).join('\n'), original: message };
+}
+function persistConversationMemory() {
+  AppStorage.setString(AppStorage.KEYS.CONVERSATION_SUMMARY, window.conversationSummary || '');
+  AppStorage.setJSON(AppStorage.KEYS.SUMMARY_PROGRESS, window.summaryProgress || null);
+  AppStorage.setString(AppStorage.KEYS.SUMMARY_BACKUP, window.summaryBackup || '');
+  AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
+  AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, window.messageCountSinceLastSummary);
+  const id = window.ChatManager && window.ChatManager.getActiveChatId();
+  if (id) window.ChatManager.saveCurrentChat(id);
+}
+window.persistConversationMemory = persistConversationMemory;
+function showMemorySizeStatus(text) {
+  const el = document.getElementById('summarySizeStatus');
+  if (el) el.textContent = text || `${window.ConversationBudget.bytes(window.conversationSummary)} / 4096 bytes`;
+}
+window.showMemorySizeStatus = showMemorySizeStatus;
 
+async function maybeSummarizeConversation(force = false) {
+  if (isSummarizing && force) throw window.ConversationBudget.error('memory_busy', 'A memory update is already running. Wait for it to finish.');
+  if (isSummarizing || (!force && Date.now() - lastSummarizeFailureTime < SUMMARIZE_FAILURE_COOLDOWN_MS)) return false;
+  const budget = window.ConversationBudget;
+  const entries = conversationContext.map(memoryEntry);
+  const chatId = window.ChatManager && window.ChatManager.getActiveChatId();
+  const latestUser = [...entries].reverse().find(e => e.original.role === 'user');
+  const turn = String(chatId || 'legacy') + ':' + (latestUser && latestUser.id);
+  if (!force && (!latestUser || turn === lastAutomaticMemoryTurn)) return false;
+  const state = { summary: window.conversationSummary || '', progress: window.summaryProgress || null };
+  const legacy = budget.bytes(state.summary) > budget.limits.summary;
   const trigger = Math.min(clampMemorySetting(maxMemorySize), clampMemorySetting(window.summaryTriggerCount));
-  if (window.messageCountSinceLastSummary < trigger) return;
-  if (conversationContext.length <= trigger) return;
-
-  const summarized = conversationContext.slice(0, trigger);
+  const olderBytes = budget.jsonBytes(contextForModel(conversationContext.slice(0, -1)));
+  if (!force && !legacy && !state.progress && entries.length <= trigger && olderBytes <= budget.limits.history) return false;
+  const keep = Math.min(force ? 4 : Math.ceil(clampMemorySetting(maxMemorySize) / 2), Math.max(1, entries.length - 1));
+  const pending = entries.slice(0, Math.max(0, entries.length - keep));
+  const task = budget.compressionTask(pending, state,
+    m => ({ model: 'waifuai-v1', messages: m, max_tokens: 2500, stream: false, context_budget_version: 1 }), window.summaryLengthPreference || 'concise');
+  if (!task) return false;
+  if (!force) lastAutomaticMemoryTurn = turn;
+  const revision = window.conversationMemoryRevision;
+  const valid = () => window.conversationMemoryRevision === revision &&
+    (!window.ChatManager || window.ChatManager.getActiveChatId() === chatId) &&
+    window.conversationSummary === state.summary && (window.summaryProgress || null) === state.progress &&
+    (task.legacy || pending.every(e => conversationContext.includes(e.original) && memoryEntry(e.original).text === e.text));
   isSummarizing = true;
-  debugLog(`Message threshold (${trigger}) reached. Summarizing ${summarized.length} messages...`, 'info');
-
   try {
-    const newSummary = await summarizeConversation(summarized, window.conversationSummary);
-
-    window.conversationSummary = newSummary;
-    AppStorage.setString(AppStorage.KEYS.CONVERSATION_SUMMARY, newSummary);
-
-    const summaryEl = document.getElementById('conversationSummary');
-    if (summaryEl) summaryEl.value = newSummary;
-
-    // Remove exactly the messages we summarized, wherever they sit now.
-    const removed = new Set(summarized);
-    const beforeSummarizeTrim = conversationContext.length;
-    conversationContext = conversationContext.filter(m => !removed.has(m));
-    AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
-    debugState('Conversation', 'summarize_trimmed', { before: beforeSummarizeTrim, after: conversationContext.length, removed: summarized.length });
-
-    window.messageCountSinceLastSummary = 0;
-    AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
-    lastSummarizeFailureTime = 0; // Reset failure timer on success
-    debugLog('Conversation summarized and memory compressed.', 'info');
-    updateSummaryMarker();
-
-    if (window.ChatManager) {
-      const activeId = window.ChatManager.getActiveChatId();
-      if (activeId) window.ChatManager.saveCurrentChat(activeId);
+    const text = await requestMemorySummary(task.messages);
+    if (!valid()) return false;
+    const next = budget.accept(task, text);
+    window.conversationSummary = next.summary;
+    window.summaryProgress = next.progress;
+    if (next.backup) window.summaryBackup = next.backup;
+    if (!task.legacy) {
+      const done = new Set(task.completed.map(e => e.original));
+      conversationContext = conversationContext.filter(m => !done.has(m));
     }
+    window.messageCountSinceLastSummary = 0;
+    persistConversationMemory();
+    const summaryEl = document.getElementById('conversationSummary');
+    if (summaryEl) summaryEl.value = next.summary;
+    showMemorySizeStatus(next.progress ? 'Memory updated in part. More source text is kept for the next update.' : null);
+    lastSummarizeFailureTime = 0;
+    updateSummaryMarker();
+    return true;
   } catch (e) {
-    // Keep every message. Losing history to a failed network call is far
-    // worse than carrying a slightly oversized context into the next request.
-    lastSummarizeFailureTime = Date.now(); // Start 2-minute cooldown before retrying
-    debugError('Summarization failed — conversation history preserved', e, { messageCount: summarized.length });
-  } finally {
-    isSummarizing = false;
-  }
+    if (valid()) { lastSummarizeFailureTime = Date.now(); showMemorySizeStatus(e.message); }
+    if (force) throw e;
+    return false;
+  } finally { isSummarizing = false; }
 }
 window.maybeSummarizeConversation = maybeSummarizeConversation;
 
@@ -398,9 +421,6 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       // Increment summary counter
       window.messageCountSinceLastSummary++;
       AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, window.messageCountSinceLastSummary);
-
-      // Runs in the background so it doesn't block the reply.
-      maybeSummarizeConversation();
 
       trimConversationContext();
       AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
@@ -535,7 +555,8 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
         debugState('Conversation', 'context_trimmed', { before: contextBeforeTrim, after: conversationContext.length, maxMemory: maxMemorySize });
       }
       AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
-      debugLog('Saved AI response to conversation context and trimmed.', 'info');
+      debugLog('Saved AI response to conversation context.', 'info');
+      maybeSummarizeConversation().catch(e => showMemorySizeStatus(e.message));
       debugState('Conversation', 'assistant_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
       updateSummaryMarker();
 

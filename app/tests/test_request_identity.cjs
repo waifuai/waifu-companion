@@ -28,6 +28,7 @@ function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocke
       };
     }
   });
+  context.window.ConversationBudget = require('../scripts/context_budget.js');
   for (const script of ['llm_provider_base.js', 'waifu_proxy.js']) {
     vm.runInContext(readFileSync(path.join(__dirname, '../scripts', script), 'utf8'), context);
   }

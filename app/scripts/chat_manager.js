@@ -76,6 +76,8 @@ function createNewChat(name) {
   const data = {
     conversationContext: [],
     conversationSummary: '',
+    summaryProgress: null,
+    summaryBackup: '',
     messageCountSinceLastSummary: 0
   };
 
@@ -99,6 +101,8 @@ function saveCurrentChat(chatId) {
   const data = {
     conversationContext: window.conversationContext || [],
     conversationSummary: window.conversationSummary || '',
+    summaryProgress: window.summaryProgress || null,
+    summaryBackup: window.summaryBackup || '',
     messageCountSinceLastSummary: window.messageCountSinceLastSummary || 0
   };
 
@@ -149,11 +153,16 @@ function loadChat(chatId) {
 
   window.conversationContext = data.conversationContext || [];
   window.conversationSummary = data.conversationSummary || '';
+  window.summaryProgress = data.summaryProgress || null;
+  window.summaryBackup = data.summaryBackup || '';
+  window.showMemorySizeStatus?.();
   window.messageCountSinceLastSummary = data.messageCountSinceLastSummary || 0;
 
   // Persist to legacy keys so existing code continues to work
   AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, window.conversationContext);
   AppStorage.setString(AppStorage.KEYS.CONVERSATION_SUMMARY, window.conversationSummary);
+  AppStorage.setJSON(AppStorage.KEYS.SUMMARY_PROGRESS, window.summaryProgress);
+  AppStorage.setString(AppStorage.KEYS.SUMMARY_BACKUP, window.summaryBackup);
   AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, window.messageCountSinceLastSummary);
 
   setActiveChatId(chatId);
@@ -167,7 +176,10 @@ function loadChat(chatId) {
       // the LLM; show the caption instead (older saves have none).
       const text = msg.imageUrl ? (msg.caption || 'Here, I drew this for you~ ✨') : msg.content;
       const id = addMessage(text, msg.role === 'user', null, null, langCode, msg.imageUrl || null);
-      msg.id = id;
+      if (msg.id) {
+        const bubble = document.getElementById(id);
+        if (bubble) bubble.id = msg.id;
+      } else msg.id = id;
     });
     if (typeof showWelcomeHint === 'function') showWelcomeHint();
     if (typeof updateSummaryMarker === 'function') updateSummaryMarker();
@@ -392,15 +404,20 @@ function handleNewChat() {
   // Reset global state for new chat
   window.conversationContext = [];
   window.conversationSummary = '';
+  window.summaryProgress = null;
+  window.summaryBackup = '';
   window.messageCountSinceLastSummary = 0;
   AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, []);
   AppStorage.setString(AppStorage.KEYS.CONVERSATION_SUMMARY, '');
+  AppStorage.setJSON(AppStorage.KEYS.SUMMARY_PROGRESS, null);
+  AppStorage.setString(AppStorage.KEYS.SUMMARY_BACKUP, '');
   AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
 
   // Clear chat UI
   if (window.chatHistory) window.chatHistory.innerHTML = '';
   const summaryEl = document.getElementById('conversationSummary');
   if (summaryEl) summaryEl.value = '';
+  window.showMemorySizeStatus?.();
 
   if (typeof showWelcomeHint === 'function') showWelcomeHint();
 
@@ -493,6 +510,8 @@ function exportAllChats() {
         meta,
         messages: data.conversationContext || [],
         summary: data.conversationSummary || '',
+        summaryProgress: data.summaryProgress || null,
+        summaryBackup: data.summaryBackup || '',
         messageCountSinceLastSummary: data.messageCountSinceLastSummary || 0
       };
     })

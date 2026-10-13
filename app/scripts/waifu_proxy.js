@@ -93,7 +93,7 @@ const WaifuProxyAPI = {
   buildRequest(options, stream) {
     const model = this.getModel();
     const { messages } = options;
-    const body = { model, messages, max_tokens: 2500, stream: Boolean(stream) };
+    const body = { model, messages, max_tokens: 2500, stream: Boolean(stream), context_budget_version: 1 };
 
     const purpose = typeof options.purpose === 'string' ? options.purpose : 'chat';
 
@@ -107,6 +107,11 @@ const WaifuProxyAPI = {
       if (clientSettings) body.client_settings = clientSettings;
     }
 
+    const budget = window.ConversationBudget;
+    if (purpose === 'chat' || purpose === 'ambient') {
+      body.messages = budget.pack(body.messages, m => ({ ...body, messages: m }), window.maxMemorySize || 20).messages;
+    }
+    budget.checkBody(body);
     return {
       url: this.API_URL,
       headers,

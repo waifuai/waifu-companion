@@ -42,6 +42,8 @@
     MAX_MEMORY_SIZE: 'maxMemorySize',
     CONVERSATION_CONTEXT: 'conversationContext',
     CONVERSATION_SUMMARY: 'conversationSummary',
+    SUMMARY_PROGRESS: 'summaryProgress',
+    SUMMARY_BACKUP: 'summaryBackup',
     MESSAGE_COUNT_SINCE_LAST_SUMMARY: 'messageCountSinceLastSummary',
     SUMMARY_TRIGGER_COUNT: 'summaryTriggerCount',
     SUMMARY_LENGTH_PREFERENCE: 'summaryLengthPreference',

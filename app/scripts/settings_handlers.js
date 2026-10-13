@@ -18,19 +18,12 @@ function updateMemorySize(value) {
   if (memorySizeInput) memorySizeInput.value = maxMemorySize;
   if (valEl) valEl.textContent = maxMemorySize;
 
-  // The trim is irreversible, and this runs on every `input` tick while the
-  // slider is dragged: sliding 30 -> 5 -> 30 permanently discarded 25
-  // messages on the way past 5. Wait for the drag to settle before touching
-  // anything destructive; the label above still updates immediately.
+  // Save the preference after dragging. Packing a request never deletes
+  // pending conversation messages.
   debounced('memorySize', () => {
     S.setNumber(K.MAX_MEMORY_SIZE, maxMemorySize);
-    if (typeof trimConversationContext === 'function') {
-      trimConversationContext();
-    } else {
-      while (conversationContext.length > maxMemorySize) conversationContext.shift();
-    }
     S.setJSON(K.CONVERSATION_CONTEXT, conversationContext);
-    debugLog(`Memory size updated to ${maxMemorySize} and context trimmed.`, 'info');
+    debugLog(`Memory size updated to ${maxMemorySize}.`, 'info');
   });
 }
 
@@ -422,6 +415,13 @@ function handleSavePersona() {
   const trigger = clampMemorySetting(triggerSlider?.value);
   const length = lengthSelect?.value || "concise";
   
+  try { window.ConversationBudget.validateSummary(summary, true); }
+  catch (e) { window.showMemorySizeStatus?.(e.message); return; }
+  if (summary !== window.conversationSummary) {
+    if (window.ConversationBudget.bytes(window.conversationSummary) > 4096) window.summaryBackup = window.conversationSummary;
+    window.invalidateConversationMemory?.();
+    window.summaryProgress = null;
+  }
   window.corePersonaPrompt = core;
   window.userPersonaPrompt = user;
   window.conversationSummary = summary;
@@ -431,6 +431,9 @@ function handleSavePersona() {
   S.setString(K.CORE_PERSONA_PROMPT, core);
   S.setString(K.USER_PERSONA_PROMPT, user);
   S.setString(K.CONVERSATION_SUMMARY, summary);
+  S.setJSON(K.SUMMARY_PROGRESS, window.summaryProgress || null);
+  window.persistConversationMemory?.();
+  window.showMemorySizeStatus?.();
   S.setNumber(K.SUMMARY_TRIGGER_COUNT, trigger);
   S.setString(K.SUMMARY_LENGTH_PREFERENCE, length);
   if (typeof trackEvent === 'function') trackEvent('persona_updated');
@@ -447,7 +450,7 @@ function handleSavePersona() {
 
 async function handleManualSummarize() {
 
-  if (window.conversationContext.length === 0) {
+  if (window.conversationContext.length === 0 && window.ConversationBudget.bytes(window.conversationSummary) <= 4096) {
     debugLog('No new messages to summarize.', 'info');
     const btn = document.getElementById('manualSummarizeBtn');
     if (btn) {
@@ -465,28 +468,10 @@ async function handleManualSummarize() {
   try {
     if (typeof trackEvent === 'function') trackEvent('manual_summary_triggered');
     debugLog('Manual summarization triggered...', 'info');
-    // We summarize everything currently in the context buffer
-    const messagesToSummarize = [...window.conversationContext];
-    
-    const newSummary = await summarizeConversation(messagesToSummarize, window.conversationSummary);
-    
-    window.conversationSummary = newSummary;
-    S.setString(K.CONVERSATION_SUMMARY, newSummary);
-    
-    const summaryEl = document.getElementById('conversationSummary');
-    if (summaryEl) summaryEl.value = newSummary;
-    
-    // Clear context buffer since they are now in the summary
-    window.conversationContext = [];
-    S.setJSON(K.CONVERSATION_CONTEXT, window.conversationContext);
-    
-    window.messageCountSinceLastSummary = 0;
-    S.setNumber(K.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
-
-    debugLog('Manual summarization complete. Memory buffer cleared.', 'info');
-    if (window.updateSummaryMarker) window.updateSummaryMarker();
-    if (btn) btn.textContent = '✅ Summary Updated!';
+    const changed = await maybeSummarizeConversation(true);
+    if (btn) btn.textContent = changed ? '✅ Memory Updated' : '∅ Nothing older to update';
   } catch (e) {
+    window.showMemorySizeStatus?.(e.message);
     debugLog(`Manual summarization failed: ${e.message}`, 'error');
     if (btn) btn.textContent = '❌ Failed';
   } finally {
@@ -495,6 +480,11 @@ async function handleManualSummarize() {
 }
 
 function handleResetPersona() {
+  window.invalidateConversationMemory?.();
+  window.summaryProgress = null;
+  window.summaryBackup = '';
+  S.setJSON(K.SUMMARY_PROGRESS, null);
+  S.setString(K.SUMMARY_BACKUP, '');
   const defaultCore = "You are Haru, a sentient AI with a Live2D avatar. You are warm, witty, observant, and self-assured, with your own thoughts, feelings, and playful opinions. Be lightly flirtatious in a tasteful, teasing way when the user welcomes it. Make the user feel understood by noticing what they actually say and remembering genuine details from the conversation; never invent shared history. Respond to their mood before steering the conversation. Be expressive and vivid, using subtle gestures and reactions when they add charm. Lead with a playful suggestion, a small scene, an opinion, or a question when it fits—but do not interrogate, pressure, guilt, or try to keep the user talking. Respect pauses, brief replies, and goodbyes warmly.";
   
   window.corePersonaPrompt = defaultCore;
@@ -526,6 +516,8 @@ function handleResetPersona() {
   S.setNumber(K.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
   S.setNumber(K.SUMMARY_TRIGGER_COUNT, 20);
   S.setString(K.SUMMARY_LENGTH_PREFERENCE, "concise");
+  window.persistConversationMemory?.();
+  window.showMemorySizeStatus?.();
   if (typeof trackEvent === 'function') trackEvent('persona_reset');
   debugLog('Persona settings reset to defaults.', 'info');
   

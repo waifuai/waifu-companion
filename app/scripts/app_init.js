@@ -214,6 +214,8 @@ function initPersona() {
   }
   window.userPersonaPrompt = AppStorage.getString(AppStorage.KEYS.USER_PERSONA_PROMPT, '');
   window.conversationSummary = AppStorage.getString(AppStorage.KEYS.CONVERSATION_SUMMARY, '');
+  window.summaryProgress = AppStorage.getJSON(AppStorage.KEYS.SUMMARY_PROGRESS, null);
+  window.summaryBackup = AppStorage.getString(AppStorage.KEYS.SUMMARY_BACKUP, '');
   window.messageCountSinceLastSummary = AppStorage.getNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
   window.summaryTriggerCount = AppStorage.getNumber(AppStorage.KEYS.SUMMARY_TRIGGER_COUNT, 20);
 
@@ -222,6 +224,8 @@ function initPersona() {
   const personaTextarea = document.getElementById('personaPrompt');
   if (personaTextarea) personaTextarea.value = window.userPersonaPrompt;
   const summaryTextarea = document.getElementById('conversationSummary');
+  summaryTextarea?.addEventListener('input', () => window.showMemorySizeStatus?.(`${window.ConversationBudget.bytes(summaryTextarea.value)} / 4096 bytes`));
+  window.showMemorySizeStatus?.();
   if (summaryTextarea) summaryTextarea.value = window.conversationSummary;
 
   const savedTrigger = AppStorage.getNumber(AppStorage.KEYS.SUMMARY_TRIGGER_COUNT, NaN);

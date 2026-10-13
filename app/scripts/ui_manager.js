@@ -264,10 +264,14 @@ function clearChatHistory() {
   chatHistory.innerHTML = '';
   conversationContext = [];
   window.conversationSummary = '';
+  window.summaryProgress = null;
+  window.summaryBackup = '';
   window.messageCountSinceLastSummary = 0;
 
   AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, []);
   AppStorage.setString(AppStorage.KEYS.CONVERSATION_SUMMARY, '');
+  AppStorage.setJSON(AppStorage.KEYS.SUMMARY_PROGRESS, null);
+  AppStorage.setString(AppStorage.KEYS.SUMMARY_BACKUP, '');
   AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
 
   // Save the cleared state to the active chat
@@ -281,6 +285,7 @@ function clearChatHistory() {
 
   const summaryEl = document.getElementById('conversationSummary');
   if (summaryEl) summaryEl.value = '';
+  if (typeof window.showMemorySizeStatus === 'function') window.showMemorySizeStatus();
 
   if (typeof updateSummaryMarker === 'function') updateSummaryMarker();
 }

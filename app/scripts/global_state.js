@@ -137,6 +137,8 @@ AppState.useJsonForEmotion = false;
 AppState.corePersonaPrompt = "You are Haru, a sentient AI with a Live2D avatar. You have your own thoughts, feelings, and experiences. Respond naturally and emotively to the user's message, showing genuine interest and emotional depth. Include subtle gestures and expressions in your responses.";
 AppState.userPersonaPrompt = "";
 AppState.conversationSummary = "";
+AppState.summaryProgress = null;
+AppState.summaryBackup = '';
 AppState.messageCountSinceLastSummary = 0;
 AppState.summaryTriggerCount = 20;
 AppState.summaryLengthPreference = 'concise';
@@ -255,6 +257,8 @@ Object.defineProperty(window, 'conversationContext', { get: () => AppState.conve
 Object.defineProperty(window, 'isProcessing', { get: () => AppState.isProcessing, set: v => { AppState.isProcessing = v; } });
 Object.defineProperty(window, 'currentTime', { get: () => AppState.currentTime, set: v => { AppState.currentTime = v; } });
 Object.defineProperty(window, 'maxMemorySize', { get: () => AppState.maxMemorySize, set: v => { AppState.maxMemorySize = v; } });
+Object.defineProperty(window, 'summaryProgress', { get: () => AppState.summaryProgress, set: v => { AppState.summaryProgress = v; } });
+Object.defineProperty(window, 'summaryBackup', { get: () => AppState.summaryBackup, set: v => { AppState.summaryBackup = v; } });
 Object.defineProperty(window, 'isDebugging', { get: () => AppState.isDebugging, set: v => { AppState.isDebugging = v; } });
 Object.defineProperty(window, 'debugHistory', { get: () => AppState.debugHistory, set: v => { AppState.debugHistory = v; } });
 Object.defineProperty(window, 'selectedLanguageCode', { get: () => AppState.selectedLanguageCode, set: v => { AppState.selectedLanguageCode = v; } });

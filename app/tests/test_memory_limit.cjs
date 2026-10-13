@@ -4,8 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function client(memory, trigger) {
-  const store = new Map();
+function client(memory, trigger, store = new Map()) {
   if (memory !== undefined) store.set('MAX_MEMORY_SIZE', memory);
   if (trigger !== undefined) store.set('SUMMARY_TRIGGER_COUNT', trigger);
   const keys = new Proxy({}, { get: (_, key) => key });
@@ -14,19 +13,21 @@ function client(memory, trigger) {
   const ctx = vm.createContext({
     document: { getElementById: id => elements.get(id) || null, addEventListener() {} },
     AppStorage: { KEYS: keys, getNumber: (key, fallback) => store.get(key) ?? fallback,
-      getString: (key, fallback) => store.get(key) ?? fallback,
+      getString: (key, fallback) => store.get(key) ?? fallback, getJSON: (key, fallback) => store.get(key) ?? fallback,
       setNumber: (key, value) => store.set(key, value), setString: (key, value) => store.set(key, value),
       setJSON: (key, value) => store.set(key, value) },
     memorySizeInput: elements.get('memorySize'), memorySizeValue: elements.get('memorySizeValue'),
-    maxMemorySize: 20, conversationContext: [], addEventListener() {},
-    debounced: (_, fn) => fn(), debugLog() {}, debugState() {}, debugError() {}, Date,
+    maxMemorySize: 20, conversationContext: JSON.parse(JSON.stringify(store.get('CONVERSATION_CONTEXT') || [])), addEventListener() {},
+    debounced: (_, fn) => fn(), debugLog() {}, debugState() {}, debugError() {}, Date, setTimeout: () => 0,
   });
   ctx.window = ctx;
+  ctx.ConversationBudget = require('../scripts/context_budget.js');
   for (const script of ['settings_handlers.js', 'chat_controller.js', 'ai_interface.js', 'app_init.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../scripts', script), 'utf8'), ctx);
   }
   ctx.initMemory();
   ctx.initPersona();
+  ctx.updateSummaryMarker = () => {};
   return { ctx, store, elements };
 }
 
@@ -69,11 +70,91 @@ test('summary remains reachable after clamping a saved trigger above the memory 
   ctx.conversationContext = Array.from({ length: 21 }, (_, i) => ({ role: 'user', content: 'message ' + i }));
   ctx.messageCountSinceLastSummary = 20;
   let captured;
-  ctx.summarizeConversation = async messages => { captured = messages; return 'Remembered facts'; };
+  ctx.requestMemorySummary = async messages => { captured = messages; return 'Remembered facts'; };
   ctx.updateSummaryMarker = () => {};
   await ctx.maybeSummarizeConversation();
-  assert.equal(captured.length, 20);
-  assert.equal(ctx.conversationContext.length, 1);
-  assert.equal(ctx.conversationContext[0].content, 'message 20');
+  assert.equal(captured.length, 2);
+  assert.ok(captured[1].content.includes('message 0'));
+  assert.equal(ctx.conversationContext.length, 10);
+  assert.equal(ctx.conversationContext.at(-1).content, 'message 20');
   assert.equal(ctx.conversationSummary, 'Remembered facts');
+});
+
+function longConversation(ctx, size = 100) {
+  ctx.conversationContext = Array.from({ length: 30 }, (_, i) => ({ id: 'm' + i, role: i % 2 ? 'assistant' : 'user', content: 'message ' + i + 'x'.repeat(size) }));
+}
+
+test('size errors explain how to recover without exposing arbitrary server text', () => {
+  const { ctx } = client();
+  for (const error of [{ code: 'context_too_large' }, { status: 413, message: 'private server detail' }]) {
+    const result = ctx.handleAIFailure(error);
+    assert.equal(result.isError, true);
+    assert.match(result.reply, /Update Summary from Chat/);
+    assert.doesNotMatch(result.reply, /private server detail/);
+  }
+});
+test('pending and failed summary work never trims source messages', async () => {
+  const { ctx } = client(); longConversation(ctx);
+  let finish;
+  ctx.requestMemorySummary = () => new Promise(resolve => { finish = resolve; });
+  const work = ctx.maybeSummarizeConversation(true);
+  ctx.trimConversationContext();
+  assert.equal(ctx.conversationContext.length, 30);
+  ctx.conversationContext.push({ id: 'new', role: 'user', content: 'Newest input' });
+  finish('Retained names and promises'); await work;
+  assert.equal(ctx.conversationContext.at(-1).id, 'new');
+  assert.equal(ctx.conversationContext.length, 5);
+  longConversation(ctx);
+  ctx.requestMemorySummary = async () => { throw Error('Offline'); };
+  await assert.rejects(ctx.maybeSummarizeConversation(true), /Offline/);
+  assert.equal(ctx.conversationContext.length, 30);
+  assert.equal(ctx.conversationSummary, 'Retained names and promises');
+});
+test('oversized summary replies keep the old memory and all pending source', async () => {
+  const { ctx } = client(); longConversation(ctx); ctx.conversationSummary = 'Existing facts';
+  ctx.requestMemorySummary = async () => 'x'.repeat(4097);
+  await assert.rejects(ctx.maybeSummarizeConversation(true), { code: 'summary_too_large' });
+  assert.equal(ctx.conversationSummary, 'Existing facts');
+  assert.equal(ctx.conversationContext.length, 30);
+  assert.equal(ctx.summaryProgress, null);
+});
+test('reset and deleted-source results are stale and cannot overwrite current memory', async () => {
+  for (const change of ['reset', 'delete']) {
+    const { ctx } = client(); longConversation(ctx);
+    let finish; ctx.requestMemorySummary = () => new Promise(resolve => { finish = resolve; });
+    const work = ctx.maybeSummarizeConversation(true);
+    if (change === 'reset') ctx.handleResetPersona();
+    else ctx.deleteMessage({ style: {}, id: 'm0', remove() {} }, '', true);
+    finish('Stale facts');
+    assert.equal(await work, false);
+    assert.notEqual(ctx.conversationSummary, 'Stale facts');
+  }
+});
+test('large-message checkpoints survive reload and only completed source is removed', async () => {
+  const first = client(); const { ctx, store } = first;
+  ctx.conversationContext = [{ id: 'huge', role: 'user', content: '記憶🙂'.repeat(10000) },
+    ...Array.from({ length: 4 }, (_, i) => ({ id: 'keep' + i, role: i % 2 ? 'assistant' : 'user', content: 'Recent ' + i }))];
+  ctx.requestMemorySummary = async () => 'Remembered facts';
+  await ctx.maybeSummarizeConversation(true);
+  assert.equal(ctx.conversationContext.length, 5);
+  assert.ok(ctx.summaryProgress.partial.offset > 0);
+  const reloaded = client(undefined, undefined, store).ctx;
+  reloaded.conversationContext = JSON.parse(JSON.stringify(store.get('CONVERSATION_CONTEXT')));
+  reloaded.requestMemorySummary = async () => 'Remembered facts';
+  let calls = 0;
+  while (reloaded.summaryProgress) { await reloaded.maybeSummarizeConversation(true); assert.ok(++calls < 15); }
+  assert.equal(reloaded.conversationContext.length, 4);
+  assert.equal(reloaded.conversationContext[0].id, 'keep0');
+});
+test('automatic partial compression runs once per user turn and failure has a cooldown', async () => {
+  const { ctx } = client(); longConversation(ctx, 10000);
+  let calls = 0; ctx.requestMemorySummary = async () => { calls++; return 'Facts'; };
+  await ctx.maybeSummarizeConversation(); await ctx.maybeSummarizeConversation();
+  assert.equal(calls, 1);
+  ctx.conversationContext.push({ id: 'next', role: 'user', content: 'Next turn' });
+  ctx.requestMemorySummary = async () => { calls++; throw Error('Offline'); };
+  assert.equal(await ctx.maybeSummarizeConversation(), false);
+  ctx.conversationContext.push({ id: 'another', role: 'user', content: 'Another turn' });
+  assert.equal(await ctx.maybeSummarizeConversation(), false);
+  assert.equal(calls, 2);
 });
