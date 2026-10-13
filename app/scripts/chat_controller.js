@@ -339,7 +339,7 @@ function persistConversationMemory() {
 window.persistConversationMemory = persistConversationMemory;
 function showMemorySizeStatus(text) {
   const el = document.getElementById('summarySizeStatus');
-  if (el) el.textContent = text || `${window.ConversationBudget.bytes(window.conversationSummary)} / 4096 bytes`;
+  if (el) el.textContent = text || `${window.ConversationBudget.bytes(window.conversationSummary)} / ${window.ConversationBudget.limits.summary} bytes`;
 }
 window.showMemorySizeStatus = showMemorySizeStatus;
 

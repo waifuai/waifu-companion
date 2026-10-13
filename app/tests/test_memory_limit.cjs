@@ -32,15 +32,15 @@ function client(memory, trigger, store = new Map()) {
   return { ctx, store, elements };
 }
 
-test('returning browsers clamp saved 30 and 50 memory and summary settings to 20', () => {
-  for (const saved of [30, 50]) {
+test('returning browsers clamp saved memory and summary settings above 100', () => {
+  for (const saved of [120, 150]) {
     const { ctx, store, elements } = client(saved, saved);
-    assert.equal(ctx.maxMemorySize, 20);
-    assert.equal(ctx.summaryTriggerCount, 20);
-    assert.equal(store.get('MAX_MEMORY_SIZE'), 20);
-    assert.equal(store.get('SUMMARY_TRIGGER_COUNT'), 20);
-    assert.equal(Number(elements.get('memorySize').value), 20);
-    assert.equal(Number(elements.get('summaryTriggerCount').value), 20);
+    assert.equal(ctx.maxMemorySize, 100);
+    assert.equal(ctx.summaryTriggerCount, 100);
+    assert.equal(store.get('MAX_MEMORY_SIZE'), 100);
+    assert.equal(store.get('SUMMARY_TRIGGER_COUNT'), 100);
+    assert.equal(Number(elements.get('memorySize').value), 100);
+    assert.equal(Number(elements.get('summaryTriggerCount').value), 100);
   }
 });
 
@@ -52,32 +52,32 @@ test('fresh defaults and smaller saved choices are retained within the limit', (
   assert.equal(store.get('MAX_MEMORY_SIZE'), 10);
 });
 
-test('programmatic settings and loaded long chats cannot send more than 20 history messages', async () => {
+test('programmatic settings and loaded long chats cannot send more than the memory limit', async () => {
   const { ctx, store } = client(30, 30);
-  ctx.updateMemorySize(50);
-  assert.equal(store.get('MAX_MEMORY_SIZE'), 20);
+  ctx.updateMemorySize(120);
+  assert.equal(store.get('MAX_MEMORY_SIZE'), 100);
   ctx.conversationContext = Array.from({ length: 35 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'message ' + i }));
   ctx.buildContextInfo = async () => [];
   ctx.buildSystemPrompt = () => 'Persona and memory summary';
   const messages = await ctx.buildChatMessages('message 34', 'en-US');
-  assert.equal(messages.length, 21); // system prompt plus 20 recent messages
-  assert.equal(messages[1].content, 'message 15');
+  assert.equal(messages.length, 36); // system prompt plus 35 retained messages
+  assert.equal(messages[1].content, 'message 0');
   assert.equal(messages.at(-1).content, 'message 34');
   assert.equal(ctx.conversationContext.length, 35); // constructing a request does not erase stored chat
 });
 
 test('summary remains reachable after clamping a saved trigger above the memory limit', async () => {
-  const { ctx } = client(30, 30);
-  ctx.conversationContext = Array.from({ length: 21 }, (_, i) => ({ role: 'user', content: 'message ' + i }));
-  ctx.messageCountSinceLastSummary = 20;
+  const { ctx } = client(150, 150);
+  ctx.conversationContext = Array.from({ length: 120 }, (_, i) => ({ role: 'user', content: 'message ' + i }));
+  ctx.messageCountSinceLastSummary = 100;
   let captured;
   ctx.requestMemorySummary = async messages => { captured = messages; return 'Remembered facts'; };
   ctx.updateSummaryMarker = () => {};
   await ctx.maybeSummarizeConversation();
   assert.equal(captured.length, 2);
   assert.ok(captured[1].content.includes('message 0'));
-  assert.equal(ctx.conversationContext.length, 10);
-  assert.equal(ctx.conversationContext.at(-1).content, 'message 20');
+  assert.equal(ctx.conversationContext.length, 50);
+  assert.equal(ctx.conversationContext.at(-1).content, 'message 119');
   assert.equal(ctx.conversationSummary, 'Remembered facts');
 });
 
@@ -113,7 +113,7 @@ test('pending and failed summary work never trims source messages', async () => 
 });
 test('oversized summary replies keep the old memory and all pending source', async () => {
   const { ctx } = client(); longConversation(ctx); ctx.conversationSummary = 'Existing facts';
-  ctx.requestMemorySummary = async () => 'x'.repeat(4097);
+  ctx.requestMemorySummary = async () => 'x'.repeat(32769);
   await assert.rejects(ctx.maybeSummarizeConversation(true), { code: 'summary_too_large' });
   assert.equal(ctx.conversationSummary, 'Existing facts');
   assert.equal(ctx.conversationContext.length, 30);
@@ -133,7 +133,7 @@ test('reset and deleted-source results are stale and cannot overwrite current me
 });
 test('large-message checkpoints survive reload and only completed source is removed', async () => {
   const first = client(); const { ctx, store } = first;
-  ctx.conversationContext = [{ id: 'huge', role: 'user', content: '記憶🙂'.repeat(10000) },
+  ctx.conversationContext = [{ id: 'huge', role: 'user', content: '記憶🙂'.repeat(30000) },
     ...Array.from({ length: 4 }, (_, i) => ({ id: 'keep' + i, role: i % 2 ? 'assistant' : 'user', content: 'Recent ' + i }))];
   ctx.requestMemorySummary = async () => 'Remembered facts';
   await ctx.maybeSummarizeConversation(true);
@@ -162,7 +162,8 @@ test('automatic partial compression runs once per user turn and failure has a co
 
 test('oversized legacy summary never blocks chat or prompts the user, using active summary within budget', async () => {
   const { ctx } = client();
-  const legacySummary = 'Older facts about user and story. '.repeat(500);
+  const budget = ctx.ConversationBudget;
+  const legacySummary = 'Older facts about user and story. '.repeat(1500);
   ctx.conversationSummary = legacySummary;
   ctx.conversationContext = [
     { role: 'user', content: 'prior question' },
@@ -174,9 +175,8 @@ test('oversized legacy summary never blocks chat or prompts the user, using acti
   const sysMsg = messages.find(m => m.role === 'system');
   assert.ok(sysMsg);
   assert.ok(sysMsg.content.includes('Existing Conversation Summary:'));
-  assert.ok(Buffer.byteLength(sysMsg.content, 'utf8') < 10000);
+  assert.ok(Buffer.byteLength(sysMsg.content, 'utf8') < budget.limits.summary + 4096);
   assert.equal(ctx.conversationSummary, legacySummary);
   const body = { model: 'waifuai-v1', messages, max_tokens: 2500, stream: true };
-  assert.ok(Buffer.byteLength(JSON.stringify(body), 'utf8') <= 32768);
+  assert.ok(Buffer.byteLength(JSON.stringify(body), 'utf8') <= budget.limits.request);
 });
-

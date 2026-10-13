@@ -2,14 +2,14 @@
   'use strict';
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  const limits = Object.freeze({ messages: 20, history: 16 * 1024, summary: 4 * 1024, transcript: 24 * 1024, request: 32 * 1024 });
+  const limits = Object.freeze({ messages: 100, history: 128 * 1024, summary: 32 * 1024, transcript: 128 * 1024, request: 256 * 1024 });
   const bytes = text => encoder.encode(String(text || '')).length;
   const jsonBytes = value => bytes(JSON.stringify(value));
   function error(code, message) { const e = new Error(message); e.code = code; return e; }
   function validateSummary(text, allowEmpty = false) {
     text = String(text || '').trim();
     if (!text && !allowEmpty) throw error('summary_empty', 'The memory update was empty. Your previous memory is kept.');
-    if (bytes(text) > limits.summary) throw error('summary_too_large', 'Memory must fit within 4 KiB. Compress it or shorten the text; your previous memory is kept.');
+    if (bytes(text) > limits.summary) throw error('summary_too_large', 'Memory must fit within 32 KiB. Compress it or shorten the text; your previous memory is kept.');
     return text;
   }
   function checkBody(body) {
@@ -53,7 +53,7 @@
       'You are a memory compression engine.\nThe following is an existing summary of a conversation:\n"' +
       (previous || 'No previous summary exists.') + '"\n\nThe following are the oldest messages that were just pushed out of memory:\n' +
       transcript + '\n\nCombine the previous memory and this transcript into a ' + preference +
-      ' summary. Aim for about 2 KiB; never exceed 4 KiB of UTF-8 text. Keep names, user preferences, decisions, promises and unresolved events. ' +
+      ' summary. Aim for a compact summary; never exceed 32 KiB of UTF-8 text. Keep names, user preferences, decisions, promises and unresolved events. ' +
       'Condense repetition and older details. A continuation contains the next part of a long message; do not invent missing parts. Respond ONLY with the new summary text.' }];
   }
   function compressionTask(entries, state, makeBody = m => ({ messages: m }), preference = 'concise') {

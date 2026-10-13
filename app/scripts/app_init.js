@@ -224,7 +224,7 @@ function initPersona() {
   const personaTextarea = document.getElementById('personaPrompt');
   if (personaTextarea) personaTextarea.value = window.userPersonaPrompt;
   const summaryTextarea = document.getElementById('conversationSummary');
-  summaryTextarea?.addEventListener('input', () => window.showMemorySizeStatus?.(`${window.ConversationBudget.bytes(summaryTextarea.value)} / 4096 bytes`));
+  summaryTextarea?.addEventListener('input', () => window.showMemorySizeStatus?.(`${window.ConversationBudget.bytes(summaryTextarea.value)} / ${window.ConversationBudget.limits.summary} bytes`));
   window.showMemorySizeStatus?.();
   if (summaryTextarea) summaryTextarea.value = window.conversationSummary;
 

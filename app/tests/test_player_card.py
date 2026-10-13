@@ -173,7 +173,7 @@ class PlayerCardTests(unittest.TestCase):
         frame = self.open_app(embed=False)
         self.reply = 'Compact names and promises.'
         frame.evaluate('''() => {
-            conversationContext = [{ id: 'long-source', role: 'user', content: '日本語😀\\n'.repeat(8000) },
+            conversationContext = [{ id: 'long-source', role: 'user', content: '日本語😀\\n'.repeat(12000) },
                 ...Array.from({length: 9}, (_, i) => ({id: 'tail-' + i, role: i % 2 ? 'user' : 'assistant', content: 'Tail ' + i}))];
             conversationSummary = ''; summaryProgress = null;
             persistConversationMemory();
@@ -197,7 +197,7 @@ class PlayerCardTests(unittest.TestCase):
         self.assertGreater(len(summaries), 1)
         for request in summaries:
             body = {k: v for k, v in request.items() if k != '_purpose'}
-            self.assertLessEqual(len(json.dumps(body, ensure_ascii=False, separators=(',', ':')).encode()), 32768)
+            self.assertLessEqual(len(json.dumps(body, ensure_ascii=False, separators=(',', ':')).encode()), 262144)
             self.assertEqual(body['context_budget_version'], 1)
         self.assertFalse(self.errors, self.errors)
 
@@ -205,11 +205,11 @@ class PlayerCardTests(unittest.TestCase):
         frame = self.open_app(embed=False)
         frame.evaluate('''() => {
             conversationSummary = 'Original notes'; persistConversationMemory();
-            document.getElementById('conversationSummary').value = '😀'.repeat(1100);
+            document.getElementById('conversationSummary').value = '😀'.repeat(9000);
             handleSavePersona();
         }''')
         self.assertEqual(frame.evaluate('conversationSummary'), 'Original notes')
-        self.assertIn('4 KiB', frame.locator('#summarySizeStatus').inner_text())
+        self.assertIn('32 KiB', frame.locator('#summarySizeStatus').inner_text())
         frame.evaluate('''() => {
             summaryProgress = {partial: {id: 'old', offset: 2}}; summaryBackup = 'Original backup';
             persistConversationMemory();

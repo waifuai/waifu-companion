@@ -8,7 +8,7 @@ function handleAlwaysShowSettingsChange(event) {
 }
 
 function clampMemorySetting(value) {
-  return Math.min(20, Math.max(5, parseInt(value, 10) || 20));
+  return Math.min(100, Math.max(5, parseInt(value, 10) || 20));
 }
 
 function updateMemorySize(value) {
@@ -418,7 +418,7 @@ function handleSavePersona() {
   try { window.ConversationBudget.validateSummary(summary, true); }
   catch (e) { window.showMemorySizeStatus?.(e.message); return; }
   if (summary !== window.conversationSummary) {
-    if (window.ConversationBudget.bytes(window.conversationSummary) > 4096) window.summaryBackup = window.conversationSummary;
+    if (window.ConversationBudget.bytes(window.conversationSummary) > window.ConversationBudget.limits.summary) window.summaryBackup = window.conversationSummary;
     window.invalidateConversationMemory?.();
     window.summaryProgress = null;
   }
@@ -450,7 +450,7 @@ function handleSavePersona() {
 
 async function handleManualSummarize() {
 
-  if (window.conversationContext.length === 0 && window.ConversationBudget.bytes(window.conversationSummary) <= 4096) {
+  if (window.conversationContext.length === 0 && window.ConversationBudget.bytes(window.conversationSummary) <= window.ConversationBudget.limits.summary) {
     debugLog('No new messages to summarize.', 'info');
     const btn = document.getElementById('manualSummarizeBtn');
     if (btn) {

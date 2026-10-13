@@ -19,51 +19,53 @@ test('packing protects the newest turn and instructions without mutating the arc
   const messages = [{ role: 'system', content: 'Persona and remembered facts' },
     ...Array.from({ length: 40 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'item ' + i }))];
   const result = b.pack(messages, body);
-  assert.equal(result.messages.length, 21);
+  assert.equal(result.messages.length, 41);
   assert.equal(result.messages[0], messages[0]);
   assert.equal(result.messages.at(-1), messages.at(-1));
+  assert.equal(result.omitted, 0);
   assert.equal(messages.length, 41);
 });
 
 test('history and final-body budgets both reduce old context', () => {
   const messages = [{ role: 'system', content: 'S'.repeat(18000) },
-    ...Array.from({ length: 20 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'x'.repeat(1500) + i }))];
+    ...Array.from({ length: 20 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'x'.repeat(8000) + i }))];
   const result = b.pack(messages, body);
-  assert.ok(result.historyBytes <= 16384);
-  assert.ok(result.requestBytes <= 32768);
+  assert.ok(result.historyBytes <= b.limits.history);
+  assert.ok(result.requestBytes <= b.limits.request);
   assert.ok(result.omitted > 0);
   assert.equal(result.messages.at(-1), messages.at(-1));
 });
 
 test('an oversized mandatory message is rejected intact rather than truncated', () => {
-  const latest = { role: 'user', content: '🙂'.repeat(10000) };
+  const latest = { role: 'user', content: '🙂'.repeat(70000) };
   assert.throws(() => b.pack([{ role: 'system', content: 'Persona' }, latest], body), { code: 'context_too_large' });
-  assert.equal(latest.content, '🙂'.repeat(10000));
+  assert.equal(latest.content, '🙂'.repeat(70000));
 });
 
 test('summary acceptance measures UTF-8 rather than JavaScript characters', () => {
-  assert.equal(b.validateSummary('x'.repeat(4096)).length, 4096);
-  assert.throws(() => b.validateSummary('記'.repeat(1400)), { code: 'summary_too_large' });
+  assert.equal(b.validateSummary('x'.repeat(b.limits.summary)).length, b.limits.summary);
+  assert.throws(() => b.validateSummary('記'.repeat(Math.ceil(b.limits.summary / 3) + 1)), { code: 'summary_too_large' });
   assert.throws(() => b.validateSummary('   '), { code: 'summary_empty' });
 });
 
 test('compression prefers whole messages and leaves later sources pending', () => {
-  const entries = [0, 1, 2].map(id => ({ id, text: 'USER: ' + 'x'.repeat(14000) }));
+  const entries = [0, 1, 2, 3, 4].map(id => ({ id, text: 'USER: ' + 'x'.repeat(90000) }));
   const task = b.compressionTask(entries, { summary: '' }, body);
-  assert.equal(task.completed.length, 1);
+  assert.ok(task.completed.length >= 1);
+  assert.ok(task.completed.length < entries.length);
   assert.equal(task.partial, null);
-  assert.equal(entries.length, 3);
-  assert.ok(task.requestBytes <= 32768);
+  assert.equal(entries.length, 5);
+  assert.ok(task.requestBytes <= b.limits.request);
 });
 
-for (const [label, text] of [['multilingual', '記憶🙂'.repeat(12000)], ['JSON escaping', '"\\\n'.repeat(20000)]]) {
+for (const [label, text] of [['multilingual', '記憶🙂'.repeat(60000)], ['JSON escaping', '\"\\\\\\n'.repeat(80000)]]) {
   test(`long ${label} messages resume without dropping source characters`, () => {
     const entries = [{ id: 'long', text }];
     let state = { summary: '' }, previousOffset = 0, count = 0;
     while (true) {
       const task = b.compressionTask(entries, state, body);
-      assert.ok(task.requestBytes <= 32768);
-      assert.ok(b.bytes(task.messages[1].content) < 32768);
+      assert.ok(task.requestBytes <= b.limits.request);
+      assert.ok(b.bytes(task.messages[1].content) < b.limits.request);
       assert.equal(entries[0].text, text);
       state = b.accept(task, 'Names and unresolved facts');
       count++;
@@ -77,7 +79,7 @@ for (const [label, text] of [['multilingual', '記憶🙂'.repeat(12000)], ['JSO
 }
 
 test('legacy memory is kept until its last accepted chunk, with a full backup', () => {
-  const original = 'Older facts. '.repeat(10000);
+  const original = 'Older facts. '.repeat(12000);
   let state = { summary: original }, calls = 0;
   while (true) {
     const task = b.compressionTask([], state, body);
@@ -94,9 +96,9 @@ test('legacy memory is kept until its last accepted chunk, with a full backup', 
 });
 
 test('edited continuation sources and oversized results do not advance the checkpoint', () => {
-  const entries = [{ id: 'a', text: 'x'.repeat(40000) }];
+  const entries = [{ id: 'a', text: 'x'.repeat(200000) }];
   const task = b.compressionTask(entries, { summary: '' }, body);
-  assert.throws(() => b.accept(task, 'x'.repeat(4097)), { code: 'summary_too_large' });
+  assert.throws(() => b.accept(task, 'x'.repeat(b.limits.summary + 1)), { code: 'summary_too_large' });
   const state = b.accept(task, 'Facts');
   entries[0].text = 'Edited source';
   assert.throws(() => b.compressionTask(entries, state, body), { code: 'memory_changed' });
@@ -104,21 +106,21 @@ test('edited continuation sources and oversized results do not advance the check
 
 test('impossible summary envelopes fail without a shrinking-loop stall', () => {
   assert.throws(() => b.compressionTask([{ id: 'a', text: 'x' }], { summary: '' },
-    messages => ({ messages, extra: 'x'.repeat(32768) })), { code: 'context_too_large' });
+    messages => ({ messages, extra: 'x'.repeat(b.limits.request) })), { code: 'context_too_large' });
 });
 
 test('activeSummary returns bounded prompt summary without mutating legacy memory', () => {
   assert.equal(b.activeSummary(''), '');
   assert.equal(b.activeSummary('Compact memory'), 'Compact memory');
   assert.equal(b.activeSummary({ summary: 'Compact memory' }), 'Compact memory');
-  const huge = 'Older legacy facts. '.repeat(1000);
+  const huge = 'Older legacy facts. '.repeat(3000);
   const state = { summary: huge, progress: null };
   const active1 = b.activeSummary(state);
-  assert.ok(b.bytes(active1) <= 4096);
+  assert.ok(b.bytes(active1) <= b.limits.summary);
+  assert.ok(b.bytes(huge) > b.limits.summary);
   assert.equal(state.summary, huge);
   state.progress = { legacy: { source: huge, offset: 5000, summary: 'Partially condensed facts' } };
   const active2 = b.activeSummary(state);
   assert.equal(active2, 'Partially condensed facts');
   assert.equal(state.summary, huge);
 });
-
