@@ -96,7 +96,7 @@ AppState.currentModelUrl = null;
 // Chat state
 AppState.conversationContext = [];
 AppState.isProcessing = false;
-AppState.maxMemorySize = 30;
+AppState.maxMemorySize = 20;
 
 // Debug state
 AppState.isDebugging = false;
@@ -138,7 +138,7 @@ AppState.corePersonaPrompt = "You are Haru, a sentient AI with a Live2D avatar. 
 AppState.userPersonaPrompt = "";
 AppState.conversationSummary = "";
 AppState.messageCountSinceLastSummary = 0;
-AppState.summaryTriggerCount = 30;
+AppState.summaryTriggerCount = 20;
 AppState.summaryLengthPreference = 'concise';
 
 // Provider state
