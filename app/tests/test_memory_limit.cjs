@@ -9,7 +9,7 @@ function client(memory, trigger, store = new Map()) {
   if (trigger !== undefined) store.set('SUMMARY_TRIGGER_COUNT', trigger);
   const keys = new Proxy({}, { get: (_, key) => key });
   const elements = new Map(['memorySize', 'memorySizeValue', 'summaryTriggerCount', 'summaryTriggerCountValue']
-    .map(id => [id, { value: 20, textContent: '', addEventListener() {} }]));
+    .map(id => [id, { value: 30, textContent: '', addEventListener() {} }]));
   const ctx = vm.createContext({
     document: { getElementById: id => elements.get(id) || null, addEventListener() {},
       documentElement: { style: { getPropertyValue: () => '0.9' } } },
@@ -45,7 +45,7 @@ test('returning browsers clamp saved memory and summary settings above 100', () 
 });
 
 test('fresh defaults and smaller saved choices are retained within the limit', () => {
-  assert.equal(client().ctx.maxMemorySize, 20);
+  assert.equal(client().ctx.maxMemorySize, 30);
   const { ctx, store } = client(10, 5);
   assert.equal(ctx.maxMemorySize, 10);
   assert.equal(ctx.summaryTriggerCount, 5);

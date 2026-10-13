@@ -109,7 +109,7 @@ const WaifuProxyAPI = {
 
     const budget = window.ConversationBudget;
     if (purpose === 'chat' || purpose === 'ambient') {
-      body.messages = budget.pack(body.messages, m => ({ ...body, messages: m }), window.maxMemorySize || 20).messages;
+      body.messages = budget.pack(body.messages, m => ({ ...body, messages: m }), window.maxMemorySize || 30).messages;
     }
     budget.checkBody(body);
     return {

@@ -96,7 +96,7 @@ AppState.currentModelUrl = null;
 // Chat state
 AppState.conversationContext = [];
 AppState.isProcessing = false;
-AppState.maxMemorySize = 20;
+AppState.maxMemorySize = 30;
 
 // Debug state
 AppState.isDebugging = false;
