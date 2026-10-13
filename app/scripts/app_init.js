@@ -217,7 +217,7 @@ function initPersona() {
   window.summaryProgress = AppStorage.getJSON(AppStorage.KEYS.SUMMARY_PROGRESS, null);
   window.summaryBackup = AppStorage.getString(AppStorage.KEYS.SUMMARY_BACKUP, '');
   window.messageCountSinceLastSummary = AppStorage.getNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
-  window.summaryTriggerCount = AppStorage.getNumber(AppStorage.KEYS.SUMMARY_TRIGGER_COUNT, 20);
+  window.summaryTriggerCount = AppStorage.getNumber(AppStorage.KEYS.SUMMARY_TRIGGER_COUNT, 30);
 
   const coreTextarea = document.getElementById('corePersonaPrompt');
   if (coreTextarea) coreTextarea.value = window.corePersonaPrompt;
