@@ -75,9 +75,17 @@
     if (original.provider === 'browser') return { voiceId, lang, provider: 'browser', gender: original.gender };
     const matches = voices.filter(v => v.provider === 'tiktok' && base(v.language) === base(lang));
     const pinned = base(lang) === 'ja' && original.gender !== 'male' && matches.find(v => v.id === 'jp_003');
-    const chosen = pinned || matches.find(v => v.gender === original.gender) || matches[0];
+    const chosen = pinned || matches.find(v => v.gender === original.gender);
     if (chosen) return { voiceId: chosen.id, lang: chosen.language, provider: chosen.provider, gender: chosen.gender };
     return { voiceId, lang, provider: 'browser', gender: original.gender, unsupportedPrimary: true };
+  }
+  // SpeechSynthesis has no standard gender field. Accept explicit metadata or
+  // recognized voice names; never let an unknown system default choose for her.
+  function browserVoiceForGender(voices, gender = 'female') {
+    const female = /\b(female|woman|girl|zira|hazel|susan|samantha|karen|moira|tessa|fiona|kate|victoria|princess|alice|hortense|julie|helena|monica|mónica|sabina|paulina|zena|hedda|katja|denise|elsa|nanami|haruka|ayumi|heami|sunhi|xiaoxiao|huihui|yaoyao|hanhan|hui min|siti|gadis)\b/i;
+    const male = /\b(male|man|boy|david|mark|james|daniel|thomas|george|alex|fred|ralph|paul|pablo|jorge|henri|stefan|ichiro)\b/i;
+    const matches = v => v.gender ? v.gender.toLowerCase() === gender : (gender === 'male' ? male : female).test(v.name || '');
+    return voices.find(matches) || null;
   }
   function create() {
     const conversations = new Map(), replies = new Map();
@@ -144,5 +152,5 @@
     function reset(key) { conversations.delete(key); for (const [k, p] of replies) if (p.key === key) replies.delete(k); }
     return { prepare, settle, reset };
   }
-  global.TTSLanguageRouter = { clean, analyze, selectVoice, create, base, TAGS };
+  global.TTSLanguageRouter = { clean, analyze, selectVoice, browserVoiceForGender, create, base, TAGS };
 })(window);

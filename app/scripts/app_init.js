@@ -130,8 +130,8 @@ function initVoice() {
     const defaultForLang = langConfig ? langConfig.defaultVoiceId : null;
     if (langFemaleVoice) selectedVoiceId = langFemaleVoice.id;
     else if (window.WaifuEmbed) selectedVoiceId = 'en_us_001';
-    else if (defaultForLang && availableVoices.some(v => v.id === defaultForLang)) selectedVoiceId = defaultForLang;
-    else selectedVoiceId = availableVoices.find(v => v.provider === 'tiktok')?.id || 'none';
+    else if (defaultForLang && availableVoices.some(v => v.id === defaultForLang && v.gender === 'female')) selectedVoiceId = defaultForLang;
+    else selectedVoiceId = availableVoices.find(v => v.provider === 'tiktok' && v.gender === 'female')?.id || 'none';
     AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID, selectedVoiceId);
     debugLog(`Initialized/Reset voice to default: ${selectedVoiceId}`, 'info');
   } else {

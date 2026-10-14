@@ -36,12 +36,12 @@ test('uncertain speech shares the emotion request and one route serves every chu
   assert.equal(r.events[0].data.routing_source,'decision');
 });
 test('clear speech neither adds a language task nor waits for emotion',async()=>{
-  const r=runtime(()=>new Promise(()=>{}));const text='Bonjour, je suis contente de te voir.';
+  const r=runtime(()=>new Promise(()=>{}));r.c.speechSynthesis.getVoices=()=>[{name:'French Female',lang:'fr-FR'}];const text='Bonjour, je suis contente de te voir.';
   const plan=r.c.prepareTTSRouting(text);assert.equal(plan.needsDecision,false);
   const answers=r.c.upgradeEmotionFromDecision('Bonjour',text,()=>{},plan);
   r.c.playTTS(text,'en-US',null,0,null,true,r.c.finishTTSRouting(plan,answers));
   await until(()=>r.audio.length===1);
-  assert.deepEqual(r.decisions[0].tasks,['live2d_emotion_v1']);assert.equal(r.requests[0].voice,'fr_001');
+  assert.deepEqual(r.decisions[0].tasks,['live2d_emotion_v1']);assert.equal(r.requests.length,0);assert.equal(r.audio[0].provider,'browser');assert.equal(r.audio[0].voiceId,'browser-female');assert.equal(r.audio[0].lang,'fr-FR');
 });
 test('replaying the same uncertain reply uses its completed decision',async()=>{
   const r=runtime({live2d_tts_language_v1:{choice_id:'ja-JP',confidence:.9}});
@@ -55,7 +55,7 @@ test('stop during a pending decision allows new speech and prevents old audio',a
   await until(()=>r.decisions.length===1);r.c.stopTTS();
   r.c.playTTS('Hola, gracias!','en-US');await until(()=>r.audio.length===1);
   deliver({live2d_tts_language_v1:{choice_id:'ja-JP',confidence:1}});await new Promise(resolve=>setTimeout(resolve,25));
-  assert.equal(r.audio.length,1);assert.equal(r.requests[0].voice,'es_002');
+  assert.equal(r.audio.length,1);assert.equal(r.requests[0].voice,'en_us_001');
 });
 test('stop during audio preparation never starts the fetched audio',async()=>{
   let finish;const fetched=new Promise(resolve=>finish=resolve);const r=runtime(null);
@@ -82,4 +82,30 @@ test('muted speech and automatic routing off make no language requests',async()=
   assert.equal(r.decisions.length,0);r.window.enableVoice=true;r.window.enableAutoTtsLang=false;
   r.c.playTTS('mysterious unfamiliar phrases','en-US');await until(()=>r.audio.length===1);
   assert.equal(r.decisions.length,0);assert.equal(r.requests[0].voice,'en_us_001');
+});
+
+for (const name of ['David', 'Unknown default']) test(`female browser fallback refuses ${name}`, async()=>{
+ const r=runtime(null); r.c.speechSynthesis.getVoices=()=>[{name,lang:'en-US'}];
+ assert.equal(r.c.selectBrowserVoice('browser-female').unsupported,true);
+ let spoken=0;r.c.speechSynthesis.speak=()=>spoken++;
+ await r.c.speakViaBrowser('Hello','browser-female');assert.equal(spoken,0);
+});
+test('empty browser inventory never uses an unspecified system voice',()=>{
+ const r=runtime(null);r.c.speechSynthesis.getVoices=()=>[];
+ assert.equal(r.c.selectBrowserVoice('browser-female').unsupported,true);
+});
+
+test('initial default and language-menu defaults reject male language defaults',()=>{
+ const available=[{id:'fr_001',language:'fr-FR',gender:'male',provider:'tiktok'}, {id:'en_us_001',language:'en-US',gender:'female',provider:'tiktok'}];
+ const languages=[{code:'fr-FR',defaultVoiceId:'fr_001'}];
+ const window={};const c=vm.createContext({window,voices:available,languages,selectedLanguageCode:'fr-FR',selectedVoiceId:'',navigator:{language:'fr-FR'},
+  AppStorage:{KEYS:{},getString:()=>'',setString(){}},debugLog(){},populateVoiceSelector(){},document:{getElementById:()=>null}});
+ let source=fs.readFileSync(path.join(__dirname,'../scripts/app_init.js'),'utf8');
+ const fn=source.slice(source.indexOf('function initVoice()'),source.indexOf('function initVoiceProviders()'));
+ // Run just the default selection, before unrelated speech-input preferences.
+ vm.runInContext(fn.slice(0,fn.indexOf('  populateVoiceSelector();'))+'}',c);
+ c.initVoice();assert.equal(c.selectedVoiceId,'en_us_001');
+ source=fs.readFileSync(path.join(__dirname,'../scripts/settings_ui.js'),'utf8');
+ const helper=source.slice(source.indexOf('  function getDefaultVoiceForLanguage('),source.indexOf('  // Get the default voice for current language'));
+ c.availableVoices=available;vm.runInContext(helper,c);assert.equal(c.getDefaultVoiceForLanguage('fr-FR'),'en_us_001');
 });

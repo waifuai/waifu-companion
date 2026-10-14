@@ -194,18 +194,10 @@ function selectBrowserVoice(voiceId, langOverride) {
   }
 
   if (langVoices.length > 0) {
-    const femaleKeywords = ['female', 'woman', 'girl', 'zira', 'hazel', 'susan', 'samantha', 'karen', 'moira', 'tessa', 'fiona', 'kate', 'victoria', 'princess', 'alice'];
-    const maleKeywords = ['male', 'man', 'boy', 'david', 'mark', 'james', 'daniel', 'thomas', 'george', 'alex', 'fred', 'ralph'];
-    const keywords = targetGender === 'female' ? femaleKeywords : maleKeywords;
-    const oppositeKeywords = targetGender === 'female' ? maleKeywords : femaleKeywords;
-    // Fallback chain: keyword match, then any voice not matching the opposite
-    // gender's keywords, then whatever is first - langVoices[0] is often a
-    // male system voice (the known robotic man voice defect).
-    const keywordMatch = langVoices.find(v => keywords.some(kw => v.name.toLowerCase().includes(kw)));
-    const notOpposite = langVoices.find(v => !oppositeKeywords.some(kw => v.name.toLowerCase().includes(kw)));
-    return { voice: keywordMatch || notOpposite || langVoices[0], lang: targetLang };
+    const voice = window.TTSLanguageRouter.browserVoiceForGender(langVoices, targetGender);
+    return { voice, lang: targetLang, unsupported: !voice };
   }
-  return { voice: null, lang: targetLang, unsupported: available.length > 0 };
+  return { voice: null, lang: targetLang, unsupported: true };
 }
 
 // Waits (bounded) for the browser to populate its voice list.

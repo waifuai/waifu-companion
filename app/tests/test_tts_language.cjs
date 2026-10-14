@@ -109,3 +109,21 @@ test('a keep answer preserves an already established target without forcing recl
   await engine.settle(mixed,{language:{choice_id:'keep',confidence:.95}},'language');
   assert.equal(engine.prepare('je magnifique banane tranquille',opts).needsDecision,false);
 });
+
+test('female auto routing never substitutes male-only French or Spanish voices',()=>{
+ const p=policy();for(const lang of ['fr-FR','es-ES']) {
+  const r=p.selectVoice(voices,'en_us_001',lang);
+  assert.equal(r.provider,'browser');assert.equal(r.gender,'female');assert.equal(r.unsupportedPrimary,true);
+ }
+ assert.equal(p.selectVoice(voices,'en_us_001','ja-JP').voiceId,'jp_003');
+ assert.equal(p.selectVoice(voices,'es_002','es-ES',false).voiceId,'es_002');
+});
+test('browser gender selection refuses male and unknown fallback, with whole-name matching',()=>{
+ const p=policy();const male={name:'David',lang:'en-US'},unknown={name:'Default',lang:'en-US'},female={name:'Samantha',lang:'en-US'};
+ assert.equal(p.browserVoiceForGender([male,unknown],'female'),null);
+ assert.equal(p.browserVoiceForGender([male,unknown,female],'female'),female);
+ assert.equal(p.browserVoiceForGender([{name:'Female',lang:'en-US'}],'male'),null);
+ assert.equal(p.browserVoiceForGender([female,male],'male'),male);
+ assert.equal(p.browserVoiceForGender([],'female'),null);
+ assert.equal(p.browserVoiceForGender([{name:'Custom',gender:'female'}],'female').name,'Custom');
+});

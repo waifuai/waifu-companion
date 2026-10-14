@@ -500,14 +500,14 @@ function populateVoiceSelector() {
     const langConfig = languages.find(l => l.code === langCode);
     if (langConfig && langConfig.defaultVoiceId) {
       // Check if that defaultVoiceId is a valid voice
-      if (availableVoices.some(v => v.id === langConfig.defaultVoiceId)) {
+      if (availableVoices.some(v => v.id === langConfig.defaultVoiceId && v.gender === 'female')) {
         return langConfig.defaultVoiceId;
       }
     }
 
-    // Final fallback: English female or first available
+    // Final fallback: English female or another explicitly female voice
     const enFemale = availableVoices.find(v => v.id === 'en_us_001');
-    return enFemale ? 'en_us_001' : (availableVoices[0]?.id || 'none');
+    return enFemale ? 'en_us_001' : (availableVoices.find(v => v.gender === 'female')?.id || 'none');
   }
 
   // Get the default voice for current language
