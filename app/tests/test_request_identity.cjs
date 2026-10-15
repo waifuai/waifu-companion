@@ -116,3 +116,16 @@ test('unavailable storage still allows internal and speech requests', async () =
     assert.equal(request.headers['x-visitor-id'], undefined);
   }
 });
+
+
+test('decision transport preserves a long completed reply and bounds oversized evidence', async () => {
+  const {api,calls}=client();
+  for(const n of [2600,9000]) {
+    const reply='Opening. '+'x'.repeat(n)+' I am thrilled!';
+    await api.decide(['live2d_emotion_v1'],{reply});
+    const state=JSON.parse(calls.at(-1).body).state;
+    assert.ok(state.reply.endsWith('I am thrilled!'));
+    assert.ok(state.reply.length<=4096);
+    if(n===2600)assert.equal(state.reply,reply);
+  }
+});

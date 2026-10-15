@@ -185,7 +185,7 @@ const WaifuProxyAPI = {
         body: JSON.stringify({
           request_id: (crypto.randomUUID && crypto.randomUUID()) || null,
           tasks,
-          state
+          state: window.ConversationBudget.decisionState(state)
         })
       });
       if (!res.ok) return null;

@@ -370,8 +370,8 @@ function inferEmotion(text) {
 // Expression upgrade for the finished reply: WaifuAI Cloud reads how the
 // companion is expressing itself (multilingual, sarcasm, roleplay — what the
 // keyword guess structurally cannot judge) and the answer re-applies the
-// animation when confident. The keyword guess keeps having set the initial
-// expression; on no answer or low confidence nothing changes here. Resolves
+// animation using the best-fitting valid expression. The keyword guess sets the
+// initial expression; on no valid answer nothing changes here. Resolves
 // quietly; never throws.
 async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion, speechPlan = null, valid = () => true) {
   try {
@@ -385,14 +385,14 @@ async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion, spee
     const tasks = ['live2d_emotion_v1'];
     if (speechPlan && speechPlan.needsDecision && !speechPlan.finished && !speechPlan.pending) tasks.push('live2d_tts_language_v1');
     const answers = await window.WaifuProxyAPI.decide(tasks, {
-      reply: String(reply || '').slice(0, 1200),
+      reply: String(reply || ''),
       user_message: clip(userMessage),
       recent_context: recent,
       ...(tasks.length > 1 ? { conversation_language: speechPlan.previousLang } : {}),
-      ...(tasks.length > 1 && speechPlan.text !== String(reply).trim() ? { spoken_reply: speechPlan.text.slice(0, 1200) } : {})
+      ...(tasks.length > 1 && speechPlan.text !== String(reply).trim() ? { spoken_reply: speechPlan.text } : {})
     });
     const answer = answers && answers.live2d_emotion_v1;
-    if (valid() && answer && (answer.confidence ?? 0) >= 0.4) {
+    if (valid() && answer && ['happy', 'sad', 'surprised', 'thoughtful', 'excited', 'neutral'].includes(answer.choice_id)) {
       debugLog(`Emotion decision: ${answer.choice_id} (confidence ${answer.confidence ?? 'n/a'})`, 'info');
       applyEmotion(answer.choice_id);
     }

@@ -466,5 +466,21 @@ class PlayerCardTests(unittest.TestCase):
         self.assertFalse(self.tts_calls)
 
 
+
+    def test_long_reply_preserves_emotional_ending_in_decision_request(self):
+        self.reply = 'Opening. ' + 'x' * 5000 + ' I am thrilled!'
+        frame = self.open_app()
+        frame.evaluate('window.enableVoice = false')
+        frame.locator('#messageInput').fill('Hello')
+        with self.page.expect_request('**/decisions') as captured:
+            frame.locator('#sendMessageBtn').click()
+        state = captured.value.post_data_json['state']
+        self.assertLessEqual(len(state['reply']), 4096)
+        self.assertTrue(state['reply'].startswith('Opening. '))
+        self.assertTrue(state['reply'].endswith('I am thrilled!'))
+        self.assertIn('[...]', state['reply'])
+        self.assertFalse(self.errors, self.errors)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

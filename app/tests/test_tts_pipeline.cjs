@@ -109,3 +109,24 @@ test('initial default and language-menu defaults reject male language defaults',
  const helper=source.slice(source.indexOf('  function getDefaultVoiceForLanguage('),source.indexOf('  // Get the default voice for current language'));
  c.availableVoices=available;vm.runInContext(helper,c);assert.equal(c.getDefaultVoiceForLanguage('fr-FR'),'en_us_001');
 });
+
+
+test('finished emotion evidence reaches the request wrapper without prefix truncation', async () => {
+  const r=runtime({});const text='Opening. '+'x'.repeat(2600)+' I am thrilled!';
+  await r.c.upgradeEmotionFromDecision('Hello',text,()=>{});
+  assert.equal(r.decisions[0].state.reply,text);
+});
+
+
+test('valid emotion winners apply even at zero confidence; missing, invalid and stale answers do not', async () => {
+  for(const confidence of [0,.01,.39,.9]) {
+    const r=runtime({live2d_emotion_v1:{choice_id:'sad',confidence}}),applied=[];
+    await r.c.upgradeEmotionFromDecision('Hello','A mixed reply.',x=>applied.push(x));
+    assert.deepEqual(applied,['sad']);
+  }
+  for(const [answer,valid] of [[null,true],[{live2d_emotion_v1:{choice_id:'invented',confidence:1}},true],[{live2d_emotion_v1:{choice_id:'sad',confidence:0}},false]]) {
+    const r=runtime(answer),applied=[];
+    await r.c.upgradeEmotionFromDecision('Hello','A reply.',x=>applied.push(x),null,()=>valid);
+    assert.deepEqual(applied,[]);
+  }
+});

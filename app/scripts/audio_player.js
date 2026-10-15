@@ -151,7 +151,7 @@ async function getTTSRouting(text, provided = null, valid = () => true) {
     let request = null;
     if (window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function') {
       const recent = (window.conversationContext || []).slice(-4).map(m => ({ role: m.role, text: String(m.content || '').slice(0, 300) }));
-      request = window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: plan.text.slice(0, 1200), conversation_language: plan.previousLang, recent_context: recent });
+      request = window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: plan.text, conversation_language: plan.previousLang, recent_context: recent });
     }
     plan = await finishTTSRouting(plan, request, valid);
   } else if (plan && plan.pending && !plan.finished) plan = await plan.pending;

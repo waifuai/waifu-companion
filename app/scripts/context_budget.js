@@ -112,7 +112,33 @@
     }
     return prefix(text, limits.summary);
   }
-  const api = { limits, bytes, jsonBytes, validateSummary, checkBody, pack, prefix, signature, summaryMessages, compressionTask, accept, activeSummary, error };
+  function decisionReply(text, limit = 4096) {
+    limit = Math.min(4096, Math.max(32, limit));
+    const s = String(text ?? '');
+    if (s.length <= limit) return s;
+    const marker = '\n[...]\n';
+    let head = Math.floor((limit - marker.length) / 2);
+    let tail = s.length - (limit - marker.length - head);
+    if (/[\uD800-\uDBFF]/.test(s[head - 1]) && /[\uDC00-\uDFFF]/.test(s[head])) head--;
+    if (/[\uDC00-\uDFFF]/.test(s[tail]) && /[\uD800-\uDBFF]/.test(s[tail - 1])) tail++;
+    return s.slice(0, head) + marker + s.slice(tail);
+  }
+  function decisionState(state) {
+    const out = { ...state };
+    for (const field of ['reply', 'spoken_reply']) {
+      if (typeof out[field] === 'string') out[field] = decisionReply(out[field]);
+    }
+    // Leave room for task ids and request_id under the 16 Ki-character body cap.
+    const fields = ['reply', 'spoken_reply'];
+    while (JSON.stringify(out).length > 15000) {
+      const field = fields.filter(k => typeof out[k] === 'string' && out[k].length > 64)
+        .sort((a, b) => out[b].length - out[a].length)[0];
+      if (!field) break;
+      out[field] = decisionReply(out[field], Math.max(64, out[field].length - 256));
+    }
+    return out;
+  }
+  const api = { limits, bytes, jsonBytes, validateSummary, checkBody, pack, prefix, signature, summaryMessages, compressionTask, accept, activeSummary, error, decisionReply, decisionState };
   root.ConversationBudget = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

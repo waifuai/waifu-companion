@@ -587,7 +587,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       }
     }
     if (speechPlan && speechPlan.needsDecision && !speechPlan.finished && !speechPlan.pending && !speechDecision && window.WaifuProxyAPI) {
-      speechDecision = window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: speechPlan.text.slice(0, 1200), conversation_language: speechPlan.previousLang });
+      speechDecision = window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: speechPlan.text, conversation_language: speechPlan.previousLang });
     }
     const speechRouting = speechPlan && typeof finishTTSRouting === 'function' ? finishTTSRouting(speechPlan, speechDecision, validSpeechReply) : null;
 

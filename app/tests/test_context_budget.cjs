@@ -124,3 +124,29 @@ test('activeSummary returns bounded prompt summary without mutating legacy memor
   assert.equal(active2, 'Partially condensed facts');
   assert.equal(state.summary, huge);
 });
+
+
+test('decision evidence retains complete ordinary replies and both ends of long replies', () => {
+  const ordinary = 'An informative opening. ' + 'x'.repeat(2400) + ' I am thrilled!';
+  assert.equal(b.decisionReply(ordinary), ordinary);
+  for (const middle of ['x'.repeat(8000), '🙂'.repeat(5000), 'x'.repeat(2034)+'🙂'+'x'.repeat(8000)]) {
+    const source = 'Opening. ' + middle + ' Emotional ending!';
+    const packed = b.decisionReply(source);
+    assert.ok(packed.length <= 4096);
+    assert.ok(packed.startsWith('Opening. '));
+    assert.ok(packed.endsWith('Emotional ending!'));
+    assert.equal(Buffer.from(packed, 'utf8').toString('utf8'), packed);
+  }
+});
+
+test('shared speech/emotion evidence fits the serialized decision body even with escaped text', () => {
+  const state = {reply:'Start.'+'\u0001'.repeat(9000)+'Ending!', spoken_reply:'Speech.'+'\u0002'.repeat(9000)+'Done!',
+    user_message:'u'.repeat(300),recent_context:Array.from({length:4},()=>({role:'user',text:'\u0003'.repeat(300)}))};
+  const original = JSON.stringify(state), packed = b.decisionState(state);
+  const body = {request_id:'r'.repeat(128),tasks:['live2d_emotion_v1','live2d_tts_language_v1'],state:packed};
+  assert.ok(JSON.stringify(body).length <= 16384);
+  assert.ok(packed.reply.startsWith('Start.'));assert.ok(packed.reply.endsWith('Ending!'));
+  assert.ok(packed.spoken_reply.endsWith('Done!'));
+  assert.equal(JSON.stringify(state),original);
+  assert.deepEqual(packed.recent_context,state.recent_context);
+});
