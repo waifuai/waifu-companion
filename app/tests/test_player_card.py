@@ -40,6 +40,8 @@ class PlayerCardTests(unittest.TestCase):
         self.tts_fail = False
         self.decision_requests = []
         self.language_answer = {'choice_id': 'en-US', 'confidence': 0.95}
+        self.action_answers = {}
+        self.writer_replies = {}
         self.hold_decisions = False
         self.pending_decision = None
         self.context.route('**/*', self.route)
@@ -78,7 +80,7 @@ class PlayerCardTests(unittest.TestCase):
             request = route.request.post_data_json
             request['_purpose'] = route.request.headers.get('x-waifu-purpose', 'chat')
             self.calls.append(request)
-            content = 'NO_IMAGE' if request['_purpose'] == 'image_decision' else self.reply
+            content = self.writer_replies.get(request['_purpose'], 'NO_IMAGE' if request['_purpose'] == 'image_decision' else self.reply)
             if request.get('stream'):
                 event = {'choices': [{'delta': {'content': content}}]}
                 route.fulfill(headers=cors, content_type='text/event-stream', body='data: ' + json.dumps(event) + '\n\ndata: [DONE]\n\n')
@@ -107,7 +109,7 @@ class PlayerCardTests(unittest.TestCase):
 
     def fulfill_decision(self, route):
         answers = {task: self.language_answer if task == 'live2d_tts_language_v1'
-                   else {'choice_id': 'happy' if task == 'live2d_emotion_v1' else 'none', 'confidence': 0.95}
+                   else self.action_answers.get(task, {'choice_id': 'happy' if task == 'live2d_emotion_v1' else 'none', 'confidence': 0.95})
                    for task in route.request.post_data_json['tasks']}
         route.fulfill(headers={'access-control-allow-origin': '*'}, content_type='application/json',
                       body=json.dumps({'status': 'ok', 'answers': answers}))
@@ -411,6 +413,32 @@ class PlayerCardTests(unittest.TestCase):
         self.assertFalse(self.errors, self.errors)
 
 
+    def test_zero_confidence_media_actions_honor_choices(self):
+        frame = self.open_app()
+        frame.evaluate("conversationContext = [{role: 'assistant', content: 'Want a picture at the beach?'}, {role: 'user', content: 'Yes please'}]")
+        self.action_answers = {
+            'picture_action_v1': {'choice_id': 'none', 'confidence': 0},
+            'background_action_v1': {'choice_id': 'keep', 'confidence': 0},
+        }
+        self.assertIsNone(frame.evaluate("getImageDecision('Yes please')"))
+        self.assertIsNone(frame.evaluate('getBackgroundScene()'))
+        self.assertFalse(self.calls)
+        self.action_answers = {
+            'picture_action_v1': {'choice_id': 'draw', 'confidence': 0},
+            'background_action_v1': {'choice_id': 'change', 'confidence': 0},
+        }
+        self.writer_replies = {
+            'image_prompt': 'DRAW: An anime companion smiling on a beach at sunset',
+            'background_prompt': 'SCENE: A quiet beach at sunset, warm light and gentle waves',
+        }
+        self.assertIn('beach', frame.evaluate("getImageDecision('Yes please')")['prompt'])
+        self.assertIn('beach', frame.evaluate('getBackgroundScene()'))
+        self.assertEqual([r['_purpose'] for r in self.calls], ['image_prompt', 'background_prompt'])
+        self.assertIn('approved picture request', self.calls[0]['messages'][0]['content'])
+        self.assertNotIn('NONE', self.calls[0]['messages'][0]['content'])
+        self.assertNotIn('SAME', self.calls[1]['messages'][0]['content'])
+        self.assertFalse(self.errors, self.errors)
+
     def test_tts_clear_french_and_spanish_are_local(self):
         frame = self.open_app()
         for text, voice in [('Bonjour, je suis contente de te voir.', 'fr_001'), ('Hola, gracias!', 'es_002')]:
@@ -426,7 +454,7 @@ class PlayerCardTests(unittest.TestCase):
     def test_tts_uncertain_reply_shares_emotion_request(self):
         frame = self.open_app()
         self.reply = '*waves gently* Kimi no koe ga yasashikute kokoro ga atatakai.'
-        self.language_answer = {'choice_id': 'ja-JP', 'confidence': 0.95}
+        self.language_answer = {'choice_id': 'ja-JP', 'confidence': 0}
         frame.locator('#messageInput').fill('Please read this')
         frame.locator('#sendMessageBtn').click()
         frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')

@@ -25,7 +25,7 @@ function runtime(answer) {
 }
 async function until(check) {for(let i=0;i<100;i++){if(check())return;await new Promise(r=>setTimeout(r,5));}assert.fail('pipeline did not finish');}
 test('uncertain speech shares the emotion request and one route serves every chunk',async()=>{
-  const r=runtime({live2d_emotion_v1:{choice_id:'happy',confidence:.9},live2d_tts_language_v1:{choice_id:'ja-JP',confidence:.9}});
+  const r=runtime({live2d_emotion_v1:{choice_id:'happy',confidence:0},live2d_tts_language_v1:{choice_id:'ja-JP',confidence:0}});
   const text='Kimi no koe ga yasashikute kokoro ga atatakai. '.repeat(12);
   const plan=r.c.prepareTTSRouting(text);assert.equal(plan.needsDecision,true);
   const answers=r.c.upgradeEmotionFromDecision('Please read this',text,()=>{},plan);

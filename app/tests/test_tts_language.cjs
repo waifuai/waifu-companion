@@ -87,11 +87,26 @@ test('timeout freezes the local route; a late result cannot change already prepa
   deliver({language:{choice_id:'ja-JP',confidence:1}}); await new Promise(r=>setTimeout(r,1));
   assert.equal(plan.lang,lang);
 });
-test('low confidence, unknown choices, errors and stale answers retain the local route', async () => {
-  for(const [answer,valid] of [[{choice_id:'ja-JP',confidence:.2},true],[{choice_id:'invented',confidence:1},true],[{choice_id:'ja-JP',confidence:1},false],[null,true]]) {
+test('unknown choices, errors and stale answers retain the local route', async () => {
+  for(const [answer,valid] of [[{choice_id:'invented',confidence:1},true],[{choice_id:'ja-JP',confidence:0},false],[null,true]]) {
     const engine=policy().create(), plan=engine.prepare('mysterious unfamiliar phrases',{voices});const lang=plan.lang;
     await engine.settle(plan,answer?{language:answer}:Promise.reject(new Error('offline')),'language',()=>valid);
     assert.equal(plan.lang,lang);
+  }
+});
+
+test('supported winning locales and keep apply even at zero confidence', async () => {
+  for (const choice of ['ja-JP', 'fr-FR', 'keep']) {
+    const engine=policy().create(), opts={key:'one',voices};
+    engine.prepare('Hola, gracias!',opts);
+    const plan=engine.prepare('Bonjour je suis contente. Hello you are very welcome.',opts);
+    assert.equal(plan.needsDecision,true);
+    await engine.settle(plan,{language:{choice_id:choice,confidence:0}},'language');
+    assert.equal(plan.lang,choice==='keep'?'es-ES':choice);
+    assert.equal(plan.source,choice==='keep'?'decision-keep':'decision');
+    const cached=engine.prepare(plan.text,opts);
+    assert.equal(cached.cacheHit,true);
+    assert.equal(cached.lang,plan.lang);
   }
 });
 test('an older pending reply cannot overwrite a newer conversation target', async () => {

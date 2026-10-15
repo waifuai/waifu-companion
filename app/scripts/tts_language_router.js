@@ -138,7 +138,7 @@
           if (done) return;
           done = true; clearTimeout(timer); plan.finished = true; plan.waitMs = Date.now() - started;
           const answer = answers && answers[task];
-          if (valid() && answer && Number.isFinite(answer.confidence) && answer.confidence >= .75 && (answer.choice_id === 'keep' || OPTIONS.has(answer.choice_id))) {
+          if (valid() && answer && (answer.choice_id === 'keep' || OPTIONS.has(answer.choice_id))) {
             plan.lang = answer.choice_id === 'keep' ? plan.previousLang : answer.choice_id;
             plan.source = answer.choice_id === 'keep' ? 'decision-keep' : 'decision'; remember(plan);
           } else plan.source = valid() ? 'local-fallback' : 'stale';

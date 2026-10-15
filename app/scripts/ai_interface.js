@@ -226,6 +226,12 @@ Don't judge whether the picture is too revealing: the image service has its own 
 The description is one line of English (translate if the chat isn't English), 10 to 40 words, describing a concrete scene: who is in it, outfit, pose, setting and mood.
 When the companion is in the picture, describe her as ${appearance || 'an anime girl'}, plus the outfit or pose asked for.`;
 
+const IMAGE_WRITER_SYSTEM_PROMPT = (appearance) => `Write the image description for an approved picture request. Use the user's NEW message and the companion's previous message to resolve the requested scene or accepted offer. The chat can be in any language.
+
+Answer with exactly one line: DRAW: <English description>
+
+The description is 10 to 40 words describing who is in it, outfit, pose, setting and mood. When the companion is in the picture, describe her as ${appearance || 'an anime girl'}, plus the requested outfit or pose. The image service applies its own content filter. Describe the requested picture.`;
+
 // Words that must never reach the image provider, whatever the model wrote.
 const UNSAFE_IMAGE_WORDS = /\b(zugzwang|zebra)\b/i;
 
@@ -291,26 +297,31 @@ async function getImageDecision(userMessage) {
     if (!PICTURE_REQUEST_WORDS.test(userMessage || '') && !(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))) return null;
     const previous = prevReply ? clipPictureContext(prevReply.content) : undefined;
 
-    // WaifuAI Cloud makes the draw/no-draw call first. A confident "no"
-    // skips the writing call below; any other answer — or no answer — runs
-    // the existing judgment unchanged.
+    // Honor the cloud's selected action; an uncertain or unavailable answer
+    // leaves the existing judgment to the writing call.
+    let writePicture = false;
     if (typeof window.WaifuProxyAPI.decide === 'function') {
-      const answers = await window.WaifuProxyAPI.decide(['picture_action_v1'], {
-        user_message: clip(userMessage),
-        previous_reply: previous,
-        picture_offered: Boolean(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))
-      });
-      const picture = answers && answers.picture_action_v1;
-      if (picture && picture.choice_id === 'none' && (picture.confidence ?? 0) >= 0.6) {
-        debugLog('Image decision: cloud says no picture, skipping the writing call', 'info');
-        return null;
+      try {
+        const answers = await window.WaifuProxyAPI.decide(['picture_action_v1'], {
+          user_message: clip(userMessage),
+          previous_reply: previous,
+          picture_offered: Boolean(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))
+        });
+        const picture = answers && answers.picture_action_v1;
+        if (picture && picture.choice_id === 'none') {
+          debugLog('Image decision: cloud says no picture, skipping the writing call', 'info');
+          return null;
+        }
+        writePicture = picture?.choice_id === 'draw';
+      } catch (e) {
+        debugError('Image action unavailable', e);
       }
     }
 
     const input = `Companion's previous message: ${previous || '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
 
     const completion = await callConfiguredLLM([
-      { role: 'system', content: IMAGE_DECISION_SYSTEM_PROMPT(currentAvatarAppearance()) },
+      { role: 'system', content: (writePicture ? IMAGE_WRITER_SYSTEM_PROMPT : IMAGE_DECISION_SYSTEM_PROMPT)(currentAvatarAppearance()) },
       { role: 'user', content: input }
     ], null, 'image_prompt');
     const decision = parseImageDecision(completion && completion.content);

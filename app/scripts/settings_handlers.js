@@ -857,10 +857,8 @@ const BG_PROMPT_SUFFIX = 'anime background art, detailed scenery, soft lighting,
 
 const BG_SCENE_SYSTEM_PROMPT = (force) => `You pick the background scenery for a chat app. You get the current background and the latest messages of a chat between a user and an anime companion. Work out where the conversation is taking place now. The chat can be in any language.
 
-Answer with exactly one line and nothing else, either:
-SAME
-or:
-SCENE: <English description>
+Answer with exactly one line and nothing else:
+${force ? 'SCENE: <English description>' : 'SAME\nor:\nSCENE: <English description>'}
 
 ${force
     ? 'Always answer SCENE, describing the place that fits the conversation best.'
@@ -900,22 +898,24 @@ async function getBackgroundScene(force = false) {
   const clip = (t) => String(t || '').slice(0, 300);
   const current = S.getString(K.BG_SCENE, '') || '(none)';
 
-  // Scheduled Change With the Story checks only: WaifuAI Cloud first says
-  // whether the current scene still fits. A confident "keep" skips the
-  // writing call below; any other answer, including no answer, runs the
-  // judgment unchanged. Forced and manual generations always go straight to
-  // the writing call.
+  // Scheduled checks honor the cloud's selected action. An uncertain or
+  // unavailable answer leaves scene selection to the existing writing call.
+  // Forced and manual generations always request a scene description.
+  let writeScene = force;
   if (!force && window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function') {
-    const answers = await window.WaifuProxyAPI.decide(['background_action_v1'], {
-      current_scene: clip(current),
-      recent_messages: messages.map(m => ({ role: m.role, text: clip(m.content) }))
-    });
-    const background = answers && answers.background_action_v1;
-    // This task's confidence runs lower than the others'; 0.2 is already the
-    // top of its range for a fitting scene.
-    if (background && background.choice_id === 'keep' && (background.confidence ?? 0) >= 0.2) {
-      debugLog('BG: cloud says the scene still fits, skipping the writing call', 'info');
-      return null;
+    try {
+      const answers = await window.WaifuProxyAPI.decide(['background_action_v1'], {
+        current_scene: clip(current),
+        recent_messages: messages.map(m => ({ role: m.role, text: clip(m.content) }))
+      });
+      const background = answers && answers.background_action_v1;
+      if (background && background.choice_id === 'keep') {
+        debugLog('BG: cloud says the scene still fits, skipping the writing call', 'info');
+        return null;
+      }
+      writeScene = background?.choice_id === 'change';
+    } catch (e) {
+      debugError('BG action unavailable', e);
     }
   }
 
@@ -923,7 +923,7 @@ async function getBackgroundScene(force = false) {
     + messages.map(m => `${m.role === 'user' ? 'User' : 'Companion'}: ${clip(m.content)}`).join('\n');
 
   const completion = await callConfiguredLLM([
-    { role: 'system', content: BG_SCENE_SYSTEM_PROMPT(force) },
+    { role: 'system', content: BG_SCENE_SYSTEM_PROMPT(writeScene) },
     { role: 'user', content: input }
   ], null, 'background_prompt');
   const m = String((completion && completion.content) || '').match(/SCENE:\s*([^\n]+)/i);
