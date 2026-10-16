@@ -36,6 +36,9 @@ class PlayerCardTests(unittest.TestCase):
         self.context = self.browser.new_context(viewport={'width': 650, 'height': 650})
         self.context.set_default_timeout(10000)
         self.calls, self.errors, self.boot_errors, self.tts_calls = [], [], [], []
+        self.transcriptions = []
+        self.transport_failure = None
+        self.transport_downloads = 0
         self.reply = 'Mock reply received.'
         self.tts_fail = False
         self.decision_requests = []
@@ -57,6 +60,11 @@ class PlayerCardTests(unittest.TestCase):
         url = urlparse(route.request.url)
         cors = {'access-control-allow-origin': '*'}
         if url.hostname == 'companion.test':
+            if url.path.endswith('/llm_provider_base.js'):
+                self.transport_downloads += 1
+                if self.transport_failure == 'always' or self.transport_failure == 'initial' and self.transport_downloads == 1:
+                    route.abort('failed')
+                    return
             file = (ROOT / unquote(url.path).lstrip('/')).resolve()
             if file.is_dir():
                 file /= 'index.html'
@@ -66,6 +74,10 @@ class PlayerCardTests(unittest.TestCase):
                 route.fulfill(status=404, headers=cors)
         elif route.request.method == 'OPTIONS':
             route.fulfill(status=204, headers={**cors, 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, GET, OPTIONS'})
+        elif url.path == '/transcribe':
+            self.transcriptions.append(route.request.post_data_buffer)
+            route.fulfill(headers=cors, content_type='application/json',
+                          body=json.dumps({'text': "Okay, that's nice."}))
         elif url.path == '/decisions':
             request = route.request.post_data_json
             self.decision_requests.append(request)
@@ -288,6 +300,108 @@ class PlayerCardTests(unittest.TestCase):
         self.assertEqual(len(chats), 1)
         self.assertEqual(chats[0]['messages'][-1]['content'], 'Normal full app chat')
         self.assertEqual(frame.evaluate('ChatManager.getAllChats()[0].messageCount'), 2)
+        self.assertFalse(self.errors, self.errors)
+
+    def test_full_app_mic_then_chat(self):
+        self.check_full_app_mic_then_chat()
+
+    def test_missing_chat_transport_recovers_after_recording(self):
+        self.transport_failure = 'initial'
+        self.check_full_app_mic_then_chat()
+        self.assertEqual(self.transport_downloads, 2)
+
+    def check_full_app_mic_then_chat(self):
+        frame = self.open_app(embed=False)
+        if self.transport_failure:
+            self.assertEqual(frame.evaluate('typeof window.performLLMRequest'), 'undefined')
+        frame.evaluate('''() => {
+            window.enableVoice = false;
+            window.sttEngine = 'proxy';
+            const input = new AudioContext();
+            const tone = input.createOscillator();
+            const output = input.createMediaStreamDestination();
+            tone.connect(output);
+            tone.start();
+            window.testMicInput = input;
+            navigator.mediaDevices.getUserMedia = async () => {
+                await input.resume();
+                window.testMicStream = output.stream.clone();
+                return window.testMicStream;
+            };
+        }''')
+        mic = frame.locator('#micBtn')
+        mic.focus()
+        mic.press('Enter')
+        frame.wait_for_function("document.querySelector('#micBtn').classList.contains('active')")
+        self.page.wait_for_timeout(650)
+        mic.press('Enter')
+        frame.wait_for_function('messageInput.value === "Okay, that\'s nice."')
+        self.assertEqual(len(self.transcriptions), 1)
+        self.assertTrue(frame.evaluate("testMicStream.getTracks().every(track => track.readyState === 'ended')"))
+
+        frame.locator('#sendMessageBtn').click()
+        frame.locator('.message.model-message').filter(has_text=self.reply).wait_for()
+        frame.wait_for_function('!window.isProcessing')
+        frame.locator('#messageInput').fill('Typed after microphone')
+        frame.locator('#messageInput').press('Enter')
+        frame.wait_for_function('!window.isProcessing')
+        chats = [c for c in self.calls if c['_purpose'] == 'chat']
+        self.assertEqual([c['messages'][-1]['content'] for c in chats],
+                         ["Okay, that's nice.", 'Typed after microphone'])
+        self.assertEqual(frame.locator('.message.model-message').filter(has_text=self.reply).count(), 2)
+        self.assertFalse(frame.evaluate("debugHistory.some(entry => /AI streaming response failed|AI response .* failed/.test(entry.message))"))
+        self.assertFalse(self.errors, self.errors)
+        frame.evaluate('testMicInput.close()')
+
+    def test_missing_chat_transport_reports_load_error_and_allows_retry(self):
+        self.transport_failure = 'always'
+        frame = self.open_app(embed=False)
+        frame.evaluate('window.enableVoice = false')
+        frame.locator('#messageInput').fill('Keep this message')
+        frame.locator('#messageInput').press('Enter')
+        frame.locator('.message.model-message').filter(has_text='Chat support could not load.').wait_for()
+        frame.wait_for_function('!window.isProcessing')
+        self.assertFalse(self.calls, 'Missing transport must not send inference requests')
+        self.assertEqual(frame.evaluate('conversationContext.filter(m => m.role === "user").at(-1).content'), 'Keep this message')
+        self.assertFalse(frame.evaluate('conversationContext.some(m => m.role === "assistant" && m.content.includes("Chat support could not load"))'))
+        self.assertEqual(self.transport_downloads, 2)
+
+        self.transport_failure = None
+        frame.locator('#messageInput').fill('Retry after script is available')
+        frame.locator('#messageInput').press('Enter')
+        frame.locator('.message.model-message').filter(has_text=self.reply).wait_for()
+        frame.wait_for_function('!window.isProcessing')
+        self.assertEqual(len([c for c in self.calls if c['_purpose'] == 'chat']), 1)
+        self.assertEqual(self.transport_downloads, 3)
+        self.assertFalse(self.errors, self.errors)
+
+    def test_missing_transport_nonstreaming_and_shared_deadline(self):
+        self.transport_failure = 'initial'
+        frame = self.open_app(embed=False)
+        result = frame.evaluate('''async () => {
+            const append = document.head.appendChild.bind(document.head);
+            const timeout = window.setTimeout;
+            let scripts = 0;
+            document.head.appendChild = script => { scripts++; return script; };
+            window.setTimeout = (fn, ms, ...args) => timeout(fn, ms === 8000 ? 25 : ms, ...args);
+            try {
+                const first = ensureLLMTransport();
+                const second = ensureLLMTransport();
+                const shared = first === second;
+                const errors = await Promise.allSettled([first, second]);
+                await ensureLLMTransport().catch(() => {});
+                return {shared, scripts, codes: errors.map(result => result.reason.code)};
+            } finally {
+                document.head.appendChild = append;
+                window.setTimeout = timeout;
+            }
+        }''')
+        self.assertEqual(result, {'shared': True, 'scripts': 2,
+                                  'codes': ['chat_script_unavailable', 'chat_script_unavailable']})
+        reply = frame.evaluate('callConfiguredLLM([{role:"user", content:"Nonstreaming recovery"}])')
+        self.assertEqual(reply['content'], self.reply)
+        self.assertEqual(self.transport_downloads, 2)
+        self.assertEqual(len(self.calls), 1)
         self.assertFalse(self.errors, self.errors)
 
     def test_blocked_picture_storage(self):

@@ -26,6 +26,39 @@ function resolveLLMProvider() {
 }
 window.resolveLLMProvider = resolveLLMProvider;
 
+let pendingLLMTransport = null;
+
+// A failed script download must not leave an otherwise usable chat permanently
+// unable to send. Recover the shared request helper before making any request.
+function ensureLLMTransport() {
+  if (typeof window.performLLMRequest === 'function') return Promise.resolve();
+  if (pendingLLMTransport) return pendingLLMTransport;
+  pendingLLMTransport = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    const url = new URL('scripts/llm_provider_base.js', document.baseURI);
+    url.searchParams.set('recovery', String(Date.now()));
+    script.src = url.href;
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      script.onload = script.onerror = null;
+      script.remove();
+      if (typeof window.performLLMRequest === 'function') resolve();
+      else {
+        const error = new Error('Chat support could not load. Reload the page and try again.');
+        error.code = 'chat_script_unavailable';
+        reject(error);
+      }
+    };
+    const timer = setTimeout(finish, 8000);
+    script.onload = script.onerror = finish;
+    document.head.appendChild(script);
+  }).finally(() => { pendingLLMTransport = null; });
+  return pendingLLMTransport;
+}
+
 // Strips role/content down for providers that reject extra message properties.
 function sanitizeMessages(msgs) {
   return msgs.map(m => ({ role: m.role, content: m.content }));
@@ -42,6 +75,7 @@ async function callConfiguredLLM(messages, eventPrefix, purpose = 'chat') {
   }
 
   try {
+    await ensureLLMTransport();
     // No response_format/json_object on purpose: forcing structured output on
     // small models is what produced the malformed-JSON turns that surfaced raw
     // braces and truncated replies. parseAIResponse still salvages JSON if a
@@ -539,6 +573,9 @@ const CONNECTION_ERROR_REPLY = "Oh no... I'm having trouble connecting. Could we
 // tell a genuine connectivity failure apart from ordinary dialogue via
 // isError, instead of every caller string-comparing the English text.
 function handleAIFailure(error) {
+  if (error && error.code === 'chat_script_unavailable') {
+    return { reply: 'Chat support could not load. Reload the page and try again. Your messages are kept.', emotion: 'sad', isError: true };
+  }
   if (['context_too_large', 'summary_too_large', 'memory_pending', 'memory_changed'].includes(error && error.code) || (error && error.status === 413)) {
     const reply = error.code === 'memory_pending'
       ? 'Older memory needs more compression. Use Update Summary from Chat to continue. Your messages are kept.'
@@ -703,6 +740,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
       throw new Error('LLMNotConfigured');
     }
 
+    await ensureLLMTransport();
     const messages = await buildChatMessages(userMessage, targetLanguageCode, 'STREAMING');
 
     const streamRequestStartTime = Date.now();
