@@ -5,8 +5,10 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 const { webcrypto } = require('node:crypto');
 
-function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocked = false } = {}) {
+function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocked = false, stallSpeech = null } = {}) {
   const calls = [];
+  const timers = new Set();
+  const stalled = signal => new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(new Error('Aborted')), { once: true }));
   const storage = map => ({
     getItem(key) { if (blocked) throw new Error('Storage unavailable'); return map.get(key) ?? null; },
     setItem(key, value) { if (blocked) throw new Error('Storage unavailable'); map.set(key, value); }
@@ -17,14 +19,17 @@ function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocke
       ...storage(visitorStorage), KEYS: {}, getString: (_key, value) => value,
       getJSON: (_key, value) => value, getBoolean: (_key, value) => value
     },
-    URLSearchParams, FormData, Blob, window: {},
+    URLSearchParams, FormData, Blob, AbortController, window: {},
+    setTimeout(fn, ms) { const timer = { fn, ms }; timers.add(timer); return timer; },
+    clearTimeout(timer) { timers.delete(timer); },
     debugNet() {}, debugError() {},
     async fetch(url, options) {
       calls.push({ url, ...options });
+      if (url.endsWith('/transcribe') && stallSpeech === 'fetch') return stalled(options.signal);
       return {
         ok: true, status: 200, body: { cancel: () => Promise.resolve() },
         headers: new Headers({ 'X-Image-Url': 'https://image.test/result.png' }),
-        json: async () => ({ choices: [{ message: { content: 'Mock reply' } }], text: 'Mock transcript' })
+        json: async () => stallSpeech === 'body' ? stalled(options.signal) : ({ choices: [{ message: { content: 'Mock reply' } }], text: 'Mock transcript' })
       };
     }
   });
@@ -32,7 +37,21 @@ function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocke
   for (const script of ['llm_provider_base.js', 'waifu_proxy.js']) {
     vm.runInContext(readFileSync(path.join(__dirname, '../scripts', script), 'utf8'), context);
   }
-  return { api: context.window.WaifuProxyAPI, calls };
+  return { api: context.window.WaifuProxyAPI, calls, timers };
+}
+
+for (const stage of ['fetch', 'body']) {
+  test('speech timeout includes stalled ' + stage + ' and does not retry', async () => {
+    const { api, calls, timers } = client({ stallSpeech: stage });
+    const pending = api.transcribeAudio(new Blob(['invented audio']));
+    await new Promise(resolve => setImmediate(resolve));
+    const timer = [...timers][0];
+    assert.equal(timer.ms, 75000);
+    timer.fn();
+    await assert.rejects(pending, /took too long/);
+    assert.equal(calls.length, 1);
+    assert.equal(timers.size, 0);
+  });
 }
 
 test('internal completions share the chat identity through the HTTP transport', async () => {

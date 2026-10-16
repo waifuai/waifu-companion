@@ -23,18 +23,10 @@
   // always rebuilt on top of it, never merged into it.
   let sttPresetText = '';
 
-  // Proxy recording state
-  let mediaStream = null;
-  let mediaRecorder = null;
-  let mediaChunks = [];
-  let proxyRecording = false;
-  let proxyStartedAt = 0;
-  let discardProxyRecording = false; // stopped before it really began: don't transcribe
+  let proxyCapture = null;
 
   // A press shorter than this is a tap (toggle); longer is push-to-talk.
   const HOLD_THRESHOLD_MS = 300;
-  // Cloud recordings shorter than this are accidental and never uploaded.
-  const MIN_PROXY_RECORDING_MS = 400;
 
   // 'idle' | 'starting' | 'listening' | 'transcribing'
   let micState = 'idle';
@@ -239,110 +231,48 @@
   }
 
   // ---------------- Proxy WaifuAI Cloud (MediaRecorder -> /transcribe) ----------------
-  async function startProxyRecording() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error('Microphone capture (MediaRecorder) is not supported in this browser.');
+  function startProxy() {
+    if (!window.MicCapture || !navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      addMessage('Microphone recording is not supported in this browser.', false);
+      return;
     }
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    const CANDIDATE_MIME_TYPES = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/mp4',
-      'audio/mpeg'
-    ];
-    const mimeType = (window.MediaRecorder && MediaRecorder.isTypeSupported)
-      ? CANDIDATE_MIME_TYPES.find(t => MediaRecorder.isTypeSupported(t))
-      : undefined;
-
-    mediaChunks = [];
-    mediaRecorder = new MediaRecorder(mediaStream, mimeType ? { mimeType } : undefined);
-
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) mediaChunks.push(e.data);
-    };
-    mediaRecorder.onstop = async () => {
-      // Release the mic immediately
-      mediaStream.getTracks().forEach(t => t.stop());
-      mediaStream = null;
-
-      const blob = new Blob(mediaChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-      mediaRecorder = null;
-      proxyRecording = false;
-
-      const durationMs = Date.now() - proxyStartedAt;
-      if (discardProxyRecording || durationMs < MIN_PROXY_RECORDING_MS) {
-        discardProxyRecording = false;
-        setMicState('idle');
-        debugLog(`STT: Discarded ${durationMs}ms recording without transcribing.`, 'info');
-        return;
-      }
-      setMicState('transcribing');
-
-      const ext = blob.type.includes('ogg') ? 'ogg' : (blob.type.includes('mp4') ? 'mp4' : (blob.type.includes('mpeg') ? 'mp3' : 'webm'));
-      const lang = (window.selectedLanguageCode || 'en-US').split('-')[0];
-
-      try {
-        debugLog(`STT: Sending ${(blob.size / 1024).toFixed(1)}KB audio to WaifuAI Cloud...`, 'info');
-        const result = await window.WaifuProxyAPI.transcribeAudio(blob, { language: lang, filename: 'audio.' + ext });
+    if (!proxyCapture) proxyCapture = window.MicCapture.create({
+      onState: setMicState,
+      onLevel(level) {
+        const button = document.getElementById('micBtn');
+        if (!button) return;
+        button.dataset.inputMonitor = String(level !== null);
+        button.style.setProperty('--mic-input-level', String(level || 0));
+      },
+      onError(message) {
+        debugLog('STT: ' + message, 'warn');
+        addMessage(message, false);
+      },
+      async onAudio(blob) {
+        const ext = blob.type.includes('ogg') ? 'ogg' : (blob.type.includes('mp4') ? 'mp4' : (blob.type.includes('mpeg') ? 'mp3' : 'webm'));
+        const lang = (window.selectedLanguageCode || 'en-US').split('-')[0];
+        let result;
+        try {
+          result = await window.WaifuProxyAPI.transcribeAudio(blob, { language: lang, filename: 'audio.' + ext });
+        } catch (error) {
+          debugError('STT: Cloud transcription failed', error, { status: error?.status });
+          throw new Error(error?.status === 429
+            ? 'Voice input is rate limited right now. Please try again in a moment.'
+            : 'Voice input failed: ' + (error?.message || 'transcription error'));
+        }
         const text = (result?.text || '').trim();
         if (!text) {
-          debugLog('STT: Proxy transcription returned empty text.', 'warn');
-          addMessage('I couldn\'t hear anything in that recording. Try holding the mic closer?', false);
+          addMessage("I couldn't hear anything in that recording. Check your microphone and try again.", false);
           return;
         }
         appendToInput(text);
-        debugLog('STT: Proxy transcription received.', 'info');
         if (typeof trackEvent === 'function') trackEvent('voice_input_used', { engine: 'proxy' });
-      } catch (err) {
-        debugError('STT: Proxy transcription failed', err, { status: err?.status });
-        const msg = err?.status === 429
-          ? 'Voice input is rate limited right now. Please try again in a moment.'
-          : 'Voice input failed: ' + (err?.message || 'transcription error');
-        addMessage(msg, false);
-      } finally {
-        setMicState('idle');
       }
-    };
-
-    mediaRecorder.start();
-    proxyStartedAt = Date.now();
-    proxyRecording = true;
-    setMicState('listening');
-    debugLog('STT: Proxy recording started.', 'info');
-  }
-
-  function stopProxyRecording() {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-    } else {
-      proxyRecording = false;
-      setMicState('idle');
+    });
+    if (proxyCapture.state === 'idle' && typeof trackEvent === 'function') {
+      trackEvent('voice_input_used', { engine: 'proxy', phase: 'start' });
     }
-  }
-
-  async function startProxy() {
-    try {
-      discardProxyRecording = false;
-      setMicState('starting');
-      if (typeof trackEvent === 'function') trackEvent('voice_input_used', { engine: 'proxy', phase: 'start' });
-      await startProxyRecording();
-      // Stopped while the permission prompt / device was still opening.
-      if (discardProxyRecording) stopProxyRecording();
-    } catch (err) {
-      proxyRecording = false;
-      setMicState('idle');
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(t => t.stop());
-        mediaStream = null;
-      }
-      debugError('STT: Could not start proxy recording', err, { name: err?.name });
-      const msg = (err?.name === 'NotAllowedError' || err?.name === 'SecurityError')
-        ? 'Microphone permission denied. Enable it in your browser settings to use voice input.'
-        : 'Could not start voice input: ' + (err?.message || 'unknown error');
-      addMessage(msg, false);
-    }
+    proxyCapture.start();
   }
 
   window.initSTT = function() {
@@ -372,9 +302,8 @@
     }
 
     function stopListening() {
-      if (proxyRecording || getSttEngine() === 'proxy') {
-        if (micState === 'starting') discardProxyRecording = true;
-        else stopProxyRecording();
+      if (proxyCapture?.recording || getSttEngine() === 'proxy') {
+        proxyCapture?.stop();
         return;
       }
       stopWebSpeech();

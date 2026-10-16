@@ -556,6 +556,24 @@
 .mic-button:active { transform: scale(0.94); }
 .mic-button svg { pointer-events: none; }
 
+.mic-button.active[data-input-monitor="true"]::before,
+.mic-button.active[data-input-monitor="true"]::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 15%;
+  width: 70%;
+  height: 3px;
+  border-radius: 2px;
+  background: #ffffff45;
+  pointer-events: none;
+}
+.mic-button.active[data-input-monitor="true"]::after {
+  background: #a9ffcd;
+  transform: scaleX(var(--mic-input-level, 0));
+  transform-origin: left;
+}
+
 /* Waiting on mic permission / the recognizer: amber pulse. */
 .mic-button.starting {
   background: #b26a00;

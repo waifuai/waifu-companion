@@ -7,7 +7,7 @@ const { test } = require('node:test');
 function client({ browserSpeech = false, cloud = true, denied = false } = {}) {
   const listeners = {};
   const button = {
-    style: {}, classList: { toggle() {} }, setAttribute() {},
+    style: { setProperty() {} }, dataset: {}, classList: { toggle() {} }, setAttribute() {},
     addEventListener(name, fn) { listeners[name] = fn; }
   };
   const selector = { value: 'webspeech' };
@@ -30,7 +30,7 @@ function client({ browserSpeech = false, cloud = true, denied = false } = {}) {
   }
   window.MediaRecorder = MediaRecorder;
   const context = vm.createContext({
-    window, MediaRecorder, Blob,
+    window, MediaRecorder, Blob, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
     navigator: { mediaDevices: { async getUserMedia() {
       calls.capture++;
       return { getTracks: () => [{ stop() {} }] };
@@ -43,7 +43,9 @@ function client({ browserSpeech = false, cloud = true, denied = false } = {}) {
     addMessage(message) { calls.messages.push(message); },
     handleSttEngineChange(event) { calls.saved.push(event.target.value); }
   });
-  vm.runInContext(readFileSync(path.join(__dirname, '../scripts/stt_controller.js'), 'utf8'), context);
+  for (const script of ['mic_capture.js', 'stt_controller.js']) {
+    vm.runInContext(readFileSync(path.join(__dirname, '../scripts', script), 'utf8'), context);
+  }
   window.initSTT();
   return { window, calls, button, selector, click: () => listeners.click({ detail: 0 }) };
 }

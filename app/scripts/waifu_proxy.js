@@ -207,17 +207,28 @@ const WaifuProxyAPI = {
     if (opts.language) form.append('language', opts.language);
     if (opts.prompt) form.append('prompt', opts.prompt);
 
-    const res = await fetch(this.TRANSCRIBE_URL, {
-      method: 'POST', headers: getRequestIdentityHeaders(), body: form
-    });
-    let body = null;
-    try { body = await res.json(); } catch (e) { }
-    if (!res.ok) {
-      const err = new Error((body && body.error) || `Transcription failed (HTTP ${res.status}).`);
-      err.status = res.status;
-      throw err;
+    const controller = new AbortController();
+    // Include the response body in the wait so a stalled upload/response can
+    // always release the microphone UI. A retry is a new user action.
+    const timer = setTimeout(() => controller.abort(), 75000);
+    try {
+      const res = await fetch(this.TRANSCRIBE_URL, {
+        method: 'POST', headers: getRequestIdentityHeaders(), body: form, signal: controller.signal
+      });
+      let body = null;
+      try { body = await res.json(); } catch (e) { if (controller.signal.aborted) throw e; }
+      if (!res.ok) {
+        const err = new Error((body && body.error) || `Transcription failed (HTTP ${res.status}).`);
+        err.status = res.status;
+        throw err;
+      }
+      return body;
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('Transcription took too long. Please try again.');
+      throw error;
+    } finally {
+      clearTimeout(timer);
     }
-    return body;
   }
 };
 
