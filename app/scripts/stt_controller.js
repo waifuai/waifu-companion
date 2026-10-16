@@ -171,6 +171,7 @@
         hideMicButton(micBtn);
         debugLog('STT: Web Speech API not supported in this browser. Hiding mic button.', 'info');
       } else {
+        switchEnginePreference('proxy');
         debugLog('STT: Web Speech API not supported; WaifuAI Cloud will be used.', 'info');
       }
       return false;
@@ -354,6 +355,11 @@
     const hasWebSpeech = initWebSpeech(micBtn);
 
     function startListening() {
+      // Settings can select browser speech again after initialization. Resolve
+      // an unavailable engine before starting so the visible mic stays usable.
+      if (!recognition && isProxyConfigured() && getSttEngine() !== 'proxy') {
+        switchEnginePreference('proxy');
+      }
       if (getSttEngine() === 'proxy') {
         if (!isProxyConfigured()) {
           debugLog('STT: Proxy engine selected but WaifuProxyAPI.transcribeAudio is unavailable.', 'error');
