@@ -4,6 +4,12 @@
  * measurements never reject a recording.
  */
 (function () {
+  // A shared client: when the localization runtime is absent it must keep its
+  // English fallbacks, so every message carries its own English text.
+  const tr = (key, fallback) => {
+    const api = typeof window !== 'undefined' && window.WaifuI18n;
+    try { return api && api.has(key) ? api.t(key) : fallback; } catch (error) { return fallback; }
+  };
   const MIME_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/mpeg'];
 
   function inputMonitor(stream, onLevel, startedAt) {
@@ -95,7 +101,7 @@
       } else {
         session.stopping = true;
         try { session.recorder.stop(); }
-        catch (_) { fail(session, 'Could not finish the recording. Please try the microphone again.'); }
+        catch (_) { fail(session, tr('mic.finishFailed', 'Could not finish the recording. Please try the microphone again.')); }
       }
     };
     const start = async () => {
@@ -108,10 +114,10 @@
         if (current !== session || session.finished) { release(session); return; }
         const mimeType = MediaRecorder.isTypeSupported ? MIME_TYPES.find(t => MediaRecorder.isTypeSupported(t)) : undefined;
         const recorder = session.recorder = new MediaRecorder(session.stream, mimeType ? { mimeType } : undefined);
-        session.onEnded = () => fail(session, 'The microphone disconnected. Check your input device and try again.');
+        session.onEnded = () => fail(session, tr('mic.disconnected', 'The microphone disconnected. Check your input device and try again.'));
         for (const track of session.stream.getTracks()) track.addEventListener?.('ended', session.onEnded);
         recorder.ondataavailable = event => { if (event.data?.size) session.chunks.push(event.data); };
-        recorder.onerror = () => fail(session, 'Microphone recording failed. Check your input device and try again.');
+        recorder.onerror = () => fail(session, tr('mic.recordingFailed', 'Microphone recording failed. Check your input device and try again.'));
         recorder.onstop = async () => {
           if (session.finished || current !== session) return;
           session.finished = true;
@@ -121,17 +127,17 @@
           try {
             if (duration < 400) return; // Ignore accidental short taps.
             if (!blob.size) {
-              options.onError?.('No audio was recorded. Check your microphone and try again.');
+              options.onError?.(tr('mic.noAudio', 'No audio was recorded. Check your microphone and try again.'));
               return;
             }
             if (session.signalResult.silent) {
-              options.onError?.('No microphone sound was detected. Check that the correct microphone is selected and unmuted, then try again.');
+              options.onError?.(tr('mic.silent', 'No microphone sound was detected. Check that the correct microphone is selected and unmuted, then try again.'));
               return;
             }
             setState('transcribing');
             await options.onAudio(blob);
           } catch (error) {
-            options.onError?.(error?.message || 'Voice input failed. Please try again.');
+            options.onError?.(error?.message || tr('voice.genericFailed', 'Voice input failed. Please try again.'));
           } finally {
             if (current === session) { current = null; setState('idle'); }
           }
@@ -144,8 +150,8 @@
       } catch (error) {
         const denied = error?.name === 'NotAllowedError' || error?.name === 'SecurityError';
         fail(session, denied
-          ? 'Microphone permission denied. Enable it in your browser settings to use voice input.'
-          : 'Could not start voice input. Check your microphone and try again.');
+          ? tr('mic.denied', 'Microphone permission denied. Enable it in your browser settings to use voice input.')
+          : tr('mic.startFailed', 'Could not start voice input. Check your microphone and try again.'));
       }
     };
     return { start, stop, get state() { return state; }, get recording() { return state === 'starting' || state === 'listening'; } };

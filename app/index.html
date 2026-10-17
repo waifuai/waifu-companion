@@ -1,6 +1,10 @@
 <html>
   <head>
     <script src="scripts/embed_mode.js"></script>
+    <!-- Interface localization: same-origin, before the CDN tags so <html lang dir> is right even if a CDN is slow. -->
+    <script src="../i18n/i18n.js"></script>
+    <script src="../i18n/bootstrap.js"></script>
+    <script src="../i18n/locales/en.js"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-MJCT26J1BK'); </script>
 
     <!-- Core Meta -->
@@ -77,15 +81,16 @@
     <link rel="stylesheet" href="styles/debug.css">
     <link rel="stylesheet" href="styles/responsive.css">
     <link rel="stylesheet" href="styles/embed.css">
+    <link rel="stylesheet" href="styles/rtl.css">
   </head>
   <body>
-    <div class="embed-toolbar" aria-label="Live2D companion controls">
-      <strong>Live2D</strong>
-      <button id="embedVoiceBtn" type="button" aria-pressed="true">Voice on</button>
-      <button id="embedChatBtn" type="button" aria-label="Hide chat" title="Hide chat" aria-pressed="true" aria-controls="embedChat">
+    <div class="embed-toolbar" aria-label="Live2D companion controls" data-i18n-aria-label="app.label">
+      <strong data-i18n="app.live2d">Live2D</strong>
+      <button id="embedVoiceBtn" type="button" aria-pressed="true" data-i18n="app.voiceOn">Voice on</button>
+      <button id="embedChatBtn" type="button" aria-label="Hide chat" title="Hide chat" data-i18n-aria-label="app.hideChat" data-i18n-title="app.hideChat" aria-pressed="true" aria-controls="embedChat">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20 15a3 3 0 0 1-3 3H9l-5 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3Z"/><path d="M8 8h8M8 12h6"/></svg>
       </button>
-      <a href="https://waifuai.com/app/" target="_blank" rel="noopener noreferrer">Full app ↗</a>
+      <a href="https://waifuai.com/app/" target="_blank" rel="noopener noreferrer" data-i18n="app.fullApp">Full app ↗</a>
     </div>
     <noscript>
       <div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">
@@ -123,7 +128,7 @@
         </ul>
       </div>
     </noscript>
-    <button class="settings-button">
+    <button class="settings-button" aria-label="Settings" title="Settings" data-i18n-aria-label="app.settings" data-i18n-title="app.settings">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="3"></circle>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0-1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -132,227 +137,219 @@
 
     <div class="settings-panel" id="settingsPanel">
       <div class="settings-search-container">
-        <input type="text" id="settingsSearch" class="settings-search-input" placeholder="Search settings..." data-ui-key="searchSettingsPlaceholder">
+        <input type="text" id="settingsSearch" class="settings-search-input" placeholder="Search settings..." data-i18n-placeholder="settings.searchPlaceholder">
         <span class="search-icon">🔍</span>
       </div>
       <div id="settingsSearchResults" class="settings-search-results" style="display: none;"></div>
       <div id="settingsMainMenu" class="settings-main-menu">
-        <div class="settings-category-label">Companion</div>
+        <div class="settings-category-label" data-i18n="menu.category.companion">Companion</div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-model" role="button" tabindex="0">
-          <span class="icon">🎭</span> <span>Character</span> <span class="chevron">›</span>
+          <span class="icon">🎭</span> <span data-i18n="menu.character">Character</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-persona" role="button" tabindex="0">
-          <span class="icon">🧠</span> <span>Persona</span> <span class="chevron">›</span>
+          <span class="icon">🧠</span> <span data-i18n="menu.persona">Persona</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-language" role="button" tabindex="0">
-          <span class="icon">🌐</span> <span>Language</span> <span class="chevron">›</span>
+          <span class="icon">🌐</span> <span data-i18n="menu.language">Language</span> <span class="chevron">›</span>
         </div>
 
-        <div class="settings-category-label">AI</div>
+        <div class="settings-category-label" data-i18n="menu.category.ai">AI</div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-openrouter" role="button" tabindex="0">
-          <span class="icon">🤖</span> <span>AI Provider</span> <span class="chevron">›</span>
+          <span class="icon">🤖</span> <span data-i18n="menu.provider">AI Provider</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-memory" role="button" tabindex="0">
-          <span class="icon">🧵</span> <span>Memory</span> <span class="chevron">›</span>
+          <span class="icon">🧵</span> <span data-i18n="menu.memory">Memory</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-automation" role="button" tabindex="0">
-          <span class="icon">🍃</span> <span>Ambient & Queue</span> <span class="chevron">›</span>
+          <span class="icon">🍃</span> <span data-i18n="menu.automation">Ambient & Queue</span> <span class="chevron">›</span>
         </div>
 
-        <div class="settings-category-label">Appearance</div>
+        <div class="settings-category-label" data-i18n="menu.category.appearance">Appearance</div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-background" role="button" tabindex="0">
-          <span class="icon">🖼️</span> <span>Background</span> <span class="chevron">›</span>
+          <span class="icon">🖼️</span> <span data-i18n="menu.background">Background</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-display" role="button" tabindex="0">
-          <span class="icon">🖥️</span> <span>Interface</span> <span class="chevron">›</span>
+          <span class="icon">🖥️</span> <span data-i18n="menu.display">Interface</span> <span class="chevron">›</span>
         </div>
 
-        <div class="settings-category-label">Sound</div>
+        <div class="settings-category-label" data-i18n="menu.category.sound">Sound</div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-voice" role="button" tabindex="0">
-          <span class="icon">🔊</span> <span>Voice</span> <span class="chevron">›</span>
+          <span class="icon">🔊</span> <span data-i18n="menu.voice">Voice</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-audio" role="button" tabindex="0">
-          <span class="icon">📻</span> <span>Radio</span> <span class="chevron">›</span>
+          <span class="icon">📻</span> <span data-i18n="menu.radio">Radio</span> <span class="chevron">›</span>
         </div>
 
-        <div class="settings-category-label">Advanced</div>
+        <div class="settings-category-label" data-i18n="menu.category.advanced">Advanced</div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-context" role="button" tabindex="0">
-          <span class="icon">🧩</span> <span>AI Context</span> <span class="chevron">›</span>
+          <span class="icon">🧩</span> <span data-i18n="menu.context">AI Context</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-debug" role="button" tabindex="0">
-          <span class="icon">🐞</span> <span>Debug</span> <span class="chevron">›</span>
+          <span class="icon">🐞</span> <span data-i18n="menu.debug">Debug</span> <span class="chevron">›</span>
         </div>
 
-        <div class="settings-category-label">Help & About</div>
+        <div class="settings-category-label" data-i18n="menu.category.help">Help & About</div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-help" role="button" tabindex="0">
-          <span class="icon">❓</span> <span>Help & Tutorial</span> <span class="chevron">›</span>
+          <span class="icon">❓</span> <span data-i18n="menu.help">Help & Tutorial</span> <span class="chevron">›</span>
         </div>
         <div class="settings-menu-item" data-action="open-submenu" data-submenu="group-links" role="button" tabindex="0">
-          <span class="icon">🔗</span> <span>Links</span> <span class="chevron">›</span>
+          <span class="icon">🔗</span> <span data-i18n="menu.links">Links</span> <span class="chevron">›</span>
         </div>
       </div>
 
       <div id="group-language" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="languageSettingsTitle">🌐 Language</h3>
+          <h3 data-i18n="settings.languageTitle">🌐 Language</h3>
         </div>
         <div class="settings-item">
-          <label for="languageSelector" data-ui-key="responseLanguageLabel">🌍 Language</label>
+          <label for="interfaceLanguageSelector" data-i18n="settings.interfaceLanguage">Interface language</label>
+          <select id="interfaceLanguageSelector" class="settings-select"></select>
+        </div>
+        <div class="settings-item">
+          <label for="languageSelector" data-i18n="settings.responseLanguage">🌍 Language</label>
           <select id="languageSelector" class="settings-select"></select>
         </div>
         <div class="settings-item">
-          <label data-ui-key="showTransliterationLabel">
-            <input type="checkbox" id="showTransliteration" /> 🔤 Show Transliteration (for JA, KO)
-          </label>
+          <label>
+            <input type="checkbox" id="showTransliteration" /> <span data-i18n="settings.showTransliteration">🔤 Show Transliteration (for JA, KO)</span></label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="translateUILabel">
-            <input type="checkbox" id="translateUICheckbox" /> 🈯 Translate User Interface (AI)
-          </label>
-        </div>
-        <div class="settings-item">
-          <button id="resetLanguagesBtn" data-ui-key="resetLanguagesBtn">Reset Languages</button>
+          <button id="resetLanguagesBtn" data-i18n="settings.resetLanguages">Reset Languages</button>
         </div>
       </div>
 
       <div id="group-openrouter" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="llmSettingsTitle">🤖 AI Provider</h3>
+          <h3 data-i18n="provider.title">🤖 AI Provider</h3>
         </div>
         <div class="provider-section" style="border-left: 3px solid #6366f1; padding-left: 12px; margin-bottom: 16px;">
           <div class="provider-section-header">
-            <h4>✨ WaifuAI Cloud (Default)</h4>
+            <h4 data-i18n="provider.cloudTitle">✨ WaifuAI Cloud (Default)</h4>
           </div>
           <div class="settings-item">
-            <div class="value-display" style="margin-top: 4px; color: #cbd5e1;">
+            <div class="value-display" style="margin-top: 4px; color: #cbd5e1;" data-i18n-html="provider.cloudActive">
               <strong>Active automatically for all guests.</strong> Powered by WaifuAI Cloud. No API key required!
             </div>
-            <div class="value-display" style="margin-top: 4px; font-size: 0.85em; opacity: 0.75;">
+            <div class="value-display" style="margin-top: 4px; font-size: 0.85em; opacity: 0.75;" data-i18n="provider.cloudNote">
               To bring your own API key instead, simply check one of the custom providers below.
             </div>
           </div>
         </div>
         <div class="provider-section">
           <div class="provider-section-header">
-            <h4 data-ui-key="openRouterSectionTitle">OpenRouter</h4>
+            <h4 data-i18n="provider.openRouterTitle">OpenRouter</h4>
           </div>
         <div class="settings-item">
-          <label data-ui-key="useOpenRouterLabel">
-            <input type="checkbox" id="useOpenRouterCheckbox" /> Use OpenRouter
-          </label>
-          <div class="value-display" data-ui-desc="useOpenRouterDesc">
+          <label>
+            <input type="checkbox" id="useOpenRouterCheckbox" /> <span data-i18n="provider.useOpenRouter">Use OpenRouter</span></label>
+          <div class="value-display" data-i18n="provider.useOpenRouterDesc">
             When enabled, chat, translation, and summarization will call OpenRouter using your API key and model name.
           </div>
         </div>
         <div class="settings-item">
-          <label for="openRouterApiKeyInput" data-ui-key="openRouterApiKeyLabel">🔑 OpenRouter API Key</label>
+          <label for="openRouterApiKeyInput" data-i18n="provider.openRouterKeyLabel">🔑 OpenRouter API Key</label>
           <input id="openRouterApiKeyInput" class="settings-select" type="new-password" placeholder="sk-or-v1-..." autocomplete="off" />
-          <div class="value-display" data-ui-desc="openRouterApiKeyDesc">
+          <div class="value-display" data-i18n="provider.openRouterKeyDesc">
             This is stored locally in your browser only and sent directly to openrouter.ai over HTTPS.
           </div>
         </div>
         <div class="settings-item">
-          <label data-ui-key="openRouterPrimaryEnabledLabel">
-            <input type="checkbox" id="openRouterPrimaryEnabledCheckbox" /> Enable primary model
-          </label>
+          <label>
+            <input type="checkbox" id="openRouterPrimaryEnabledCheckbox" /> <span data-i18n="provider.primaryEnabled">Enable primary model</span></label>
         </div>
         <div class="settings-item">
-          <label for="openRouterModelInput" data-ui-key="openRouterModelLabel">🧬 OpenRouter Model Name</label>
+          <label for="openRouterModelInput" data-i18n="provider.openRouterModelLabel">🧬 OpenRouter Model Name</label>
           <input id="openRouterModelInput" class="settings-select" placeholder="" />
-          <div class="value-display" data-ui-desc="openRouterModelDesc">
+          <div class="value-display" id="openRouterModelDesc">
           </div>
         </div>
         <div class="settings-item">
-          <label data-ui-key="openRouterFallbackModel1EnabledLabel">
-            <input type="checkbox" id="openRouterFallbackModel1EnabledCheckbox" /> Enable fallback model 1
-          </label>
+          <label>
+            <input type="checkbox" id="openRouterFallbackModel1EnabledCheckbox" /> <span data-i18n="provider.fallback1Enabled">Enable fallback model 1</span></label>
         </div>
         <div class="settings-item">
-          <label for="openRouterFallbackModel1Input" data-ui-key="openRouterFallbackModel1Label">🔄 Fallback Model 1</label>
+          <label for="openRouterFallbackModel1Input" data-i18n="provider.fallback1Label">🔄 Fallback Model 1</label>
           <input id="openRouterFallbackModel1Input" class="settings-select" placeholder="" />
-          <div class="value-display" data-ui-desc="openRouterFallbackModel1Desc">
+          <div class="value-display" data-i18n="provider.fallback1Desc">
             First fallback model. Used if the primary model fails.
           </div>
         </div>
         <div class="settings-item">
-          <label data-ui-key="openRouterFallbackModel2EnabledLabel">
-            <input type="checkbox" id="openRouterFallbackModel2EnabledCheckbox" /> Enable fallback model 2
-          </label>
+          <label>
+            <input type="checkbox" id="openRouterFallbackModel2EnabledCheckbox" /> <span data-i18n="provider.fallback2Enabled">Enable fallback model 2</span></label>
         </div>
         <div class="settings-item">
-          <label for="openRouterFallbackModel2Input" data-ui-key="openRouterFallbackModel2Label">🔄 Fallback Model 2</label>
+          <label for="openRouterFallbackModel2Input" data-i18n="provider.fallback2Label">🔄 Fallback Model 2</label>
           <input id="openRouterFallbackModel2Input" class="settings-select" placeholder="" />
-          <div class="value-display" data-ui-desc="openRouterFallbackModel2Desc">
+          <div class="value-display" data-i18n="provider.fallback2Desc">
             Second fallback model. Used if the primary and first fallback models fail.
           </div>
         </div>
         </div>
         <div class="provider-section">
           <div class="provider-section-header">
-            <h4 data-ui-key="groqSectionTitle">Groq</h4>
+            <h4 data-i18n="provider.groqTitle">Groq</h4>
           </div>
         <div class="settings-item">
-          <label data-ui-key="useGroqLabel">
-            <input type="checkbox" id="useGroqCheckbox" /> Use Groq
-          </label>
-          <div class="value-display" data-ui-desc="useGroqDesc">
+          <label>
+            <input type="checkbox" id="useGroqCheckbox" /> <span data-i18n="provider.useGroq">Use Groq</span></label>
+          <div class="value-display" data-i18n="provider.useGroqDesc">
             When enabled, chat, translation, and summarization will call Groq using your API key and model name.
           </div>
         </div>
         <div class="settings-item">
-          <label for="groqApiKeyInput" data-ui-key="groqApiKeyLabel">🔑 Groq API Key</label>
+          <label for="groqApiKeyInput" data-i18n="provider.groqKeyLabel">🔑 Groq API Key</label>
           <input id="groqApiKeyInput" class="settings-select" type="new-password" placeholder="gsk_..." autocomplete="off" />
-          <div class="value-display" data-ui-desc="groqApiKeyDesc">
+          <div class="value-display" data-i18n="provider.groqKeyDesc">
             Get your free API key from console.groq.com. Stored locally in your browser.
           </div>
         </div>
         <div class="settings-item">
-          <label for="groqModelInput" data-ui-key="groqModelLabel">🧬 Groq Model Name</label>
+          <label for="groqModelInput" data-i18n="provider.groqModelLabel">🧬 Groq Model Name</label>
           <input id="groqModelInput" class="settings-select" placeholder="llama-3.3-70b-versatile, mixtral-8x7b-32768" />
-          <div class="value-display" data-ui-desc="groqModelDesc">
+          <div class="value-display" data-i18n="provider.groqModelDesc">
             Examples: llama-3.3-70b-versatile, llama-3.1-70b-versatile, mixtral-8x7b-32768, etc.
           </div>
         </div>
         </div>
         <div class="provider-section">
           <div class="provider-section-header">
-            <h4 data-ui-key="openAICompatibleSectionTitle">OpenAI Compatible</h4>
+            <h4 data-i18n="provider.openaiTitle">OpenAI Compatible</h4>
           </div>
         <div class="settings-item">
-          <label data-ui-key="useOpenAICompatibleLabel">
-            <input type="checkbox" id="useOpenAICompatibleCheckbox" /> Use OpenAI Compatible API
-          </label>
-          <div class="value-display" data-ui-desc="useOpenAICompatibleDesc">
+          <label>
+            <input type="checkbox" id="useOpenAICompatibleCheckbox" /> <span data-i18n="provider.useOpenAICompatible">Use OpenAI Compatible API</span></label>
+          <div class="value-display" data-i18n="provider.useOpenAICompatibleDesc">
             Connect to any OpenAI-compatible API endpoint (local or remote) by specifying a custom base URL.
           </div>
         </div>
         <div class="settings-item">
-          <label for="openaiCompatibleBaseUrlInput" data-ui-key="openaiCompatibleBaseUrlLabel">🌐 API Base URL</label>
+          <label for="openaiCompatibleBaseUrlInput" data-i18n="provider.baseUrlLabel">🌐 API Base URL</label>
           <input id="openaiCompatibleBaseUrlInput" class="settings-select" placeholder="http://localhost:1234/v1" autocomplete="off" />
-          <div class="value-display" data-ui-desc="openaiCompatibleBaseUrlDesc">
+          <div class="value-display" data-i18n="provider.baseUrlDesc">
             The base URL of your OpenAI-compatible API (e.g. http://localhost:1234/v1 for LM Studio, or a custom endpoint). Do not include /chat/completions.
           </div>
         </div>
         <div class="settings-item">
-          <label for="openaiCompatibleApiKeyInput" data-ui-key="openaiCompatibleApiKeyLabel">🔑 API Key</label>
+          <label for="openaiCompatibleApiKeyInput" data-i18n="provider.apiKeyLabel">🔑 API Key</label>
           <input id="openaiCompatibleApiKeyInput" class="settings-select" type="new-password" placeholder="sk-..." autocomplete="off" />
-          <div class="value-display" data-ui-desc="openaiCompatibleApiKeyDesc">
+          <div class="value-display" data-i18n="provider.apiKeyDesc">
             API key for the endpoint. Use any value if your local server does not require authentication.
           </div>
         </div>
         <div class="settings-item">
-          <label for="openaiCompatibleModelInput" data-ui-key="openaiCompatibleModelLabel">🧬 Model Name</label>
+          <label for="openaiCompatibleModelInput" data-i18n="provider.modelLabel">🧬 Model Name</label>
           <input id="openaiCompatibleModelInput" class="settings-select" placeholder="gpt-3.5-turbo, llama-3, ..." />
-          <div class="value-display" data-ui-desc="openaiCompatibleModelDesc">
+          <div class="value-display" data-i18n="provider.modelDesc">
             The model name as expected by your API endpoint.
           </div>
         </div>
         <div class="settings-item">
-          <label for="openaiCompatibleCorsProxyInput" data-ui-key="openaiCompatibleCorsProxyLabel">🔗 CORS Proxy URL</label>
+          <label for="openaiCompatibleCorsProxyInput" data-i18n="provider.corsProxyLabel">🔗 CORS Proxy URL</label>
           <input id="openaiCompatibleCorsProxyInput" class="settings-select" placeholder="https://corsproxy.io/?" autocomplete="off" />
-          <div class="value-display" data-ui-desc="openaiCompatibleCorsProxyDesc">
+          <div class="value-display" data-i18n="provider.corsProxyDesc">
             Optional CORS proxy URL to prefix API requests. Leave empty if the API endpoint supports CORS directly.
           </div>
         </div>
@@ -362,76 +359,74 @@
       <div id="group-model" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="modelSettingsTitle">🎭 Character</h3>
+          <h3 data-i18n="model.title">🎭 Character</h3>
         </div>
         <div class="settings-item">
-          <label for="modelSelectorContainer" data-ui-key="selectModelLabel">🎭 Select Model</label>
+          <label for="modelSelectorContainer" data-i18n="model.selectLabel">🎭 Select Model</label>
           <div id="modelSelectorContainer">
             <!-- Custom dropdown will be populated here by ui_manager.js -->
           </div>
         </div>
         <div class="settings-item">
-          <button id="openModelGalleryBtn" data-ui-key="openModelGalleryBtn">Open Model Gallery</button>
+          <button id="openModelGalleryBtn" data-i18n="model.galleryBtn">Open Model Gallery</button>
         </div>
         <div class="settings-item">
-          <label data-ui-key="multipleModelsLabel">
-            <input type="checkbox" id="multipleModelsCheckbox" />
-            🧬 Load multiple models at once
-          </label>
-          <div class="value-display" data-ui-desc="multipleModelsDesc">When enabled, selecting a model adds it without removing existing ones.</div>
+          <label>
+            <input type="checkbox" id="multipleModelsCheckbox" /> <span data-i18n="model.multipleLabel">🧬 Load multiple models at once</span></label>
+          <div class="value-display" data-i18n="model.multipleDesc">When enabled, selecting a model adds it without removing existing ones.</div>
         </div>
         <div class="settings-item">
-          <label for="imageAspect" data-ui-key="imageAspectLabel">🎨 Picture Shape</label>
+          <label for="imageAspect" data-i18n="model.aspectLabel">🎨 Picture Shape</label>
           <select id="imageAspect" class="settings-select">
-            <option value="2:3" selected>Portrait (2:3)</option>
-            <option value="3:2">Landscape (3:2)</option>
-            <option value="1:1">Square (1:1)</option>
-            <option value="9:16">Tall, phone wallpaper (9:16)</option>
-            <option value="16:9">Wide, desktop wallpaper (16:9)</option>
+            <option value="2:3" selected data-i18n="model.aspectPortrait">Portrait (2:3)</option>
+            <option value="3:2" data-i18n="model.aspectLandscape">Landscape (3:2)</option>
+            <option value="1:1" data-i18n="model.aspectSquare">Square (1:1)</option>
+            <option value="9:16" data-i18n="model.aspectTall">Tall, phone wallpaper (9:16)</option>
+            <option value="16:9" data-i18n="model.aspectWide">Wide, desktop wallpaper (16:9)</option>
           </select>
-          <div class="value-display" data-ui-desc="imageAspectDesc">Shape of the pictures she draws for you.</div>
+          <div class="value-display" data-i18n="model.aspectDesc">Shape of the pictures she draws for you.</div>
         </div>
         <div class="settings-item">
-          <label data-ui-key="addCustomModelLabel">➕ Add Custom Model</label>
-          <input id="customModelName" class="settings-select" placeholder="Model name (optional)">
-          <input id="customModelUrl" class="settings-select" placeholder="Model .model3.json URL">
-          <input id="customModelImage" class="settings-select" placeholder="Thumbnail image URL (optional)">
-          <button id="addCustomModelBtn" data-ui-key="addModelBtn">Add Model</button>
+          <label data-i18n="model.addCustomLabel">➕ Add Custom Model</label>
+          <input id="customModelName" class="settings-select" placeholder="Model name (optional)" data-i18n-placeholder="model.namePlaceholder">
+          <input id="customModelUrl" class="settings-select" placeholder="Model .model3.json URL" data-i18n-placeholder="model.urlPlaceholder">
+          <input id="customModelImage" class="settings-select" placeholder="Thumbnail image URL (optional)" data-i18n-placeholder="model.imagePlaceholder">
+          <button id="addCustomModelBtn" data-i18n="model.addBtn">Add Model</button>
         </div>
         <div class="settings-item">
-          <label data-ui-key="customModelsLabel">📂 Custom Models</label>
+          <label data-i18n="model.customLabel">📂 Custom Models</label>
           <select id="customModelsDropdown" class="settings-select"></select>
         </div>
         <div class="settings-item" id="customModelInfo"></div>
         <div class="settings-item">
-          <button id="resetModelPositionBtn" data-ui-key="resetModelPositionBtn">♻️ Reset Model Position & Zoom</button>
+          <button id="resetModelPositionBtn" data-i18n="model.resetPositionBtn">♻️ Reset Model Position & Zoom</button>
         </div>
         <div class="settings-item">
-          <button id="clearCustomModelsBtn" data-ui-key="clearCustomModelsBtn">🗑️ Clear Custom Models</button>
+          <button id="clearCustomModelsBtn" data-i18n="model.clearCustomBtn">🗑️ Clear Custom Models</button>
         </div>
         <div class="settings-item">
-          <button id="clearAllModelsBtn" data-ui-key="clearAllModelsBtn">🗑️ Clear All Models</button>
+          <button id="clearAllModelsBtn" data-i18n="model.clearAllBtn">🗑️ Clear All Models</button>
         </div>
       </div>
 
       <div id="group-persona" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="personaSettingsTitle">🧠 Persona</h3>
+          <h3 data-i18n="persona.title">🧠 Persona</h3>
         </div>
         <div class="settings-item">
-          <label for="corePersonaPrompt" data-ui-key="corePersonaLabel">🆔 Core Identity</label>
-          <textarea id="corePersonaPrompt" class="settings-textarea" placeholder="Describe who you are fundamentally..."></textarea>
+          <label for="corePersonaPrompt" data-i18n="persona.coreLabel">🆔 Core Identity</label>
+          <textarea id="corePersonaPrompt" class="settings-textarea" dir="auto" placeholder="Describe who you are fundamentally..." data-i18n-placeholder="persona.corePlaceholder"></textarea>
         </div>
         <div class="settings-item">
-          <label for="personaPrompt" data-ui-key="personaSystemPromptLabel">🎭 Custom Personality / Roleplay</label>
-          <textarea id="personaPrompt" class="settings-textarea" placeholder="e.g., You are a tsundere childhood friend who secretly has a crush on the user..."></textarea>
+          <label for="personaPrompt" data-i18n="persona.customLabel">🎭 Custom Personality / Roleplay</label>
+          <textarea id="personaPrompt" class="settings-textarea" dir="auto" placeholder="e.g., You are a tsundere childhood friend who secretly has a crush on the user..." data-i18n-placeholder="persona.customPlaceholder"></textarea>
         </div>
         
         <div class="settings-item">
           <div class="button-row">
-            <button id="savePersonaBtn" data-ui-key="savePersonaBtn">Save Persona Settings</button>
-            <button id="resetPersonaBtn" class="reset-button" data-ui-key="resetPersonaBtn">Reset Persona</button>
+            <button id="savePersonaBtn" data-i18n="persona.saveBtn">Save Persona Settings</button>
+            <button id="resetPersonaBtn" class="reset-button" data-i18n="persona.resetBtn">Reset Persona</button>
           </div>
         </div>
       </div>
@@ -439,40 +434,40 @@
       <div id="group-memory" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="memorySettingsTitle">🧵 Memory</h3>
+          <h3 data-i18n="memory.title">🧵 Memory</h3>
         </div>
         <div class="settings-item">
-          <label for="memorySize" data-ui-key="conversationMemoryLabel">🧵 Conversation Memory Size</label>
+          <label for="memorySize" data-i18n="memory.sizeLabel">🧵 Conversation Memory Size</label>
           <input type="range" id="memorySize" min="5" max="100" value="30" />
-          <div class="value-display" data-ui-desc="memorySize">
-            Current: <span id="memorySizeValue">30</span> messages
+          <div class="value-display">
+            <span data-i18n="value.current">Current:</span> <span id="memorySizeValue">30</span> <span data-i18n="memory.messages">messages</span>
           </div>
         </div>
 
         <div class="settings-item">
-          <label for="summaryTriggerCount" data-ui-key="summaryTriggerCountLabel">⏲️ Summary Trigger (Every N messages)</label>
+          <label for="summaryTriggerCount" data-i18n="memory.triggerLabel">⏲️ Summary Trigger (Every N messages)</label>
           <input type="range" id="summaryTriggerCount" min="5" max="100" step="1" value="30" />
-          <div class="value-display" data-ui-desc="summaryTriggerCount">
-            Trigger after: <span id="summaryTriggerCountValue">30</span> messages
+          <div class="value-display">
+            <span data-i18n="memory.triggerCurrent">Trigger after:</span> <span id="summaryTriggerCountValue">30</span> <span data-i18n="memory.messages">messages</span>
           </div>
         </div>
 
         <div class="settings-item">
-          <label for="summaryLengthPreference" data-ui-key="summaryLengthLabel">📏 Summary Target Length</label>
+          <label for="summaryLengthPreference" data-i18n="memory.summaryLengthLabel">📏 Summary Target Length</label>
           <select id="summaryLengthPreference" class="settings-select">
-            <option value="ultra-concise" data-ui-key="summaryLenUltraConcise">Ultra-Concise (1 sentence)</option>
-            <option value="concise" data-ui-key="summaryLenConcise" selected>Concise (Short paragraph)</option>
-            <option value="detailed" data-ui-key="summaryLenDetailed">Detailed (1-2 paragraphs)</option>
-            <option value="comprehensive" data-ui-key="summaryLenComprehensive">Comprehensive (In-depth)</option>
+            <option value="ultra-concise" data-i18n="memory.summaryLengthUltra">Ultra-Concise (1 sentence)</option>
+            <option value="concise" data-i18n="memory.summaryLengthConcise" selected>Concise (Short paragraph)</option>
+            <option value="detailed" data-i18n="memory.summaryLengthDetailed">Detailed (1-2 paragraphs)</option>
+            <option value="comprehensive" data-i18n="memory.summaryLengthComprehensive">Comprehensive (In-depth)</option>
           </select>
         </div>
 
         <div class="settings-item">
-          <label for="conversationSummary" data-ui-key="conversationSummaryLabel">📝 Conversation Summary</label>
-          <textarea id="conversationSummary" class="settings-textarea" placeholder="The AI will automatically update this every few messages (see Summary Trigger), but you can edit it here..."></textarea>
-          <div id="summarySizeStatus" role="status">Memory limit: 32 KiB. Older text is kept until compression succeeds.</div>
+          <label for="conversationSummary" data-i18n="memory.summaryLabel">📝 Conversation Summary</label>
+          <textarea id="conversationSummary" class="settings-textarea" dir="auto" placeholder="The AI will automatically update this every few messages (see Summary Trigger), but you can edit it here..." data-i18n-placeholder="memory.summaryPlaceholder"></textarea>
+          <div id="summarySizeStatus" role="status" data-i18n="memory.limitNote">Memory limit: 32 KiB. Older text is kept until compression succeeds.</div>
           <div class="button-row">
-            <button id="manualSummarizeBtn" data-ui-key="manualSummarizeBtn">Update Summary from Chat</button>
+            <button id="manualSummarizeBtn" data-i18n="memory.updateBtn">Update Summary from Chat</button>
           </div>
         </div>
       </div>
@@ -480,41 +475,34 @@
       <div id="group-context" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="contextSettingsTitle">🧩 AI Context</h3>
+          <h3 data-i18n="context.title">🧩 AI Context</h3>
         </div>
         <div class="settings-item">
-          <label data-ui-key="includeTimeLabel">
-              <input type="checkbox" id="includeTimeCheckbox" />
-              ⏱️ Include current time in context
-          </label>
-          <div class="value-display" data-ui-desc="includeTimeDesc">
+          <label>
+              <input type="checkbox" id="includeTimeCheckbox" /> <span data-i18n="context.timeLabel">⏱️ Include current time in context</span></label>
+          <div class="value-display" data-i18n="context.timeDesc">
               Provides the AI with the current date and time for context-aware responses.
           </div>
         </div>
         <div class="settings-item">
-          <label data-ui-key="includeBatteryLabel">
-              <input type="checkbox" id="includeBatteryCheckbox" />
-              🔋 Include battery status in context
-          </label>
-          <div class="value-display" data-ui-desc="includeBatteryDesc">
+          <label>
+              <input type="checkbox" id="includeBatteryCheckbox" /> <span data-i18n="context.batteryLabel">🔋 Include battery status in context</span></label>
+          <div class="value-display" data-i18n="context.batteryDesc">
               Allows the AI to know your device's battery level and charging state.
           </div>
         </div>
         <div class="settings-item">
-          <label data-ui-key="includeTutorialLabel">
-            <input type="checkbox" id="includeTutorialInContextCheckbox" /> 📖 Include Tutorial in AI Context
-          </label>
+          <label>
+            <input type="checkbox" id="includeTutorialInContextCheckbox" /> <span data-i18n="context.tutorialLabel">📖 Include Tutorial in AI Context</span></label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="allowAIModSettingsLabel">
-            <input type="checkbox" id="allowAIModSettingsCheckbox" /> 🤖 Allow AI to modify settings
-          </label>
+          <label>
+            <input type="checkbox" id="allowAIModSettingsCheckbox" /> <span data-i18n="context.allowAiLabel">🤖 Allow AI to modify settings</span></label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="useJsonForEmotionLabel">
-            <input type="checkbox" id="useJsonForEmotionCheckbox" /> 📝 Use JSON Format for Emotion (Advanced)
-          </label>
-          <div class="value-display" data-ui-desc="useJsonForEmotionDesc">
+          <label>
+            <input type="checkbox" id="useJsonForEmotionCheckbox" /> <span data-i18n="context.jsonLabel">📝 Use JSON Format for Emotion (Advanced)</span></label>
+          <div class="value-display" data-i18n="context.jsonDesc">
             Forces the AI to respond in JSON for emotional reactions, but may cause errors on weaker LLMs.
           </div>
         </div>
@@ -523,84 +511,80 @@
       <div id="group-voice" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="voiceSettingsTitle">🔊 Voice</h3>
+          <h3 data-i18n="voice.title">🔊 Voice</h3>
         </div>
         <div class="settings-item">
-          <label data-ui-key="enableTikTokVoiceLabel">
-            <input type="checkbox" id="enableTikTokVoiceCheckbox" /> 🔈 Enable TikTok TTS
-          </label>
-          <div class="value-display" data-ui-desc="enableTikTokVoiceDesc">
+          <label>
+            <input type="checkbox" id="enableTikTokVoiceCheckbox" /> <span data-i18n="voice.tiktokLabel">🔈 Enable TikTok TTS</span></label>
+          <div class="value-display" data-i18n="voice.tiktokDesc">
             Primary voice synthesis using TikTok's free TTS API.
           </div>
         </div>
         <div class="settings-item">
-          <label data-ui-key="enableKokoroVoiceLabel">
-            <input type="checkbox" id="enableKokoroVoiceCheckbox" /> 🚀 Enable Local Voice (Kokoro)
-          </label>
+          <label>
+            <input type="checkbox" id="enableKokoroVoiceCheckbox" /> <span data-i18n="voice.kokoroEnableLabel">🚀 Enable Local Voice (Kokoro)</span></label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="enableFallbackVoiceLabel">
-            <input type="checkbox" id="enableFallbackVoiceCheckbox" /> 🔄 Enable Fallback Voice (Browser)
-          </label>
+          <label>
+            <input type="checkbox" id="enableFallbackVoiceCheckbox" /> <span data-i18n="voice.fallbackEnableLabel">🔄 Enable Fallback Voice (Browser)</span></label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="enableAutoTtsLangLabel">
-            <input type="checkbox" id="enableAutoTtsLangCheckbox" /> 🌐 Auto TTS Language
-          </label>
-          <div class="value-display" data-ui-desc="enableAutoTtsLangDesc">
+          <label>
+            <input type="checkbox" id="enableAutoTtsLangCheckbox" /> <span data-i18n="voice.autoLangLabel">🌐 Auto TTS Language</span></label>
+          <div class="value-display" data-i18n="voice.autoLangDesc">
             Matches the TikTok voice to the language of each reply. Turn this off to always use your selected voice.
           </div>
         </div>
         <div class="settings-item" id="voiceControls">
-          <label for="voiceSelector" data-ui-key="voiceLabel">🎙️ Voice</label>
+          <label for="voiceSelector" data-i18n="voice.selectLabel">🎙️ Voice</label>
           <select id="voiceSelector" class="settings-select"></select>
           
           <div style="margin-top: 15px;">
-            <label for="kokoroVoiceSelector" data-ui-key="kokoroVoiceLabel">🚀 Kokoro Voice</label>
+            <label for="kokoroVoiceSelector" data-i18n="voice.kokoroLabel">🚀 Kokoro Voice</label>
             <select id="kokoroVoiceSelector" class="settings-select"></select>
-            <div class="value-display" data-ui-desc="kokoroVoiceDesc">
+            <div class="value-display" data-i18n="voice.kokoroDesc">
               High-quality local TTS. Preloaded in background for silent handoff.
             </div>
           </div>
 
           <div style="margin-top: 15px;">
-            <label for="ttsFallbackVoiceSelector" data-ui-key="ttsFallbackVoiceLabel">🔄 Fallback Voice</label>
+            <label for="ttsFallbackVoiceSelector" data-i18n="voice.fallbackLabel">🔄 Fallback Voice</label>
             <select id="ttsFallbackVoiceSelector" class="settings-select"></select>
-            <div class="value-display" data-ui-desc="ttsFallbackVoiceDesc">
+            <div class="value-display" data-i18n="voice.fallbackDesc">
               Used automatically if the primary voice provider fails (e.g. rate limit).
             </div>
           </div>
           
           <div style="margin-top: 15px;">
-            <label for="ttsChunkLimit" data-ui-key="ttsChunkLimitLabel">📏 TTS Chunk Character Limit</label>
+            <label for="ttsChunkLimit" data-i18n="voice.chunkLimitLabel">📏 TTS Chunk Character Limit</label>
             <input type="range" id="ttsChunkLimit" min="50" max="1000" step="50" value="300" />
-            <div class="value-display" data-ui-desc="ttsChunkLimit">
-              Max Characters: <span id="ttsChunkLimitValue">300</span>
+            <div class="value-display">
+              <span data-i18n="voice.chunkLimitCurrent">Max Characters:</span> <span id="ttsChunkLimitValue">300</span>
             </div>
           </div>
 
           <div style="margin-top: 15px;">
-            <label for="ttsVolume" data-ui-key="ttsVolumeLabel">🔉 TTS Voice Volume</label>
+            <label for="ttsVolume" data-i18n="voice.volumeLabel">🔉 TTS Voice Volume</label>
             <input type="range" id="ttsVolume" min="0" max="1" step="0.01" value="1" />
-            <div class="value-display" data-ui-desc="ttsVolume">
-              Volume: <span id="ttsVolumeValue">1.00</span>
+            <div class="value-display">
+              <span data-i18n="voice.volumeCurrent">Volume:</span> <span id="ttsVolumeValue">1.00</span>
             </div>
           </div>
 
           <div style="margin-top: 15px;">
-            <label for="sttEngineSelector" data-ui-key="sttEngineLabel">🎤 Voice Input (STT)</label>
+            <label for="sttEngineSelector" data-i18n="voice.sttLabel">🎤 Voice Input (STT)</label>
             <select id="sttEngineSelector" class="settings-select">
-              <option value="webspeech">Browser (Web Speech API)</option>
-              <option value="proxy">WaifuAI Cloud</option>
+              <option value="webspeech" data-i18n="voice.sttBrowser">Browser (Web Speech API)</option>
+              <option value="proxy" data-i18n="voice.sttCloud">WaifuAI Cloud</option>
             </select>
-            <div class="value-display" data-ui-desc="sttEngineDesc">
+            <div class="value-display" data-i18n="voice.sttDesc">
               Speech-to-text engine for the chat microphone. Records your mic and transcribes via WaifuAI Cloud - works in browsers without the Web Speech API.
             </div>
           </div>
           <div class="button-row" style="margin-top: 15px;">
-            <button id="globalPlayTTSBtn" data-ui-key="playTTSBtn">Play</button>
-            <button id="globalPauseTTSBtn" data-ui-key="pauseTTSBtn">Pause</button>
-            <button id="globalStopTTSBtn" data-ui-key="stopTTSBtn">Stop</button>
+            <button id="globalPlayTTSBtn" data-i18n="voice.play">Play</button>
+            <button id="globalPauseTTSBtn" data-i18n="voice.pause">Pause</button>
+            <button id="globalStopTTSBtn" data-i18n="voice.stop">Stop</button>
           </div>
         </div>
       </div>
@@ -608,10 +592,10 @@
       <div id="group-audio" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="audioSettingsTitle">📻 Radio</h3>
+          <h3 data-i18n="radio.title">📻 Radio</h3>
         </div>
         <div class="settings-item">
-          <label data-ui-key="radioStreamLabel">📻 Radio Stream</label>
+          <label data-i18n="radio.streamLabel">📻 Radio Stream</label>
           <div class="radio-controls-inline">
             <button id="radioToggleBtn" class="radio-toggle-button">
               <svg id="radioPlayIcon" class="radio-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -634,33 +618,30 @@
       <div id="group-display" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="displaySettingsTitle">🖥️ Interface</h3>
+          <h3 data-i18n="display.title">🖥️ Interface</h3>
         </div>
         <div class="settings-item">
-          <label data-ui-key="showClockLabel">
-            <input type="checkbox" id="showClockCheckbox" /> ⏰ Show Clock
-          </label>
+          <label>
+            <input type="checkbox" id="showClockCheckbox" /> <span data-i18n="display.clockLabel">⏰ Show Clock</span></label>
         </div>
         <div class="settings-item">
-          <label for="chatboxOpacity" data-ui-key="chatboxOpacityLabel">🪟 Chatbox Opacity</label>
+          <label for="chatboxOpacity" data-i18n="display.chatboxOpacityLabel">🪟 Chatbox Opacity</label>
           <input type="range" id="chatboxOpacity" min="0.1" max="1" step="0.05" value="0.9" />
-          <div class="value-display" data-ui-desc="chatboxOpacity">
-            Current: <span id="chatboxOpacityValue">0.9</span>
+          <div class="value-display">
+            <span data-i18n="value.current">Current:</span> <span id="chatboxOpacityValue">0.9</span>
           </div>
         </div>
         <div class="settings-item">
-          <label for="messageOpacity" data-ui-key="messageOpacityLabel">💬 Message Bubble Opacity</label>
+          <label for="messageOpacity" data-i18n="display.messageOpacityLabel">💬 Message Bubble Opacity</label>
           <input type="range" id="messageOpacity" min="0.1" max="1" step="0.05" value="0.3" />
-          <div class="value-display" data-ui-desc="messageOpacity">
-            Current: <span id="messageOpacityValue">0.3</span>
+          <div class="value-display">
+            <span data-i18n="value.current">Current:</span> <span id="messageOpacityValue">0.3</span>
           </div>
         </div>
         <div class="settings-item">
-          <label data-ui-key="alwaysShowSettingsLabel">
-            <input type="checkbox" id="alwaysShowSettingsCheckbox" />
-            🪄 Always show Settings on page load
-          </label>
-          <div class="value-display" data-ui-desc="alwaysShowSettingsDesc">
+          <label>
+            <input type="checkbox" id="alwaysShowSettingsCheckbox" /> <span data-i18n="display.alwaysShowLabel">🪄 Always show Settings on page load</span></label>
+          <div class="value-display" data-i18n="display.alwaysShowDesc">
             If enabled, the settings panel opens on every load. Otherwise, it remembers your last open/closed state.
           </div>
         </div>
@@ -669,69 +650,69 @@
       <div id="group-background" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="backgroundSettingsTitle">🖼️ Background</h3>
+          <h3 data-i18n="background.title">🖼️ Background</h3>
         </div>
         <div class="settings-item">
-          <label for="bgOpacity" data-ui-key="bgOpacityLabel">🖼️ Background Image Opacity</label>
+          <label for="bgOpacity" data-i18n="background.opacityLabel">🖼️ Background Image Opacity</label>
           <input type="range" id="bgOpacity" min="0" max="1" step="0.05" value="1.0" />
-          <div class="value-display" data-ui-desc="bgOpacity">
-            Current: <span id="bgOpacityValue">1.0</span>
+          <div class="value-display">
+            <span data-i18n="value.current">Current:</span> <span id="bgOpacityValue">1.0</span>
           </div>
         </div>
         <div class="settings-item">
-          <label for="bgPromptInput" data-ui-key="bgPromptLabel">✨ AI Background</label>
-          <input id="bgPromptInput" class="settings-select" placeholder="e.g., starry night sky over a quiet lake">
-          <button id="generateBgBtn" data-ui-key="generateBgBtn">Generate Background</button>
-          <button id="generateBgFromContextBtn" data-ui-key="generateBgFromContextBtn">Generate from Conversation</button>
+          <label for="bgPromptInput" data-i18n="background.aiLabel">✨ AI Background</label>
+          <input id="bgPromptInput" class="settings-select" placeholder="e.g., starry night sky over a quiet lake" data-i18n-placeholder="background.aiPlaceholder">
+          <button id="generateBgBtn" data-i18n="background.generateBtn">Generate Background</button>
+          <button id="generateBgFromContextBtn" data-i18n="background.generateFromChatBtn">Generate from Conversation</button>
           <div class="value-display" id="bgGenerateStatus" aria-live="polite"></div>
         </div>
         <div class="settings-item">
-          <label for="bgAutoMode" data-ui-key="bgAutoModeLabel">🔄 Change With the Story</label>
+          <label for="bgAutoMode" data-i18n="background.autoLabel">🔄 Change With the Story</label>
           <select id="bgAutoMode" class="settings-select">
-            <option value="scene" selected>When the scene changes</option>
-            <option value="every">Every N messages</option>
-            <option value="off">Off</option>
+            <option value="scene" selected data-i18n="background.autoScene">When the scene changes</option>
+            <option value="every" data-i18n="background.autoEvery">Every N messages</option>
+            <option value="off" data-i18n="background.autoOff">Off</option>
           </select>
           <div id="bgAutoEveryRow" style="display: none; margin-top: 6px;">
-            <label for="bgAutoEveryN" data-ui-key="bgAutoEveryLabel">Change every N messages</label>
+            <label for="bgAutoEveryN" data-i18n="background.autoEveryLabel">Change every N messages</label>
             <input id="bgAutoEveryN" class="settings-select" type="number" min="4" max="100" step="1" value="10">
           </div>
-          <div class="value-display" data-ui-desc="bgAutoModeDesc">Draws a new background when the chat moves somewhere new. It never replaces a background you picked yourself.</div>
+          <div class="value-display" data-i18n="background.autoDesc">Draws a new background when the chat moves somewhere new. It never replaces a background you picked yourself.</div>
         </div>
         <div class="settings-item">
-          <label for="bgUrlInput" data-ui-key="bgUrlLabel">🌐 Custom Background URL</label>
+          <label for="bgUrlInput" data-i18n="background.urlLabel">🌐 Custom Background URL</label>
           <input id="bgUrlInput" class="settings-select" placeholder="https://example.com/image.jpg">
-          <button id="applyBgUrlBtn" data-ui-key="applyBgUrlBtn">Set Background</button>
+          <button id="applyBgUrlBtn" data-i18n="background.setBtn">Set Background</button>
         </div>
         <div class="settings-item">
-          <button id="clearBgBtn" data-ui-key="clearBgBtn">🧹 Clear Background</button>
+          <button id="clearBgBtn" data-i18n="background.clearBtn">🧹 Clear Background</button>
         </div>
 
         <div class="settings-item">
-          <label data-ui-key="bgLibraryLabel">📚 Background Library</label>
+          <label data-i18n="background.libraryLabel">📚 Background Library</label>
           <div id="bgLibrary"></div>
           <div class="bg-lib-actions">
-            <button id="openBgViewerBtn" data-ui-key="openBgViewerBtn">Open Fullscreen Viewer</button>
-            <button id="toggleBgSelectBtn" data-ui-key="toggleBgSelectBtn">Select</button>
-            <button id="deleteBgSelectedBtn" disabled data-ui-key="deleteBgSelectedBtn">Delete Selected</button>
-            <button id="clearBgLibraryBtn" data-ui-key="clearBgLibraryBtn">Clear Library</button>
+            <button id="openBgViewerBtn" data-i18n="background.openViewerBtn">Open Fullscreen Viewer</button>
+            <button id="toggleBgSelectBtn" data-i18n="background.selectBtn">Select</button>
+            <button id="deleteBgSelectedBtn" disabled data-i18n="background.deleteSelectedBtn">Delete Selected</button>
+            <button id="clearBgLibraryBtn" data-i18n="background.clearLibraryBtn">Clear Library</button>
           </div>
         </div>
 
         <div class="settings-item">
-          <label data-ui-key="bgFitLabel">📐 Background Fit</label>
+          <label data-i18n="background.fitLabel">📐 Background Fit</label>
           <div class="bg-fit-group">
-            <button id="bgFitContainBtn" data-ui-key="bgFitContain">Contain</button>
-            <button id="bgFitCoverBtn" data-ui-key="bgFitCover">Cover</button>
-            <button id="bgFitStretchBtn" data-ui-key="bgFitStretch">Stretch</button>
-            <button id="bgFitCoverTopBtn" data-ui-key="bgFitCoverTop">Cover • Top</button>
-            <button id="bgFitCoverCenterBtn" data-ui-key="bgFitCoverCenter">Cover • Center</button>
-            <button id="bgFitCoverBottomBtn" data-ui-key="bgFitCoverBottom">Cover • Bottom</button>
-            <button id="bgFitContainTopBtn" data-ui-key="bgFitContainTop">Contain • Top</button>
-            <button id="bgFitContainCenterBtn" data-ui-key="bgFitContainCenter">Contain • Center</button>
-            <button id="bgFitContainBottomBtn" data-ui-key="bgFitContainBottom">Contain • Bottom</button>
-            <button id="bgFitFitWidthBtn" data-ui-key="bgFitFitWidth">Fit Width</button>
-            <button id="bgFitFitHeightBtn" data-ui-key="bgFitFitHeight">Fit Height</button>
+            <button id="bgFitContainBtn" data-i18n="background.fitContain">Contain</button>
+            <button id="bgFitCoverBtn" data-i18n="background.fitCover">Cover</button>
+            <button id="bgFitStretchBtn" data-i18n="background.fitStretch">Stretch</button>
+            <button id="bgFitCoverTopBtn" data-i18n="background.fitCoverTop">Cover • Top</button>
+            <button id="bgFitCoverCenterBtn" data-i18n="background.fitCoverCenter">Cover • Center</button>
+            <button id="bgFitCoverBottomBtn" data-i18n="background.fitCoverBottom">Cover • Bottom</button>
+            <button id="bgFitContainTopBtn" data-i18n="background.fitContainTop">Contain • Top</button>
+            <button id="bgFitContainCenterBtn" data-i18n="background.fitContainCenter">Contain • Center</button>
+            <button id="bgFitContainBottomBtn" data-i18n="background.fitContainBottom">Contain • Bottom</button>
+            <button id="bgFitFitWidthBtn" data-i18n="background.fitWidth">Fit Width</button>
+            <button id="bgFitFitHeightBtn" data-i18n="background.fitHeight">Fit Height</button>
           </div>
         </div>
       </div>
@@ -739,54 +720,51 @@
       <div id="group-automation" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="automationSettingsTitle">🍃 Ambient & Queue</h3>
+          <h3 data-i18n="ambient.title">🍃 Ambient & Queue</h3>
         </div>
         <div class="settings-item">
-          <label data-ui-key="enableUserMessageQueueLabel">
-            <input type="checkbox" id="enableUserMessageQueueCheckbox" checked /> 📬 User Message Queue
-          </label>
-          <div class="value-display" data-ui-desc="enableUserMessageQueueDesc">
+          <label>
+            <input type="checkbox" id="enableUserMessageQueueCheckbox" checked /> <span data-i18n="ambient.queueLabel">📬 User Message Queue</span></label>
+          <div class="value-display" data-i18n="ambient.queueDesc">
             Queue messages sent while the AI is still writing its reply. You never wait for her to finish speaking: sending a message interrupts the voice.
           </div>
         </div>
         <div class="settings-item">
-          <button id="clearQueueBtn" data-ui-key="clearQueueBtn">🧹 Clear Message Queue</button>
+          <button id="clearQueueBtn" data-i18n="ambient.clearQueueBtn">🧹 Clear Message Queue</button>
         </div>
         <div class="settings-item">
-          <label data-ui-key="enableAmbientQueueLabel">
-            <input type="checkbox" id="enableAmbientQueueCheckbox" /> 🍃 Ambient Mode
-          </label>
-          <div class="value-display" data-ui-desc="enableAmbientQueueDesc">
+          <label>
+            <input type="checkbox" id="enableAmbientQueueCheckbox" /> <span data-i18n="ambient.modeLabel">🍃 Ambient Mode</span></label>
+          <div class="value-display" data-i18n="ambient.modeDesc">
             The AI will speak unprompted after periods of silence (pauses after 10 unreplied messages on Free Cloud; unlimited with custom API key).
           </div>
           <div id="ambientPromptContainer" style="margin-top: 10px;">
-            <label data-ui-key="ambientPromptLabel" style="font-size: 0.85em; opacity: 0.8; display: block; margin-bottom: 5px;"></label>
-            <textarea id="ambientPromptInput" rows="3" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 5px; font-size: 0.9em; resize: vertical;" data-ui-placeholder="ambientPromptPlaceholder"></textarea>
+            <label data-i18n="ambient.promptLabel" style="font-size: 0.85em; opacity: 0.8; display: block; margin-bottom: 5px;"></label>
+            <textarea id="ambientPromptInput" rows="3" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 5px; font-size: 0.9em; resize: vertical;" data-i18n-placeholder="ambient.promptPlaceholder" dir="auto"></textarea>
           </div>
         </div>
         <div class="settings-item">
-          <label for="ambientDelay" data-ui-key="ambientDelayLabel">⏱️ Ambient Trigger Delay (seconds)</label>
+          <label for="ambientDelay" data-i18n="ambient.delayLabel">⏱️ Ambient Trigger Delay (seconds)</label>
           <input type="range" id="ambientDelay" min="0" max="60" step="1" value="10" />
-          <div class="value-display" data-ui-desc="ambientDelay">
-            Trigger after: <span id="ambientDelayValue">10s</span>
+          <div class="value-display">
+            <span data-i18n="ambient.delayCurrent">Trigger after:</span> <span id="ambientDelayValue">10s</span>
           </div>
         </div>
         <div class="settings-item">
-          <label for="ambientMaxConsecutive" data-ui-key="ambientMaxConsecutiveLabel">🔢 Max Consecutive Thoughts</label>
+          <label for="ambientMaxConsecutive" data-i18n="ambient.maxLabel">🔢 Max Consecutive Thoughts</label>
           <input type="range" id="ambientMaxConsecutive" min="1" max="50" step="1" value="10" />
           <div class="value-display">
-            Pause after: <span id="ambientMaxConsecutiveValue">10</span> messages
+            <span data-i18n="ambient.maxCurrent">Pause after:</span> <span id="ambientMaxConsecutiveValue">10</span> <span data-i18n="memory.messages">messages</span>
           </div>
           <div id="ambientMaxConsecutiveStatus" style="font-size: 0.85em; margin-top: 4px; line-height: 1.4;"></div>
-          <div class="value-display" data-ui-desc="ambientMaxConsecutiveDesc" style="font-size: 0.82em; opacity: 0.65; margin-top: 3px;">
+          <div class="value-display" data-i18n="ambient.maxDesc" style="font-size: 0.82em; opacity: 0.65; margin-top: 3px;">
             Pause unprompted thoughts after this many unreplied messages (1-50 or Unlimited; clamped to 10 on Free Cloud).
           </div>
         </div>
         <div class="settings-item">
-          <label data-ui-key="ambientPreloadLabel">
-            <input type="checkbox" id="ambientPreloadCheckbox" /> ⚡ Ambient Preload
-          </label>
-          <div class="value-display" data-ui-desc="ambientPreloadDesc">
+          <label>
+            <input type="checkbox" id="ambientPreloadCheckbox" /> <span data-i18n="ambient.preloadLabel">⚡ Ambient Preload</span></label>
+          <div class="value-display" data-i18n="ambient.preloadDesc">
             Pre-fetch the next ambient comment in the background for instant response.
           </div>
         </div>
@@ -795,40 +773,34 @@
       <div id="group-debug" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="debugSettingsTitle">🐞 Debug</h3>
+          <h3 data-i18n="debug.title">🐞 Debug</h3>
         </div>
         <div class="settings-item">
-          <label data-ui-key="enableDebuggerLabel">
-            <input type="checkbox" id="enableDebugger" /> 🧰 Enable Debug Panel
-          </label>
+          <label>
+            <input type="checkbox" id="enableDebugger" /> <span data-i18n="debug.enableLabel">🧰 Enable Debug Panel</span></label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="autoScrollLabel">
-            <input type="checkbox" id="autoScroll" checked /> 📜 Auto-scroll Log
-          </label>
+          <label>
+            <input type="checkbox" id="autoScroll" checked /> <span data-i18n="debug.autoScrollLabel">📜 Auto-scroll Log</span></label>
         </div>
         <div class="settings-item">
-          <button type="button" data-action="clear-debug-log" data-ui-key="clearDebugLogBtn">🧹 Clear Debug Log</button>
+          <button type="button" data-action="clear-debug-log" data-i18n="debug.clearLogBtn">🧹 Clear Debug Log</button>
         </div>
         <div class="settings-item">
-          <label data-ui-key="showVerboseLogsLabel">
-            <input type="checkbox" id="showVerboseLogsCheckbox" checked /> 💬 Show Live2d Debug Logs
-          </label>
+          <label>
+            <input type="checkbox" id="showVerboseLogsCheckbox" checked /> <span data-i18n="debug.verboseLabel">💬 Show Live2d Debug Logs</span></label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="showAIDebugLogsLabel">
-            <input type="checkbox" id="showAIDebugLogsCheckbox" checked /> 🧠 Show AI Debug Logs
-          </label>
+          <label>
+            <input type="checkbox" id="showAIDebugLogsCheckbox" checked /> <span data-i18n="debug.aiLogsLabel">🧠 Show AI Debug Logs</span></label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="showTTSDebugLogsLabel">
-            <input type="checkbox" id="showTTSDebugLogsCheckbox" checked /> 🔊 Show TTS Debug Logs
-          </label>
+          <label>
+            <input type="checkbox" id="showTTSDebugLogsCheckbox" checked /> <span data-i18n="debug.ttsLogsLabel">🔊 Show TTS Debug Logs</span></label>
         </div>
         <div class="settings-item">
-          <label data-ui-key="showChatContextLabel">
-            <input type="checkbox" id="showChatContextCheckbox" /> 📄 Show Chat Context in Debug
-          </label>
+          <label>
+            <input type="checkbox" id="showChatContextCheckbox" /> <span data-i18n="debug.chatContextLabel">📄 Show Chat Context in Debug</span></label>
         </div>
       </div>
 
@@ -837,7 +809,7 @@
       <div id="group-links" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3>🔗 Links</h3>
+          <h3 data-i18n="links.title">🔗 Links</h3>
         </div>
         <div class="settings-item">
           <div class="links-list">
@@ -916,14 +888,14 @@
       <div id="group-help" class="settings-submenu">
         <div class="submenu-header">
           <button class="back-button" type="button" data-action="close-submenu">‹</button>
-          <h3 data-ui-key="helpTutorialTitle">❓ Help & Tutorial</h3>
+          <h3 data-i18n="help.title">❓ Help & Tutorial</h3>
         </div>
         <div id="settingsTutorialContent" class="settings-tutorial-content">
           <div class="settings-item tutorial-doc-link-card">
-            <p>Open the full guide in the docs:</p>
+            <p data-i18n="help.docsIntro">Open the full guide in the docs:</p>
             <a class="link-item tutorial-doc-link" href="docs/help.html" target="_blank" rel="noopener">
               <span class="link-icon">📖</span>
-              <span class="link-name">Help &amp; Tutorial Docs</span>
+              <span class="link-name" data-i18n="help.docsLink">Help &amp; Tutorial Docs</span>
             </a>
           </div>
         </div>
@@ -936,7 +908,7 @@
 
     <!-- Radio Stream Player -->
     <div class="radio-container" style="display: none;">
-      <audio id="radioPlayer" src="https://listen.moe/stream" aria-label="Anime radio stream player" onerror="handleAudioError(this)">
+      <audio id="radioPlayer" src="https://listen.moe/stream" aria-label="Anime radio stream player" data-i18n-aria-label="app.radioPlayer" onerror="handleAudioError(this)">
         Your browser does not support the audio element or the stream format.
       </audio>
     </div>
@@ -953,9 +925,9 @@
 
     <div id="chatSidebar" class="chat-sidebar">
       <div class="chat-sidebar-header">
-        <span>Chat History</span>
+        <span data-i18n="history.title">Chat History</span>
         <div class="chat-sidebar-header-actions">
-          <button class="chat-sidebar-action-btn" type="button" data-action="export-all-chats" title="Export All Chats">⬇</button>
+          <button class="chat-sidebar-action-btn" type="button" data-action="export-all-chats" title="Export All Chats" data-i18n-title="app.exportAllChats">⬇</button>
           <button class="chat-sidebar-close" type="button" data-action="toggle-chat-sidebar">✕</button>
         </div>
       </div>
@@ -964,10 +936,10 @@
 
     <div class="chat-container" id="embedChat">
       <div class="chat-header">
-        <button class="chat-sidebar-toggle" type="button" data-action="toggle-chat-sidebar" title="Chat History">☰</button>
+        <button class="chat-sidebar-toggle" type="button" data-action="toggle-chat-sidebar" title="Chat History" data-i18n-title="app.chatHistory">☰</button>
         <span id="chatTitle">Chat</span>
-        <button class="regenerate-title-btn" type="button" data-action="regenerate-title" title="Regenerate Title">🔄</button>
-        <button class="new-chat-btn" type="button" data-action="new-chat" title="New Chat">＋</button>
+        <button class="regenerate-title-btn" type="button" data-action="regenerate-title" title="Regenerate Title" data-i18n-title="app.regenerateTitle">🔄</button>
+        <button class="new-chat-btn" type="button" data-action="new-chat" title="New Chat" data-i18n-title="app.newChat">＋</button>
       </div>
       <div class="chat-content">
         <div class="chat-history" id="chatHistory"></div>
@@ -977,27 +949,27 @@
             <span id="queueLengthText">Queued: 0</span>
             <div id="queuedMessagesList" class="queued-messages-list"></div>
           </div>
-          <button id="clearQueueChatBtn" class="clear-queue-chat-btn" type="button" data-action="clear-queue">Clear</button>
+          <button id="clearQueueChatBtn" class="clear-queue-chat-btn" type="button" data-action="clear-queue" data-i18n="queue.clear">Clear</button>
         </div>
         <div class="chat-input">
-          <input type="text" id="messageInput" placeholder="Type your message..."/>
-          <button id="micBtn" class="mic-button" type="button" aria-label="Voice input: hold to talk, or tap to start and stop" aria-pressed="false" title="Voice input: hold to talk, or tap to start/stop">
+          <input type="text" id="messageInput" dir="auto" placeholder="Type your message..." data-i18n-placeholder="chat.inputPlaceholder"/>
+          <button id="micBtn" class="mic-button" type="button" aria-label="Voice input: hold to talk, or tap to start and stop" data-i18n-aria-label="composer.micAria" aria-pressed="false" title="Voice input: hold to talk, or tap to start/stop" data-i18n-title="composer.micTitle">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
               <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v4a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 14 0h-2zM11 19h2v3h-2z"/>
             </svg>
           </button>
-          <button id="sendMessageBtn" type="button" data-action="send-message">Send</button>
+          <button id="sendMessageBtn" type="button" data-action="send-message" data-i18n="chat.send">Send</button>
         </div>
       </div>
     </div>
 
     <div class="debug-panel" id="debugPanel">
       <div class="debug-header" id="debugHeader">
-        <span class="debug-header-title">🧰 Debug Panel</span>
+        <span class="debug-header-title" data-i18n="debug.panelTitle">🧰 Debug Panel</span>
         <div class="debug-header-buttons">
-          <button class="debug-header-btn" type="button" data-action="clear-debug-log" title="Clear debug log">🧹</button>
-          <button class="debug-header-btn" type="button" data-action="copy-debug-log" title="Copy debug log to clipboard">📋</button>
-          <button class="debug-header-btn debug-close-btn" type="button" data-action="toggle-debugger" title="Close debug panel">✕</button>
+          <button class="debug-header-btn" type="button" data-action="clear-debug-log" title="Clear debug log" data-i18n-title="debug.clearTitle">🧹</button>
+          <button class="debug-header-btn" type="button" data-action="copy-debug-log" title="Copy debug log to clipboard" data-i18n-title="debug.copyTitle">📋</button>
+          <button class="debug-header-btn debug-close-btn" type="button" data-action="toggle-debugger" title="Close debug panel" data-i18n-title="debug.closeTitle">✕</button>
         </div>
       </div>
       <div class="debug-content">
@@ -1008,23 +980,22 @@
 
 
     <div id="bgViewerOverlay" class="bg-viewer-overlay" aria-hidden="true">
-      <button class="bg-viewer-close" id="bgViewerCloseBtn" aria-label="Close">×</button>
-      <button class="bg-viewer-nav prev" id="bgViewerPrevBtn" aria-label="Previous">‹</button>
+      <button class="bg-viewer-close" id="bgViewerCloseBtn" aria-label="Close" data-i18n-aria-label="app.close">×</button>
+      <button class="bg-viewer-nav prev" id="bgViewerPrevBtn" aria-label="Previous" data-i18n-aria-label="app.previous">‹</button>
       <img id="bgViewerImage" alt="Background preview">
-      <button class="bg-viewer-nav next" id="bgViewerNextBtn" aria-label="Next">›</button>
+      <button class="bg-viewer-nav next" id="bgViewerNextBtn" aria-label="Next" data-i18n-aria-label="app.next">›</button>
       <div id="bgViewerCounter" class="bg-viewer-counter"></div>
     </div>
     <div id="bgLayer" class="bg-layer"></div>
 
 
     <div id="modelGalleryOverlay" class="model-gallery-overlay" aria-hidden="true">
-      <button class="model-gallery-close" id="modelGalleryCloseBtn" aria-label="Close">×</button>
+      <button class="model-gallery-close" id="modelGalleryCloseBtn" aria-label="Close" data-i18n-aria-label="app.close">×</button>
       <div class="model-gallery-grid" id="modelGalleryGrid"></div>
     </div>
 
+    <script>window.WaifuI18n && window.WaifuI18n.apply(document);</script>
     <script src="scripts/model_priority.js"></script>
-    <script src="scripts/ui_strings.js"></script>
-    <script src="scripts/ui_translator.js"></script>
     <script src="scripts/global_state.js"></script>
     <script src="scripts/storage.js"></script>
     <script src="scripts/context_budget.js"></script>

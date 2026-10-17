@@ -1,6 +1,15 @@
 // Contains all the event handler functions that respond to changes in the settings controls.
 const S = AppStorage; const K = AppStorage.KEYS;
 
+// Interface string lookup with an English fallback, so the Node suites can load
+// this file standalone without the i18n runtime. A function declaration, because
+// every app script is a classic script sharing one global scope, where duplicate
+// lexical declarations throw.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { return api && api.has(key) ? api.t(key, params) : fallback; } catch (e) { return fallback; }
+}
+
 function handleAlwaysShowSettingsChange(event) {
   const value = event.target.checked;
   S.setBoolean(K.SETTINGS_ALWAYS_SHOW_ON_LOAD, value);
@@ -30,17 +39,11 @@ function updateMemorySize(value) {
 function handleLanguageChange(event) {
     selectedLanguageCode = event.target.value;
     S.setString(K.SELECTED_LANGUAGE_CODE, selectedLanguageCode);
-    
-    // Also set interface language to match
-    window.currentInterfaceLanguage = selectedLanguageCode;
-    S.setString(K.INTERFACE_LANGUAGE, selectedLanguageCode);
-    
-    // Apply the interface language translation only if enabled
-    if (window.translateUI && typeof applyInterfaceLanguage === 'function') {
-        applyInterfaceLanguage(selectedLanguageCode);
-    }
-    
-    debugLog(`Language changed to: ${selectedLanguageCode} (Response, Interface, and Translate To all set to this language). UI Translation Enabled: ${window.translateUI}`, 'info');
+
+    // Response language only. The interface language is a separate setting
+    // (Settings -> Language -> Interface language) with its own storage key, so
+    // picking a reply language never rewrites the chrome.
+    debugLog(`Response language changed to: ${selectedLanguageCode}`, 'info');
     
     // Update voice selector for new language
     populateVoiceSelector();
@@ -221,24 +224,6 @@ function handleShowTTSDebugLogsChange(event) {
   window.showTTSDebugLogs = value;
   S.setBoolean(K.SHOW_TTS_DEBUG_LOGS, value);
   debugLog(`Show TTS Debug Logs changed to: ${value}`, 'info');
-}
-
-function handleTranslateUIChange(event) {
-    const val = event.target.checked;
-    window.translateUI = val;
-    S.setBoolean(K.TRANSLATE_UI, val);
-    if (typeof trackEvent === 'function') trackEvent('visual_settings_updated', { setting: 'translate_ui', setting_value: val });
-    debugLog(`Translate User Interface changed to: ${val}`, 'info');
-    
-    // If turned on and current language is not English, trigger translation now
-    if (val && selectedLanguageCode !== 'en-US' && typeof applyInterfaceLanguage === 'function') {
-        applyInterfaceLanguage(selectedLanguageCode);
-    } else if (!val) {
-        // Revert to English UI if toggled off
-        if (typeof applyInterfaceLanguage === 'function') {
-            applyInterfaceLanguage('en-US');
-        }
-    }
 }
 
 function handleShowChatContextLogsChange(event) {
@@ -443,7 +428,8 @@ function handleSavePersona() {
   const btn = document.getElementById('savePersonaBtn');
   if (btn) {
     const originalText = btn.textContent;
-    btn.textContent = '✅ Saved!';
+    const saved = tr('persona.saved', '✅ Saved!');
+    btn.textContent = saved;
     setTimeout(() => { btn.textContent = originalText; }, 2000);
   }
 }
@@ -455,7 +441,7 @@ async function handleManualSummarize() {
     const btn = document.getElementById('manualSummarizeBtn');
     if (btn) {
       const old = btn.textContent;
-      btn.textContent = '∅ No new msgs';
+      btn.textContent = tr('memory.updateNone', '∅ No new msgs');
       setTimeout(() => btn.textContent = old, 2000);
     }
     return;
@@ -463,17 +449,17 @@ async function handleManualSummarize() {
 
   const btn = document.getElementById('manualSummarizeBtn');
   const oldText = btn ? btn.textContent : '';
-  if (btn) btn.textContent = '⏳ Summarizing...';
+  if (btn) btn.textContent = tr('memory.updating', '⏳ Summarizing...');
 
   try {
     if (typeof trackEvent === 'function') trackEvent('manual_summary_triggered');
     debugLog('Manual summarization triggered...', 'info');
     const changed = await maybeSummarizeConversation(true);
-    if (btn) btn.textContent = changed ? '✅ Memory Updated' : '∅ Nothing older to update';
+    if (btn) btn.textContent = changed ? tr('memory.updated', '✅ Memory Updated') : tr('memory.updateNothing', '∅ Nothing older to update');
   } catch (e) {
     window.showMemorySizeStatus?.(e.message);
     debugLog(`Manual summarization failed: ${e.message}`, 'error');
-    if (btn) btn.textContent = '❌ Failed';
+    if (btn) btn.textContent = tr('memory.updateFailed', '❌ Failed');
   } finally {
     setTimeout(() => { if(btn) btn.textContent = oldText; }, 2000);
   }
@@ -525,7 +511,7 @@ function handleResetPersona() {
   const btn = document.getElementById('resetPersonaBtn');
   if (btn) {
     const originalText = btn.textContent;
-    btn.textContent = '🔄 Reset!';
+    btn.textContent = tr('persona.resetFeedback', '🔄 Reset!');
     setTimeout(() => { btn.textContent = originalText; }, 2000);
   }
 }
@@ -642,19 +628,18 @@ function handleClearAllCustomModels() {
 }
 
 function handleInterfaceLanguageChange(event) {
-    const newLang = event.target.value;
-    if (typeof applyInterfaceLanguage === 'function') {
-        applyInterfaceLanguage(newLang);
-    }
+    // 'auto' (or an empty value) restores device detection; the runtime keeps
+    // the previous language in place if a dictionary cannot be loaded.
+    setInterfaceLanguage(event.target.value || 'auto');
 }
 
-// Change this function to async and extend its behavior
+// Response language, transliteration and the interface dictionary reset together,
+// but they stay independent settings: the interface goes back to device
+// detection, not to the response language.
 async function handleResetLanguages() {
   selectedLanguageCode = 'en-US';
   S.setString(K.SELECTED_LANGUAGE_CODE, 'en-US');
   translateToLanguageCode = 'en-US';
-  window.currentInterfaceLanguage = 'en-US';
-  S.setString(K.INTERFACE_LANGUAGE, 'en-US');
   showTransliteration = false; 
   S.setBoolean(K.SHOW_TRANSLITERATION, false);
 
@@ -662,94 +647,26 @@ async function handleResetLanguages() {
   if (languageSelector) languageSelector.value = 'en-US';
   if (showTransliterationCheckbox) showTransliterationCheckbox.checked = false;
 
-  // Clear any cached AI-translated UI strings so English is cleanly reapplied
+  // The retired AI-translation cache is deleted so an older install leaves
+  // nothing behind; nothing reads those keys any more.
   try {
-    if (window.translationCache) {
-      window.translationCache = {};
-    }
     AppStorage.keys()
       .filter(k => k.startsWith('uiStrings_'))
       .forEach(k => AppStorage.removeItem(k));
   } catch(e) {
-    debugError('Failed to clear UI translation cache during language reset', e);
+    debugError('Failed to clear the retired UI translation cache', e);
   }
 
-  // Re-apply interface language back to English
-  if (typeof applyInterfaceLanguage === 'function') {
+  // Interface language back to the device language (the dictionaries are
+  // hand-written, so there is no cache and no translation call to undo).
+  if (window.WaifuI18n) {
     try {
-      await applyInterfaceLanguage('en-US');
+      await window.WaifuI18n.setLocale('auto');
+      const picker = document.getElementById('interfaceLanguageSelector');
+      if (picker) picker.value = window.WaifuI18n.choice || 'auto';
     } catch(e) {
-      debugLog('applyInterfaceLanguage(en-US) failed during language reset: ' + e, 'warn');
+      debugLog('Interface language reset failed: ' + e, 'warn');
     }
-  }
-
-  // Explicitly reset the Preferences pane title and items to their original English strings
-  try {
-    const enStrings = window.UI_STRINGS && window.UI_STRINGS['en-US'];
-    if (enStrings) {
-      // Reset Preferences group title
-      document.querySelectorAll('.settings-group h3').forEach(h3 => {
-        const text = h3.textContent.trim();
-        // Preferences section uses the ⚙️ emoji at the start
-        if (text.startsWith('⚙️')) {
-          h3.textContent = '⚙️ ' + enStrings.preferencesTitle;
-        }
-      });
-
-      // Reset labels inside Preferences pane back to English
-      const alwaysShowLabel = document.getElementById('alwaysShowSettingsCheckbox')?.parentElement;
-      if (alwaysShowLabel) {
-        const cb = alwaysShowLabel.querySelector('input[type="checkbox"]');
-        alwaysShowLabel.textContent = '';
-        if (cb) alwaysShowLabel.appendChild(cb);
-        alwaysShowLabel.appendChild(document.createTextNode(' ' + enStrings.alwaysShowSettingsLabel));
-      }
-
-      const includeTimeLabel = document.getElementById('includeTimeCheckbox')?.parentElement;
-      if (includeTimeLabel) {
-        const cb = includeTimeLabel.querySelector('input[type="checkbox"]');
-        includeTimeLabel.textContent = '';
-        if (cb) includeTimeLabel.appendChild(cb);
-        includeTimeLabel.appendChild(document.createTextNode(' ' + enStrings.includeTimeLabel));
-      }
-
-      const includeBatteryLabel = document.getElementById('includeBatteryCheckbox')?.parentElement;
-      if (includeBatteryLabel) {
-        const cb = includeBatteryLabel.querySelector('input[type="checkbox"]');
-        includeBatteryLabel.textContent = '';
-        if (cb) includeBatteryLabel.appendChild(cb);
-        includeBatteryLabel.appendChild(document.createTextNode(' ' + enStrings.includeBatteryLabel));
-      }
-
-      const multipleModelsLabel = document.getElementById('multipleModelsCheckbox')?.parentElement;
-      if (multipleModelsLabel) {
-        const cb = multipleModelsLabel.querySelector('input[type="checkbox"]');
-        multipleModelsLabel.textContent = '';
-        if (cb) multipleModelsLabel.appendChild(cb);
-        multipleModelsLabel.appendChild(document.createTextNode(' ' + enStrings.multipleModelsLabel));
-      }
-
-      // Reset the description text under each preference item to English
-      const preferenceGroup = Array.from(document.querySelectorAll('.settings-group')).find(group => {
-        const h3 = group.querySelector('h3');
-        return h3 && h3.textContent.trim().startsWith('⚙️');
-      });
-
-      if (preferenceGroup) {
-        const valueDisplays = preferenceGroup.querySelectorAll('.value-display');
-        // Order in HTML:
-        // 0 -> alwaysShowSettingsDesc
-        // 1 -> includeTimeDesc
-        // 2 -> includeBatteryDesc
-        // 3 -> multipleModelsDesc
-        if (valueDisplays[0]) valueDisplays[0].textContent = enStrings.alwaysShowSettingsDesc;
-        if (valueDisplays[1]) valueDisplays[1].textContent = enStrings.includeTimeDesc;
-        if (valueDisplays[2]) valueDisplays[2].textContent = enStrings.includeBatteryDesc;
-        if (valueDisplays[3]) valueDisplays[3].textContent = enStrings.multipleModelsDesc;
-      }
-    }
-  } catch(e) {
-    debugError('Failed to reset Preferences pane texts during language reset', e);
   }
 
   // Reset voice back to English default
@@ -760,7 +677,7 @@ async function handleResetLanguages() {
   if (voiceSelector) voiceSelector.value = selectedVoiceId;
 
   if (typeof trackEvent === 'function') trackEvent('languages_reset');
-  debugLog('Language settings reset to English (US), UI reverted to English, and Preferences pane texts reset.', 'info');
+  debugLog('Language settings reset: response English (US), interface back to the device language.', 'info');
 }
 
 // source: 'manual' (the user picked it), 'auto' (Change With the Story) or
@@ -936,17 +853,17 @@ async function getBackgroundScene(force = false) {
 // Draws scene and makes it the background once it has loaded, so the
 // screen never flashes blank. Resolves true when the background changed.
 async function generateBackground(scene, source, eventType) {
-  if (bgGenerationInFlight) { setBgStatus('Already drawing a background…'); return false; }
+  if (bgGenerationInFlight) { setBgStatus(tr('background.statusAlready', 'Already drawing a background…')); return false; }
   if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) return false;
   bgGenerationInFlight = true;
-  setBgStatus('Drawing background…');
+  setBgStatus(tr('background.statusDrawing', 'Drawing background…'));
   try {
     const { url } = await window.WaifuProxyAPI.generateImage(`${scene}, ${BG_PROMPT_SUFFIX}`, getBackgroundAspect(), null, 'background');
     const displayUrl = await ImageStore.resolve(url);
     await new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = resolve;
-      img.onerror = () => reject(new Error('Background image failed to load.'));
+      img.onerror = () => reject(new Error(tr('error.imageLoad', 'Background image failed to load.')));
       img.src = displayUrl;
     });
     saveToBgLibrary(url, scene);
@@ -965,10 +882,10 @@ async function generateBackground(scene, source, eventType) {
   } catch (e) {
     debugError('BG generation failed', e);
     setBgStatus(e && e.blocked
-      ? 'The image service did not allow this background. Try another description.'
+      ? tr('background.errorBlocked', 'The image service did not allow this background. Try another description.')
       : e && e.timedOut
-        ? 'The image service took too long. Please try again.'
-        : 'Could not draw the background. Please try again.');
+        ? tr('background.errorSlow', 'The image service took too long. Please try again.')
+        : tr('background.errorFailed', 'Could not draw the background. Please try again.'));
     return false;
   } finally {
     bgGenerationInFlight = false;
@@ -978,19 +895,19 @@ async function generateBackground(scene, source, eventType) {
 async function handleGenerateBackground() {
   const input = document.getElementById('bgPromptInput');
   const prompt = (input?.value || '').trim();
-  if (!prompt) { setBgStatus('Describe the background first.'); return; }
-  if (UNSAFE_IMAGE_WORDS.test(prompt)) { setBgStatus('Try another description.'); return; }
+  if (!prompt) { setBgStatus(tr('background.statusDescribe', 'Describe the background first.')); return; }
+  if (UNSAFE_IMAGE_WORDS.test(prompt)) { setBgStatus(tr('background.statusTryOther', 'Try another description.')); return; }
   await generateBackground(prompt, 'manual', 'ai_prompt');
 }
 
 // The user asked for it, but it follows the story, so Change With the Story
 // keeps updating it ('auto' rather than 'manual').
 async function handleGenerateBackgroundFromContext() {
-  if (bgGenerationInFlight) { setBgStatus('Already drawing a background…'); return; }
-  setBgStatus('Reading the conversation…');
+  if (bgGenerationInFlight) { setBgStatus(tr('background.statusAlready', 'Already drawing a background…')); return; }
+  setBgStatus(tr('background.statusReading', 'Reading the conversation…'));
   let scene = null;
   try { scene = await getBackgroundScene(true); } catch (e) { debugError('BG scene failed', e); }
-  if (!scene) { setBgStatus('Chat a little first, then try again.'); return; }
+  if (!scene) { setBgStatus(tr('background.statusChatFirst', 'Chat a little first, then try again.')); return; }
   await generateBackground(scene, 'auto', 'ai_conversation');
 }
 

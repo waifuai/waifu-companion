@@ -1,5 +1,15 @@
 // Manages the UI and functionality of the radio stream player.
 
+// Interface string lookup with an English fallback. A function declaration,
+// because every app script is a classic script sharing one global scope, where
+// duplicate lexical declarations throw.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { if (api && api.has(key)) return api.t(key, params); } catch (e) { /* fall back below */ }
+  if (!params) return fallback;
+  return String(fallback).replace(/%\{(\w+)\}/g, (all, name) => (params[name] == null ? all : String(params[name])));
+}
+
 function updateRadioToggleButton() {
     // Assumes radioPlayer, radioPlayIcon, radioPauseIcon are accessible
     if (!radioPlayer || !radioPlayIcon || !radioPauseIcon) return;
@@ -22,7 +32,7 @@ if (radioToggleBtn) {
             if (typeof trackEvent === 'function') trackEvent('radio_toggle', { action: 'play' });
             radioPlayer.play().catch(error => {
                 debugError('Radio playback failed', error);
-                addMessage("Sorry, I couldn't start the radio stream. Your browser might require another click or interaction.", false);
+                addMessage(tr('error.radioFailed', "Sorry, I couldn't start the radio stream. Your browser might require another click or interaction."), false);
             });
         } else {
             if (typeof trackEvent === 'function') trackEvent('radio_toggle', { action: 'pause' });

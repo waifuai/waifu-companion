@@ -2,7 +2,7 @@
 .debug-panel {
   position: fixed;
   top: 80px;
-  left: 24px;
+  inset-inline-start: 24px;
   width: 380px;
   height: 380px;
   background: rgba(15, 23, 42, 0.9);
@@ -31,7 +31,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 6px 0 12px;
+  padding-block: 0;
+  padding-inline: 12px 6px;
   font-size: 11px;
   color: #00ff00;
   border-bottom: 1px solid rgba(0, 255, 0, 0.2);

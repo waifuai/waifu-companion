@@ -1,0 +1,44 @@
+/* Right-to-left overrides.
+   Most of the layout mirrors automatically because the physical properties in
+   the other stylesheets were converted to logical ones (inset-inline-*,
+   margin/padding/border-inline-*, logical border radii). What remains here is
+   the handful of things logical properties cannot express: mirrored transforms
+   (the off-canvas drawer, hover nudges, the mic level meter's growth origin),
+   the physical resize-grip gradient, and the directional glyphs whose text
+   content is written into the markup. */
+
+/* The off-canvas chat drawer sits at the inline-start edge; it must slide out
+   toward that same edge. Scoped to :not(.visible) so the open state keeps the
+   shared translateX(0). */
+[dir="rtl"] .chat-sidebar:not(.visible) {
+  transform: translateX(110%);
+}
+
+/* The corner resize grip is drawn as an asymmetric border + radial gradient;
+   flipping it places the "grip" corner correctly next to the mirrored box. */
+[dir="rtl"] .chat-container::after {
+  transform: scaleX(-1);
+}
+
+/* The mic level meter grows from the inline-start edge. */
+[dir="rtl"] .mic-button.active[data-input-monitor="true"]::after {
+  transform-origin: right;
+}
+
+/* Directional glyphs written into the markup (chevrons, back button, viewer
+   prev/next) point the wrong way in RTL; mirror the box. Their shapes are
+   symmetric so only the glyph flips. */
+[dir="rtl"] .settings-menu-item .chevron,
+[dir="rtl"] .back-button {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] .bg-viewer-nav {
+  transform: translateY(-50%) scaleX(-1);
+}
+
+/* Hover nudges that follow reading order instead of the physical axis. */
+[dir="rtl"] .settings-menu-item:hover,
+[dir="rtl"] .link-item:hover {
+  transform: translateX(-4px);
+}

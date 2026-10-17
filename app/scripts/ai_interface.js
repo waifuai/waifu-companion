@@ -47,7 +47,7 @@ function ensureLLMTransport() {
       script.remove();
       if (typeof window.performLLMRequest === 'function') resolve();
       else {
-        const error = new Error('Chat support could not load. Reload the page and try again.');
+        const error = new Error(tr('error.chatUnavailable', 'Chat support could not load. Reload the page and try again. Your messages are kept.'));
         error.code = 'chat_script_unavailable';
         reject(error);
       }
@@ -567,7 +567,8 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
   return data;
 }
 
-const CONNECTION_ERROR_REPLY = "Oh no... I'm having trouble connecting. Could we try again in a moment?";
+// Kept as a getter so a language switch changes what the next failure says.
+function connectionErrorReply() { return tr('error.connection', "Oh no... I'm having trouble connecting. Could we try again in a moment?"); }
 
 // Shared failure path for both entry points. Small helper so callers can
 // tell a genuine connectivity failure apart from ordinary dialogue via
@@ -578,11 +579,11 @@ function handleAIFailure(error) {
   }
   if (['context_too_large', 'summary_too_large', 'memory_pending', 'memory_changed'].includes(error && error.code) || (error && error.status === 413)) {
     const reply = error.code === 'memory_pending'
-      ? 'Older memory needs more compression. Use Update Summary from Chat to continue. Your messages are kept.'
-      : 'This request is too large. Use Update Summary from Chat, or shorten the message or personality instructions. Your messages are kept.';
+      ? tr('error.memoryPending', 'Older memory needs more compression. Use Update Summary from Chat to continue. Your messages are kept.')
+      : tr('error.requestTooLarge', 'This request is too large. Use Update Summary from Chat, or shorten the message or personality instructions. Your messages are kept.');
     return { reply, emotion: 'sad', isError: true };
   }
-  return { reply: CONNECTION_ERROR_REPLY, emotion: 'sad', isError: true };
+  return { reply: connectionErrorReply(), emotion: 'sad', isError: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -657,7 +658,7 @@ async function summarizeConversation(oldMessages, existingSummary) {
   const task = budget.compressionTask(entries, { summary: existingSummary || '' },
     m => ({ model: 'waifuai-v1', messages: m, max_tokens: 2500, stream: false, context_budget_version: 1 }), window.summaryLengthPreference || 'concise');
   if (!task || task.legacy || task.partial || task.completed.length !== entries.length) {
-    throw budget.error('context_too_large', 'This memory needs bounded batches. Use Update Summary from Chat to continue.');
+    throw budget.error('context_too_large', tr('error.memoryBatches', 'This memory needs bounded batches. Use Update Summary from Chat to continue.'));
   }
   return requestMemorySummary(task.messages);
 }

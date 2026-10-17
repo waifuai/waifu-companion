@@ -25,7 +25,7 @@ const GroqAPI = {
 
   buildRequest(options, stream) {
     const apiKey = this.getApiKey();
-    requireConfigured(!!apiKey, 'Groq', 'Groq API key not configured. Please set it in settings.');
+    requireConfigured(!!apiKey, 'Groq', tr('error.notConfiguredKey', '%{provider} API key not configured. Please set it in settings.', { provider: 'Groq' }));
 
     const model = this.getModel();
     const { messages, json } = options;

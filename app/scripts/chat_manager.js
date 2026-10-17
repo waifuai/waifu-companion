@@ -4,6 +4,17 @@
 const CHAT_INDEX_KEY = 'chatIndex';
 const ACTIVE_CHAT_KEY = 'activeChatId';
 
+// Interface string lookup with an English fallback. A function declaration,
+// because every app script is a classic script sharing one global scope, where
+// duplicate lexical declarations throw. The fallback interpolates too, so the
+// relative-time plurals read correctly even without the runtime.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { if (api && api.has(key)) return api.t(key, params); } catch (e) { /* fall back below */ }
+  if (!params) return fallback;
+  return String(fallback).replace(/%\{(\w+)\}/g, (all, name) => (params[name] == null ? all : String(params[name])));
+}
+
 // --- Internal helpers ---
 
 function _getChatIndex() {
@@ -277,7 +288,8 @@ function renderChatList() {
   const activeId = getActiveChatId();
 
   if (chats.length === 0) {
-    listEl.innerHTML = '<div class="chat-list-empty">No chats yet. Click + to start.</div>';
+    listEl.innerHTML = '<div class="chat-list-empty" data-i18n="history.listEmpty">No chats yet. Click + to start.</div>';
+    if (window.WaifuI18n) window.WaifuI18n.apply(listEl);
     return;
   }
 
@@ -289,14 +301,14 @@ function renderChatList() {
         <div class="chat-list-item-content" data-action="switch-chat" data-chat-id="${chat.id}" role="button" tabindex="0">
           <div class="chat-list-item-name">${_escapeHtml(chat.name)}</div>
           <div class="chat-list-item-meta">
-            <span class="chat-list-item-count">${chat.messageCount} msgs</span>
+            <span class="chat-list-item-count">${tr('history.msgs', '%{count} msgs', { count: chat.messageCount })}</span>
             <span class="chat-list-item-time">${timeStr}</span>
           </div>
           ${chat.preview ? `<div class="chat-list-item-preview">${_escapeHtml(chat.preview)}</div>` : ''}
         </div>
         <div class="chat-list-item-actions">
-          <button class="chat-action-btn" type="button" data-action="rename-chat" data-chat-id="${chat.id}" title="Rename">✏️</button>
-          <button class="chat-action-btn chat-action-delete" type="button" data-action="delete-chat" data-chat-id="${chat.id}" title="Delete">🗑️</button>
+          <button class="chat-action-btn" type="button" data-action="rename-chat" data-chat-id="${chat.id}" title="${tr('history.rename', 'Rename')}">✏️</button>
+          <button class="chat-action-btn chat-action-delete" type="button" data-action="delete-chat" data-chat-id="${chat.id}" title="${tr('history.delete', 'Delete')}">🗑️</button>
         </div>
       </div>
     `;
@@ -311,17 +323,20 @@ function _escapeHtml(str) {
 
 function _relativeTime(timestamp) {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return 'just now';
+  // Plural forms come from the interface dictionary (usually the locale's
+  // { one, other, few, many } set); Latin digits, no grouping, in every locale.
+  const en = (n, one, other) => (n === 1 ? one : other);
+  if (seconds < 60) return tr('history.justNow', 'just now');
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return minutes + (minutes === 1 ? ' min ago' : ' mins ago');
+  if (minutes < 60) return tr('history.minutesAgo', en(minutes, '%{count} min ago', '%{count} mins ago'), { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours + (hours === 1 ? ' hour ago' : ' hours ago');
+  if (hours < 24) return tr('history.hoursAgo', en(hours, '%{count} hour ago', '%{count} hours ago'), { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 30) return days + (days === 1 ? ' day ago' : ' days ago');
+  if (days < 30) return tr('history.daysAgo', en(days, '%{count} day ago', '%{count} days ago'), { count: days });
   const months = Math.floor(days / 30);
-  if (months < 12) return months + (months === 1 ? ' month ago' : ' months ago');
+  if (months < 12) return tr('history.monthsAgo', en(months, '%{count} month ago', '%{count} months ago'), { count: months });
   const years = Math.floor(months / 12);
-  return years + (years === 1 ? ' year ago' : ' years ago');
+  return tr('history.yearsAgo', en(years, '%{count} year ago', '%{count} years ago'), { count: years });
 }
 
 // Generate a chat title using the LLM based on recent messages
@@ -451,7 +466,7 @@ function handleSwitchChat(chatId) {
 function handleDeleteChat(chatId) {
   const meta = getChatMeta(chatId);
   const name = meta?.name || 'this chat';
-  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  if (!confirm(tr('history.deleteConfirm', `Delete "${name}"? This cannot be undone.`, { name }))) return;
 
   const wasActive = getActiveChatId() === chatId;
   deleteChat(chatId);
@@ -475,7 +490,7 @@ function handleDeleteChat(chatId) {
 function handleRenameChat(chatId) {
   const meta = getChatMeta(chatId);
   const currentName = meta?.name || 'Chat';
-  const newName = prompt('Rename chat:', currentName);
+  const newName = prompt(tr('history.renamePrompt', 'Rename chat:'), currentName);
   if (!newName || newName.trim() === '' || newName === currentName) return;
 
   renameChat(chatId, newName.trim());
@@ -496,7 +511,7 @@ function _updateChatHeader(name) {
 function exportAllChats() {
   const index = _getChatIndex();
   if (index.length === 0) {
-    alert('No chats to export.');
+    alert(tr('history.exportNone', 'No chats to export.'));
     return;
   }
 
@@ -618,6 +633,10 @@ window.handleNewChat = handleNewChat;
 window.handleSwitchChat = handleSwitchChat;
 window.handleDeleteChat = handleDeleteChat;
 window.handleRenameChat = handleRenameChat;
+
+// Sidebar rows carry built strings (message counts, relative times), so a
+// language switch re-renders the list instead of patching every node.
+if (window.WaifuI18n) window.WaifuI18n.onChange(() => renderChatList());
 window.toggleChatSidebar = toggleChatSidebar;
 window.handleRegenerateTitle = handleRegenerateTitle;
 window.generateChatTitle = generateChatTitle;

@@ -42,8 +42,8 @@ const OpenAICompatibleAPI = {
   buildRequest(options, stream) {
     const apiKey = this.getApiKey();
     const baseUrl = this.getBaseUrl();
-    requireConfigured(!!baseUrl, 'OpenAI Compatible', 'OpenAI Compatible API base URL not configured. Please set it in settings.');
-    requireConfigured(!!apiKey, 'OpenAI Compatible', 'OpenAI Compatible API key not configured. Please set it in settings.');
+    requireConfigured(!!baseUrl, 'OpenAI Compatible', tr('error.notConfiguredUrl', '%{provider} API base URL not configured. Please set it in settings.', { provider: 'OpenAI Compatible' }));
+    requireConfigured(!!apiKey, 'OpenAI Compatible', tr('error.notConfiguredKey', '%{provider} API key not configured. Please set it in settings.', { provider: 'OpenAI Compatible' }));
 
     const model = this.getModel();
     const { messages, json } = options;

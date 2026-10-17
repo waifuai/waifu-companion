@@ -5,6 +5,17 @@
  * Request/response handling lives in llm_provider_base.js.
  */
 
+// Interface string lookup with an English fallback, so the Node suites can load
+// this file standalone without the i18n runtime. A function declaration, because
+// every app script is a classic script sharing one global scope, where duplicate
+// lexical declarations throw.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { if (api && api.has(key)) return api.t(key, params); } catch (e) { /* fall back below */ }
+  if (!params) return fallback;
+  return String(fallback).replace(/%\{(\w+)\}/g, (all, name) => (params[name] == null ? all : String(params[name])));
+}
+
 function getSessionId() {
   try {
     const KEY = 'waifuSessionId';
@@ -218,13 +229,13 @@ const WaifuProxyAPI = {
       let body = null;
       try { body = await res.json(); } catch (e) { if (controller.signal.aborted) throw e; }
       if (!res.ok) {
-        const err = new Error((body && body.error) || `Transcription failed (HTTP ${res.status}).`);
+        const err = new Error((body && body.error) || tr('error.transcribeHttp', 'Transcription failed (HTTP %{status}).', { status: res.status }));
         err.status = res.status;
         throw err;
       }
       return body;
     } catch (error) {
-      if (controller.signal.aborted) throw new Error('Transcription took too long. Please try again.');
+      if (controller.signal.aborted) throw new Error(tr('error.transcribeSlow', 'Transcription took too long. Please try again.'));
       throw error;
     } finally {
       clearTimeout(timer);

@@ -97,7 +97,7 @@ const OpenRouterAPI = {
 
   async requestCompletionWithFallback(options = {}) {
     const apiKey = this.getApiKey();
-    requireConfigured(!!apiKey, 'OpenRouter', 'OpenRouter API key not configured. Please set it in settings.');
+    requireConfigured(!!apiKey, 'OpenRouter', tr('error.notConfiguredKey', '%{provider} API key not configured. Please set it in settings.', { provider: 'OpenRouter' }));
 
     const { messages, json, stream = false } = options;
     const modelsToTry = this.getCandidateModels();

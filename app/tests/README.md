@@ -34,12 +34,23 @@ from the full app's conversations, provider keys, pictures and preferences.
 When the host blocks storage, chats and pictures remain usable in memory for
 that frame, but cannot survive a reload.
 
-Run `python app/tests/test_player_card.py` from the repository root after
-installing `playwright` and its Chromium browser (`python -m playwright install
-chromium`). Tests use real PIXI/Cubism libraries and the default Hiyori model
-from the configured CDNs; all inference and analytics are intercepted. They
-cover Send, Enter, IME input, blocked forms/storage, narrow layouts, resizing,
-settings, voice toggling and full-app storage isolation.
+The interface is localized by `i18n/` at the repository root (see
+`i18n/README.md`): 13 dictionaries selected from a saved choice, then the
+browser's own language order, then English, with Arabic and Persian set to
+`dir="rtl"` before the first paint. The Interface language picker offers native
+names and is independent of the English-valued response-language dropdown, so
+switching the interface never changes reply language or model input.
+
+Unit checks run from the repository root with `node --test "app/tests/*.cjs"`;
+`test_i18n.cjs` pins dictionary parity, placeholder and brand-name rules,
+locale detection and the `data-i18n*` markup contract. The browser tests need
+`playwright` and its Chromium browser (`python -m playwright install chromium`);
+run them with `python app/tests/test_player_card.py` from the repository root.
+They use real PIXI/Cubism libraries and the default Hiyori model from the
+configured CDNs, and all inference and analytics are intercepted. They cover
+Send, Enter, IME input, blocked forms/storage, narrow layouts, resizing,
+settings, voice toggling, browser-driven interface language, saved-language
+persistence and reload, right-to-left mirroring, and full-app storage isolation.
 
 Local iframe checks do not confirm X will accept or display an interactive
 card. After a future deployment, verify an actual post on desktop and mobile.

@@ -1,5 +1,14 @@
 // Read before the app scripts so storage and boot can select the card session.
 const waifuCardParams = new URLSearchParams(location.search);
+
+// Interface string lookup with an English fallback, so this file still works
+// when it is loaded without the i18n runtime (or as the very first script).
+// Declared as a function (not a const) because every app script is a classic
+// script sharing one global scope, where duplicate lexical declarations throw.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { return api && api.has(key) ? api.t(key, params) : fallback; } catch (e) { return fallback; }
+}
 window.WaifuEmbed = waifuCardParams.get('embed') === 'x' || waifuCardParams.get('card') === 'player-v1';
 if (window.WaifuEmbed) document.documentElement.classList.add('waifu-embed');
 
@@ -25,7 +34,7 @@ window.initEmbedControls = function () {
   const button = document.getElementById('embedVoiceBtn');
   let restoreFallback = window.enableFallbackVoice;
   const update = () => {
-    button.textContent = window.enableVoice ? 'Voice on' : 'Voice off';
+    button.textContent = window.enableVoice ? tr('app.voiceOn', 'Voice on') : tr('app.voiceOff', 'Voice off');
     button.setAttribute('aria-pressed', String(window.enableVoice));
   };
   button.addEventListener('click', () => {
@@ -59,8 +68,9 @@ window.initEmbedControls = function () {
     const hidden = document.documentElement.classList.toggle('embed-chat-hidden');
     chat.hidden = hidden;
     chatButton.setAttribute('aria-pressed', String(!hidden));
-    chatButton.setAttribute('aria-label', hidden ? 'Show chat' : 'Hide chat');
-    chatButton.title = hidden ? 'Show chat' : 'Hide chat';
+    const chatLabel = hidden ? tr('app.showChat', 'Show chat') : tr('app.hideChat', 'Hide chat');
+    chatButton.setAttribute('aria-label', chatLabel);
+    chatButton.title = chatLabel;
     if (hidden && chat.contains(document.activeElement)) document.activeElement.blur();
     window.fitEmbedModel(window.currentModel);
   });

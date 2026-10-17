@@ -2,7 +2,13 @@
 (function () {
   const bodyEl = document.getElementById("settingsTutorialContent");
   let englishTutorial = null;
-  const translatedDetailsCache = new Map();
+
+  // Interface string lookup with an English fallback, so this file still reads
+  // correctly when the i18n runtime is not loaded.
+  const tr = (key, fallback) => {
+    const api = typeof window !== 'undefined' && window.WaifuI18n;
+    try { return api && api.has(key) ? api.t(key) : fallback; } catch (e) { return fallback; }
+  };
 
   async function loadTutorialContent() {
     if (englishTutorial) return englishTutorial;
@@ -36,34 +42,18 @@
     return englishTutorial;
   }
 
+  // The guide prose itself lives in docs/help.html and stays English: the docs
+  // pages are out of the localization scope, and the guide is no longer sent to
+  // a model for translation. Only the chrome around it is localized.
   async function render() {
     if (!bodyEl) return;
 
-    const langCode = window.currentInterfaceLanguage || "en-US";
     const tutorial = await loadTutorialContent();
-
-    let displaySteps = tutorial.steps;
-    if (langCode !== "en-US") {
-      if (window.lastTutorialLang !== langCode) {
-        bodyEl.innerHTML = '<div style="text-align:center; padding: 20px; color: #aaa; font-size: 13px;">Translating guide... ⏳</div>';
-      }
-      displaySteps = await translateTutorialSteps(tutorial.steps, langCode);
-    }
-
-    let detailsHtml = translatedDetailsCache.get(langCode);
-    if (!detailsHtml) {
-      detailsHtml = langCode === "en-US"
-        ? tutorial.detailsHtml
-        : await translateTutorialSecondHalf(langCode, tutorial.detailsHtml);
-      translatedDetailsCache.set(langCode, detailsHtml);
-    }
-
-    const stepsHtml = displaySteps
+    const stepsHtml = tutorial.steps
       .map((step) => `<div class="tutorial-step-card"><h4>${step.title}</h4><p>${step.body.replace(/\n/g, "<br>")}</p></div>`)
       .join("");
 
-    bodyEl.innerHTML = `<div class="settings-item tutorial-doc-link-card"><p>Open the full guide in the docs:</p><a class="link-item tutorial-doc-link" href="docs/help.html" target="_blank" rel="noopener"><span class="link-icon">📖</span><span class="link-name">Help & Tutorial Docs</span></a></div>${stepsHtml}<div class="tutorial-details-section">${detailsHtml}</div>`;
-    window.lastTutorialLang = langCode;
+    bodyEl.innerHTML = `<div class="settings-item tutorial-doc-link-card"><p data-i18n="help.docsIntro">${tr('help.docsIntro', 'Open the full guide in the docs:')}</p><a class="link-item tutorial-doc-link" href="docs/help.html" target="_blank" rel="noopener"><span class="link-icon">📖</span><span class="link-name" data-i18n="help.docsLink">${tr('help.docsLink', 'Help & Tutorial Docs')}</span></a></div>${stepsHtml}<div class="tutorial-details-section">${tutorial.detailsHtml}</div>`;
   }
 
   window.renderTutorial = async function () {
@@ -72,7 +62,7 @@
     } catch (error) {
       console.error("Failed to render tutorial", error);
       if (bodyEl) {
-        bodyEl.innerHTML = '<div class="settings-item tutorial-doc-link-card"><p>Help content could not be loaded here.</p><a class="link-item tutorial-doc-link" href="docs/help.html" target="_blank" rel="noopener"><span class="link-icon">📖</span><span class="link-name">Open Help & Tutorial Docs</span></a></div>';
+        bodyEl.innerHTML = `<div class="settings-item tutorial-doc-link-card"><p data-i18n="help.loadFailed">${tr('help.loadFailed', 'Help content could not be loaded here.')}</p><a class="link-item tutorial-doc-link" href="docs/help.html" target="_blank" rel="noopener"><span class="link-icon">📖</span><span class="link-name" data-i18n="help.openDocs">${tr('help.openDocs', 'Open Help & Tutorial Docs')}</span></a></div>`;
       }
     }
   };

@@ -14,6 +14,17 @@
  * to analytics.
  */
 
+// Interface string lookup with an English fallback, so the Node suites can load
+// this file standalone without the i18n runtime. A function declaration, because
+// every app script is a classic script sharing one global scope, where duplicate
+// lexical declarations throw.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { if (api && api.has(key)) return api.t(key, params); } catch (e) { /* fall back below */ }
+  if (!params) return fallback;
+  return String(fallback).replace(/%\{(\w+)\}/g, (all, name) => (params[name] == null ? all : String(params[name])));
+}
+
 // Performs one chat-completion HTTP request.
 // Returns {content} for a normal request, or {stream, response} when
 // `stream` is true. Throws on network failure or a non-2xx response, with
@@ -57,7 +68,7 @@ async function performLLMRequest({ url, headers, body, stream, providerLabel, pr
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    const err = new Error(errorData.error?.message || `API request failed with status ${response.status}`);
+    const err = new Error(errorData.error?.message || tr('error.transport', 'API request failed with status %{status}', { status: response.status }));
     err.status = response.status;
     debugNet(`${providerLabel}${streamLabel} response error`, {
       provider: providerSlug,

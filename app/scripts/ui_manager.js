@@ -60,7 +60,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   const playBtn = document.createElement('button');
   playBtn.className = 'message-action-btn tts-play';
   playBtn.innerHTML = '🔊';
-  playBtn.title = 'Play TTS';
+  playBtn.title = tr('chat.playTts', 'Play TTS');
   playBtn.onclick = () => {
     if (typeof window.playTTS === 'function') {
       const textToPlay = isUser ? originalText : Array.from(originalSpan.querySelectorAll('.sentence-chunk')).map(s => s.textContent).join(' ');
@@ -73,7 +73,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   const pauseBtn = document.createElement('button');
   pauseBtn.className = 'message-action-btn tts-pause';
   pauseBtn.innerHTML = '⏹'; // Use stop square icon for clarity
-  pauseBtn.title = 'Stop TTS';
+  pauseBtn.title = tr('chat.stopTts', 'Stop TTS');
   pauseBtn.onclick = () => {
     if (typeof window.stopTTS === 'function') {
       if (typeof trackEvent === 'function') trackEvent('tts_action', { action: 'stop', source: 'message' });
@@ -85,7 +85,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   const copyBtn = document.createElement('button');
   copyBtn.className = 'message-action-btn copy-msg';
   copyBtn.innerHTML = '📋';
-  copyBtn.title = 'Copy Text';
+  copyBtn.title = tr('chat.copyText', 'Copy Text');
   copyBtn.onclick = () => {
     navigator.clipboard.writeText(originalText).then(() => {
       if (typeof trackEvent === 'function') trackEvent('message_copied');
@@ -99,7 +99,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'message-action-btn delete-msg';
   deleteBtn.innerHTML = '🗑️';
-  deleteBtn.title = 'Delete message';
+  deleteBtn.title = tr('chat.deleteMessage', 'Delete message');
   deleteBtn.onclick = () => {
     if (typeof window.deleteMessage === 'function') {
       if (typeof trackEvent === 'function') trackEvent('message_deleted');
@@ -182,16 +182,25 @@ function highlightSentence(messageId, sentenceIndex, append = false) {
 }
 window.highlightSentence = highlightSentence;
 
+// Interface string lookup with an English fallback; a function declaration, since
+// every app script is a classic script sharing one global scope.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { return api && api.has(key) ? api.t(key, params) : fallback; } catch (e) { return fallback; }
+}
+
 // Hint shown inside an empty chat so first-time users discover the /image
 // command and the mic gestures. Rendered only when the conversation has no
 // turns; any real message pushes it out naturally.
+// The welcome copy is authored with markup, so it goes through data-i18n-html.
 function showWelcomeHint() {
   if (!window.chatHistory || !window.conversationContext || window.conversationContext.length > 0) return;
   const div = document.createElement('div');
   div.className = 'welcome-hint';
   div.id = 'welcomeHint';
-  div.innerHTML = window.WaifuEmbed ? 'Say hi — I can chat or draw a picture for you.' :
-    'Say hi and chat with me \u2014 or just ask me to draw something, like <i>draw a cozy cafe at sunset</i>. Keep it SFW and I will paint it. You can also use <b>/image [prompt] [portrait|landscape|square]</b> for exact control.';
+  div.setAttribute(window.WaifuEmbed ? 'data-i18n' : 'data-i18n-html', window.WaifuEmbed ? 'chat.welcomeEmbed' : 'chat.welcome');
+  div.innerHTML = window.WaifuEmbed ? tr('chat.welcomeEmbed', 'Say hi — I can chat or draw a picture for you.') :
+    tr('chat.welcome', 'Say hi and chat with me \u2014 or just ask me to draw something, like <i>draw a cozy cafe at sunset</i>. Keep it SFW and I will paint it. You can also use <b>/image [prompt] [portrait|landscape|square]</b> for exact control.');
 
   // Only advertise the mic if it's actually available (STT hides it, and
   // removes this line, when no speech engine works in this browser).
@@ -199,8 +208,8 @@ function showWelcomeHint() {
   if (!window.WaifuEmbed && micBtn && micBtn.style.display !== 'none') {
     const mic = document.createElement('div');
     mic.className = 'welcome-hint-mic';
-    mic.textContent = (typeof getUIString === 'function' && getUIString('welcomeHintMic'))
-      || 'Press and hold the \u{1F3A4} mic to talk, and let go when you are done. Or tap it once to start and again to stop.';
+    mic.setAttribute('data-i18n', 'chat.welcomeMic');
+    mic.textContent = tr('chat.welcomeMic', 'Press and hold the \u{1F3A4} mic to talk, and let go when you are done. Or tap it once to start and again to stop.');
     div.appendChild(mic);
   }
   window.chatHistory.appendChild(div);
@@ -214,7 +223,10 @@ function showRetryTTSButton(messageId, startIndex, languageCode) {
   
   const retryBtn = document.createElement('button');
   retryBtn.className = 'retry-tts-btn';
-  retryBtn.innerHTML = '<span>⚠️ Playback failed. Resume?</span>';
+  const retryLabel = document.createElement('span');
+  retryLabel.setAttribute('data-i18n', 'chat.retryPlayback');
+  retryLabel.textContent = tr('chat.retryPlayback', '⚠️ Playback failed. Resume?');
+  retryBtn.appendChild(retryLabel);
   retryBtn.onclick = () => {
     retryBtn.remove();
     if (typeof playTTS === 'function') {
@@ -229,22 +241,12 @@ function showTypingIndicator(show) {
   // Assumes typingIndicator, currentModelName, selectedLanguageCode, languages are accessible
   if (show) {
       const characterName = currentModelName || 'Character';
-      let typingText;
 
-      const currentLangConfig = languages.find(l => l.code === selectedLanguageCode);
-      
-      if (currentLangConfig && typeof currentLangConfig.typingIndicatorText === 'function') {
-          typingText = currentLangConfig.typingIndicatorText(characterName);
-      } else {
-          // Fallback to English if specific language or function is not found
-          const englishConfig = languages.find(l => l.code === 'en-US');
-          if (englishConfig && typeof englishConfig.typingIndicatorText === 'function') {
-              typingText = englishConfig.typingIndicatorText(characterName);
-          } else { // Absolute fallback
-              typingText = `${characterName} is typing...`;
-          }
-      }
-      
+      // The interface dictionary owns this line now: one key per locale, with
+      // the name interpolated, instead of a per-language function in the
+      // response-language list.
+      const typingText = tr('chat.typing', '%{name} is typing...', { name: characterName });
+
       typingIndicator.textContent = typingText;
       typingIndicator.style.display = "block";
   } else {
@@ -321,25 +323,25 @@ function createStreamingMessage(languageCode = 'en-US') {
   const playBtn = document.createElement('button');
   playBtn.className = 'message-action-btn tts-play';
   playBtn.innerHTML = '🔊';
-  playBtn.title = 'Play TTS';
+  playBtn.title = tr('chat.playTts', 'Play TTS');
   playBtn.style.opacity = '0.3'; // Dimmed until message is complete
   
   const pauseBtn = document.createElement('button');
   pauseBtn.className = 'message-action-btn tts-pause';
   pauseBtn.innerHTML = '⏹';
-  pauseBtn.title = 'Stop TTS';
+  pauseBtn.title = tr('chat.stopTts', 'Stop TTS');
   pauseBtn.style.opacity = '0.3';
   
   const copyBtn = document.createElement('button');
   copyBtn.className = 'message-action-btn copy-msg';
   copyBtn.innerHTML = '📋';
-  copyBtn.title = 'Copy Text';
+  copyBtn.title = tr('chat.copyText', 'Copy Text');
   copyBtn.style.opacity = '0.3';
   
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'message-action-btn delete-msg';
   deleteBtn.innerHTML = '🗑️';
-  deleteBtn.title = 'Delete message';
+  deleteBtn.title = tr('chat.deleteMessage', 'Delete message');
   deleteBtn.style.opacity = '0.3';
   
   actionsDiv.appendChild(playBtn);

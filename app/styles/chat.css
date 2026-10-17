@@ -2,7 +2,7 @@
 .chat-container {
   position: fixed;
   bottom: 24px;
-  left: 24px;
+  inset-inline-start: 24px;
   width: 45%;
   max-width: 550px;
   min-width: 320px;
@@ -36,7 +36,7 @@
 .chat-container::after {
   content: "";
   position: absolute;
-  right: 6px;
+  inset-inline-end: 6px;
   bottom: 6px;
   width: 18px;
   height: 18px;
@@ -80,14 +80,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: 4px;
+  margin-inline-start: 4px;
 }
 
 #chatTitle {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: 2px;
+  margin-inline-start: 2px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -104,7 +104,7 @@
   padding: 2px 6px;
   border-radius: 4px;
   line-height: 1;
-  margin-right: 6px;
+  margin-inline-end: 6px;
 }
 
 .chat-sidebar-toggle:hover {
@@ -121,7 +121,7 @@
   padding: 2px 6px;
   border-radius: 4px;
   line-height: 1;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .new-chat-btn:hover {
@@ -184,7 +184,7 @@
 .message-actions {
   position: absolute;
   bottom: -15px;
-  right: 4px;
+  inset-inline-end: 4px;
   display: none;
   gap: 4px;
   background: rgba(30, 30, 30, 0.8);
@@ -228,13 +228,13 @@
 }
 
 .user-message .message-actions {
-  right: 4px;
+  inset-inline-end: 4px;
 }
 
 .user-message {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(168, 85, 247, 0.4));
   align-self: flex-end;
-  border-bottom-right-radius: 2px;
+  border-end-end-radius: 2px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
 }
@@ -242,13 +242,23 @@
 .model-message {
   background: rgba(255, 255, 255, 0.08);
   align-self: flex-start;
-  border-bottom-left-radius: 2px;
+  border-end-start-radius: 2px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   color: #f1f5f9;
 }
 
 .message-original-text {
   font-weight: normal;
+}
+
+/* A message may run opposite to the interface (an English reply in an Arabic
+   UI). Let each text run pick its own base direction from its first strong
+   character so punctuation stays put, while the bubble's own geometry keeps
+   following the interface direction. */
+.message-original-text,
+.message-translation-text,
+.message-transliteration-text {
+  unicode-bidi: plaintext;
 }
 
 .welcome-hint {
@@ -333,8 +343,8 @@
   font-size: 0.9em;
   color: #b0e0e6;
   margin-top: 3px;
-  padding-left: 10px;
-  border-left: 2px solid #b0e0e6;
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid #b0e0e6;
 }
 
 /* Streaming message styles */
@@ -376,8 +386,7 @@
 .summary-cutoff-marker::before {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   z-index: 1;
@@ -561,7 +570,7 @@
   content: '';
   position: absolute;
   bottom: 4px;
-  left: 15%;
+  inset-inline-start: 15%;
   width: 70%;
   height: 3px;
   border-radius: 2px;
@@ -614,7 +623,7 @@
 .chat-sidebar {
   position: fixed;
   bottom: 24px;
-  left: 24px;
+  inset-inline-start: 24px;
   width: 320px;
   max-width: calc(100vw - 48px);
   height: 500px;
@@ -759,7 +768,7 @@
 .chat-list-item-actions {
   display: flex;
   gap: 2px;
-  padding-right: 8px;
+  padding-inline-end: 8px;
   opacity: 0;
   transition: opacity 0.15s ease;
 }

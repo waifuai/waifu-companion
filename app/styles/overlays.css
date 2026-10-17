@@ -2,7 +2,7 @@
 .nowtime {
   position: absolute;
   top: 15px;
-  left: 15px;
+  inset-inline-start: 15px;
   background: rgba(0, 0, 0, 0.7);
   padding: 15px 25px;
   border-radius: 20px;
@@ -95,7 +95,7 @@
 .bg-viewer-close {
   position: absolute;
   top: 16px;
-  right: 20px;
+  inset-inline-end: 20px;
   background: #333;
   color: #fff;
   border: none;
@@ -116,8 +116,8 @@
   cursor: pointer;
 }
 
-.bg-viewer-nav.prev { left: 20px; }
-.bg-viewer-nav.next { right: 20px; }
+.bg-viewer-nav.prev { inset-inline-start: 20px; }
+.bg-viewer-nav.next { inset-inline-end: 20px; }
 
 .bg-viewer-counter {
   position: absolute;
@@ -148,7 +148,7 @@
 .model-gallery-close {
   position: fixed;
   top: 16px;
-  right: 20px;
+  inset-inline-end: 20px;
   background: #333;
   color: #fff;
   border: none;

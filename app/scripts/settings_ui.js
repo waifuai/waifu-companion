@@ -1,5 +1,13 @@
 // Manages the UI aspects of the settings panel, including visibility and populating selectors.
 
+// Interface string lookup with an English fallback; safe when the runtime is
+// absent. A function declaration, because every app script is a classic script
+// sharing one global scope, where duplicate lexical declarations throw.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { return api && api.has(key) ? api.t(key, params) : fallback; } catch (e) { return fallback; }
+}
+
 function toggleSettings() {
   // Assumes settingsPanel is accessible
   const willShow = !settingsPanel.classList.contains("visible");
@@ -192,7 +200,8 @@ function filterSettings(query) {
   });
 
   if (totalMatches === 0 && searchResults) {
-    searchResults.innerHTML = '<div class="no-results" data-ui-key="noResultsFound">No matching settings found.</div>';
+    searchResults.innerHTML = '<div class="no-results" data-i18n="settings.noResultsFound">No matching settings found.</div>';
+    if (window.WaifuI18n) window.WaifuI18n.apply(searchResults);
   } else if (searchResults) {
     searchResults.innerHTML = ''; // Clear the "header" logic if we use the CSS-only approach
   }
@@ -294,7 +303,7 @@ function populateModelSelector() {
           .then(() => AppStorage.setString(AppStorage.KEYS.SELECTED_MODEL_URL, selectedUrl))
           .catch(error => {
             debugError('Failed to load selected Live2D model', error, { url: selectedUrl });
-            addMessage(`Sorry, I couldn't load that model (${error.message}).`, false);
+            addMessage(tr('error.modelLoad', `Sorry, I couldn't load that model (${error.message}).`, { message: error.message }), false);
             // Optionally revert display?
           });
       } else {
@@ -352,13 +361,13 @@ function renderCustomModelsList() {
   dropdown.innerHTML = '';
   if (!Array.isArray(userModels) || userModels.length === 0) {
     const opt = document.createElement('option');
-    opt.textContent = 'No custom models added';
+    opt.textContent = tr('model.noCustom', 'No custom models added');
     opt.disabled = true; opt.selected = true; opt.value = '';
     dropdown.appendChild(opt);
     return;
   }
   const placeholder = document.createElement('option');
-  placeholder.textContent = 'Select a custom model';
+  placeholder.textContent = tr('model.customPlaceholder', 'Select a custom model');
   placeholder.disabled = true; placeholder.selected = true; placeholder.value = '';
   dropdown.appendChild(placeholder);
   userModels.forEach(m => {
@@ -437,8 +446,59 @@ function populateLanguageSelector() {
   }
   debugLog(`Language selector populated with all ${languages.length} languages. Current selected: ${selectedLanguageCode}. Dropdown actual value: ${languageSelector.value}`, 'info');
 
+  updateProviderModelExamples();
+
   // Update voice selector when language selector is populated
   populateVoiceSelector();
+}
+
+// The Interface language picker is a separate list from the response-language
+// dropdown above: 13 hand-written dictionaries plus "Use device language".
+function populateInterfaceLanguageSelector() {
+  const api = window.WaifuI18n;
+  const select = document.getElementById('interfaceLanguageSelector');
+  if (!api || !select) return;
+  select.innerHTML = '';
+  [{ code: 'auto', name: tr('settings.deviceLanguage', 'Use device language') }]
+    .concat(api.locales().map(meta => ({ code: meta.code, name: meta.name })))
+    .forEach(entry => {
+      const option = document.createElement('option');
+      option.value = entry.code;
+      option.textContent = entry.name;
+      select.appendChild(option);
+    });
+  select.value = api.choice || 'auto';
+  if (!api.__companionPickerBound) {
+    api.__companionPickerBound = true;
+    select.addEventListener('change', () => setInterfaceLanguage(select.value));
+    api.onChange(() => {
+      select.value = api.choice || 'auto';
+      const first = select.options[0];
+      if (first) first.textContent = tr('settings.deviceLanguage', 'Use device language');
+      updateProviderModelExamples();
+    });
+  }
+  debugLog(`Interface language selector populated. Current: ${select.value}`, 'info');
+}
+
+// The example model list is model data (ids), not prose, so the line is built
+// here instead of in the markup: apply() cannot pass %{examples}.
+function updateProviderModelExamples() {
+  const el = document.getElementById('openRouterModelDesc');
+  if (!el) return;
+  const examples = (window.MODEL_PRIORITY || []).join(', ');
+  el.textContent = tr('provider.modelExamples', `Examples: ${examples}, etc.`, { examples });
+}
+
+function setInterfaceLanguage(code) {
+  const api = window.WaifuI18n;
+  if (!api) return;
+  // Persisting happens inside the runtime; the storage key is the app's own
+  // INTERFACE_LANGUAGE key, so only an explicit pick is ever written.
+  const target = code || 'auto';
+  Promise.resolve(api.setLocale(target)).then(applied => {
+    debugLog(`Interface language set to: ${applied} (choice: ${target})`, 'info');
+  }).catch(e => debugError('Could not switch interface language', e, { target }));
 }
 
 function populateVoiceSelector() {
@@ -452,7 +512,7 @@ function populateVoiceSelector() {
   // Add "None" option first
   const noneOption = document.createElement('option');
   noneOption.value = 'none';
-  noneOption.textContent = 'None';
+  noneOption.textContent = tr('voice.none', 'None');
   voiceSelector.appendChild(noneOption);
 
   // Requirement: Display ALL WebSim TTS voices regardless of language selection.

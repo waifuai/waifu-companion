@@ -2,7 +2,7 @@
 @media (max-width: 768px) {
   .chat-container {
     width: calc(100% - 20px) !important;
-    left: 10px !important;
+    inset-inline-start: 10px !important;
     bottom: 10px !important;
     transform: none !important;
     max-width: none;
@@ -20,7 +20,7 @@
 
   .chat-sidebar {
     width: calc(100% - 20px);
-    left: 10px;
+    inset-inline-start: 10px;
     bottom: 10px;
     height: 60vh;
     max-height: 60vh;
@@ -46,11 +46,11 @@
   }
 
   .user-message {
-    margin-left: 5%;
+    margin-inline-start: 5%;
   }
 
   .model-message {
-    margin-right: 5%;
+    margin-inline-end: 5%;
   }
 
   .message-actions {
@@ -58,14 +58,13 @@
     bottom: -10px;
     opacity: 1;
     transform: scale(0.85);
-    right: 0px;
+    inset-inline-end: 0px;
     padding: 2px;
   }
 
   .settings-panel {
     width: calc(100% - 20px) !important;
-    right: 10px !important;
-    left: 10px !important;
+    inset-inline: 10px !important;
     top: 65px !important;
     transform: none !important;
     max-height: calc(100vh - 80px);
@@ -80,7 +79,7 @@
 
   .debug-panel {
     width: calc(100% - 20px) !important;
-    left: 10px !important;
+    inset-inline-start: 10px !important;
     top: 65px !important;
     transform: none !important;
     height: 50vh;
@@ -89,7 +88,7 @@
   .nowtime {
     padding: 6px 10px;
     top: 8px;
-    left: 8px;
+    inset-inline-start: 8px;
     border-radius: 12px;
   }
 
@@ -99,7 +98,7 @@
 
   .settings-button {
     top: 8px;
-    right: 8px;
+    inset-inline-end: 8px;
     width: 44px;
     height: 44px;
   }

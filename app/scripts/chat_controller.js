@@ -3,6 +3,16 @@
 // selectedLanguageCode, translateToLanguageCode, showTransliteration,
 // getTranslatedText, getTransliteration (from ai_interface.js) are accessible via window or config.js
 
+// Interface string lookup with an English fallback. A function declaration,
+// because every app script is a classic script sharing one global scope, where
+// duplicate lexical declarations throw.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { if (api && api.has(key)) return api.t(key, params); } catch (e) { /* fall back below */ }
+  if (!params) return fallback;
+  return String(fallback).replace(/%\{(\w+)\}/g, (all, name) => (params[name] == null ? all : String(params[name])));
+}
+
 function deleteMessage(messageElement, content, isUser) {
   // Remove from UI with a small fade effect
   messageElement.style.opacity = '0';
@@ -83,7 +93,7 @@ async function sendMessage() {
       prompt = prompt.slice(0, aspectMatch.index).trim();
     }
     if (!prompt) {
-      addMessage('Describe what you want me to draw: /image a cozy cafe at sunset \u2014 or add portrait / landscape / square', false);
+      addMessage(tr('chat.imagePromptHelp', 'Describe what you want me to draw: /image a cozy cafe at sunset \u2014 or add portrait / landscape / square'), false);
       return;
     }
     // Image renders are fire-and-forget, so they never wait on a reply.
@@ -193,17 +203,17 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
   const originChatId = window.ChatManager ? window.ChatManager.getActiveChatId() : null;
 
   // Placeholder bubble: visible progress without blocking anything.
-  const placeholder = addMessage('Painting your picture... \u{1F3A8}', false, null, null, 'en-US');
+  const placeholder = addMessage(tr('chat.painting', 'Painting your picture... \u{1F3A8}'), false, null, null, 'en-US');
 
   // Fire and forget: nothing here awaits back at the call site.
   (async () => {
-    let replyText = caption || 'Here, I drew this for you~ \u2728';
+    let replyText = caption || tr('chat.pictureCaption', 'Here, I drew this for you~ \u2728');
     let imageUrl = null;
     let isError = false;
 
     try {
       if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) {
-        throw new Error('Image generation is not available.');
+        throw new Error(tr('error.imageUnavailable', 'Image generation is not available.'));
       }
       const result = await window.WaifuProxyAPI.generateImage(prompt, aspect);
       imageUrl = result.url;
@@ -211,11 +221,11 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
     } catch (err) {
       isError = true;
       if (err && err.blocked) {
-        replyText = 'I can only draw safe-for-work pictures, so I can\'t make that one. Want something cute instead? Like me in a sundress at the beach \u{1F3A8}';
+        replyText = tr('error.imageBlocked', 'I can only draw safe-for-work pictures, so I can\'t make that one. Want something cute instead? Like me in a sundress at the beach \u{1F3A8}');
       } else if (err && err.timedOut) {
-        replyText = 'That one took too long and my brush gave up. Try again?';
+        replyText = tr('error.imageSlow', 'That one took too long and my brush gave up. Try again?');
       } else {
-        replyText = 'Sorry, my canvas is acting up. Could we try again in a moment?';
+        replyText = tr('error.imageFailed', 'Sorry, my canvas is acting up. Could we try again in a moment?');
       }
       debugError('Image generation failed', err);
       if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: Boolean(err && err.blocked), timed_out: Boolean(err && err.timedOut) });
@@ -384,7 +394,7 @@ async function maybeSummarizeConversation(force = false) {
     persistConversationMemory();
     const summaryEl = document.getElementById('conversationSummary');
     if (summaryEl) summaryEl.value = next.summary;
-    showMemorySizeStatus(next.progress ? 'Memory updated in part. More source text is kept for the next update.' : null);
+    showMemorySizeStatus(next.progress ? tr('memory.partialNote', 'Memory updated in part. More source text is kept for the next update.') : null);
     lastSummarizeFailureTime = 0;
     updateSummaryMarker();
     return true;
@@ -637,7 +647,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       queueSize: userMessageQueue?.length
     });
     window.isWaitingForAIResponse = false;
-    addMessage("Sorry, something went wrong while processing your message.", false);
+    addMessage(tr('error.generic', 'Sorry, something went wrong while processing your message.'), false);
     showTypingIndicator(false);
     onAIResponseFullyFinished(); // Ensure processing flag is reset on error
   }
@@ -733,8 +743,7 @@ function updateSummaryMarker() {
     marker = document.createElement('div');
     marker.id = 'summary-cutoff-marker';
     marker.className = 'summary-cutoff-marker';
-    const lang = window.selectedLanguageCode || 'en-US';
-    const text = (window.UI_STRINGS && window.UI_STRINGS[lang]?.summaryCutoffMarker) || "--- Summary Boundary ---";
+    const text = tr('memory.cutoffMarker', '--- Summary Boundary (Active Memory Below) ---');
     marker.innerHTML = `<span>${text}</span>`;
   }
 

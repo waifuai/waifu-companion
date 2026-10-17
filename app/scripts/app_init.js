@@ -1,6 +1,15 @@
 // Application boot sequence
 // Splits initialization into small, isolated functions with failure isolation
 
+// Interface string lookup with an English fallback, so the Node suites can load
+// this file standalone without the i18n runtime. A function declaration, because
+// every app script is a classic script sharing one global scope, where duplicate
+// lexical declarations throw.
+function tr(key, fallback, params) {
+  const api = typeof window !== 'undefined' && window.WaifuI18n;
+  try { return api && api.has(key) ? api.t(key, params) : fallback; } catch (e) { return fallback; }
+}
+
 // --- Boot Modules ---
 
 async function initChat() {
@@ -102,11 +111,10 @@ async function initLanguage() {
   if (showTransliterationCheckbox) showTransliterationCheckbox.checked = showTransliteration;
   debugLog(`Loaded language settings: Lang=${selectedLanguageCode}, ShowTranslit=${showTransliteration}`, 'info');
 
-  const savedInterfaceLanguage = AppStorage.getString(AppStorage.KEYS.INTERFACE_LANGUAGE, selectedLanguageCode);
-  window.currentInterfaceLanguage = savedInterfaceLanguage;
-  if (typeof loadCachedTranslations === 'function') loadCachedTranslations();
-  if (typeof applyInterfaceLanguage === 'function') await applyInterfaceLanguage(savedInterfaceLanguage, !window.WaifuEmbed);
-  debugLog(`Interface language initialized to: ${savedInterfaceLanguage}`, 'info');
+  // The interface language is a dictionary lookup owned by WaifuI18n. The head
+  // bootstrap already painted the detected locale, so boot only syncs the
+  // picker. Response language is a separate preference and no longer drives it.
+  populateInterfaceLanguageSelector();
 
   populateLanguageSelector();
   if (languageSelector) languageSelector.addEventListener('change', handleLanguageChange);
@@ -296,7 +304,7 @@ async function initModels() {
     debugLog('Initial Live2D model loaded successfully.', 'info');
   }).catch(error => {
     debugError('Failed to load initial Live2D model', error, { url: initialModelUrl });
-    if (typeof addMessage === 'function') addMessage(`Sorry, I couldn't load the initial character model (${error.message}).`, false);
+    if (typeof addMessage === 'function') addMessage(tr('error.initialModelLoad', `Sorry, I couldn't load the initial character model (${error.message}).`, { message: error.message }), false);
   });
   
   debugLog('Models initialized.', 'info');
@@ -633,9 +641,6 @@ function initDebugSettings() {
     useJsonCheckbox.checked = window.useJsonForEmotion;
     useJsonCheckbox.addEventListener('change', handleUseJsonForEmotionChange);
   }
-  const translateUICheckbox = document.getElementById('translateUICheckbox');
-  window.translateUI = AppStorage.getBoolean(AppStorage.KEYS.TRANSLATE_UI, false);
-  if (translateUICheckbox) { translateUICheckbox.checked = window.translateUI; translateUICheckbox.addEventListener('change', handleTranslateUIChange); }
   debugLog('Debug settings initialized.', 'info');
 }
 

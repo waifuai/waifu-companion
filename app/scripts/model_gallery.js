@@ -2,11 +2,17 @@
   const grid = ()=>document.getElementById('modelGalleryGrid');
   const overlay = ()=>document.getElementById('modelGalleryOverlay');
 
+  // Interface string lookup with an English fallback.
+  const tr = (key, fallback) => {
+    const api = typeof window !== 'undefined' && window.WaifuI18n;
+    try { return api && api.has(key) ? api.t(key) : fallback; } catch (e) { return fallback; }
+  };
+
   function renderGrid(){
     const list = (window.availableModels || []).filter(m => m.image && String(m.image).trim()).slice();
     const html = list.map(m=>{
       const img = m.image || 'https://via.placeholder.com/400x400?text=Live2D';
-      const name = m.name || 'Model';
+      const name = m.name || tr('model.thumbnailAlt', 'Model');
       return `<div class="model-card" data-url="${m.url}">
                 <img class="model-thumb" src="${img}" alt="${name}">
                 <div class="model-name">${name}</div>

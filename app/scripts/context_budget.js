@@ -5,19 +5,25 @@
   const limits = Object.freeze({ messages: 100, history: 128 * 1024, summary: 32 * 1024, transcript: 128 * 1024, request: 256 * 1024 });
   const bytes = text => encoder.encode(String(text || '')).length;
   const jsonBytes = value => bytes(JSON.stringify(value));
+  // Localized validation errors, but never dependent on the runtime being
+  // present: the Node suites load this file on its own.
+  const tr = (key, fallback) => {
+    const api = root.WaifuI18n;
+    try { return api && api.has(key) ? api.t(key) : fallback; } catch (e) { return fallback; }
+  };
   function error(code, message) { const e = new Error(message); e.code = code; return e; }
   function validateSummary(text, allowEmpty = false) {
     text = String(text || '').trim();
-    if (!text && !allowEmpty) throw error('summary_empty', 'The memory update was empty. Your previous memory is kept.');
-    if (bytes(text) > limits.summary) throw error('summary_too_large', 'Memory must fit within 32 KiB. Compress it or shorten the text; your previous memory is kept.');
+    if (!text && !allowEmpty) throw error('summary_empty', tr('memory.empty', 'The memory update was empty. Your previous memory is kept.'));
+    if (bytes(text) > limits.summary) throw error('summary_too_large', tr('memory.tooLarge', 'Memory must fit within 32 KiB. Compress it or shorten the text; your previous memory is kept.'));
     return text;
   }
   function checkBody(body) {
     if (Array.isArray(body.messages) && body.messages.length > limits.messages + 1) {
-      throw error('context_too_large', 'This request has too many messages or instructions. Compress older memory before sending it. Your saved text is kept.');
+      throw error('context_too_large', tr('memory.tooMany', 'This request has too many messages or instructions. Compress older memory before sending it. Your saved text is kept.'));
     }
     const size = jsonBytes(body);
-    if (size > limits.request) throw error('context_too_large', 'This request is too large. Compress older memory or shorten the message or personality instructions. Your saved text is kept.');
+    if (size > limits.request) throw error('context_too_large', tr('memory.requestTooLarge', 'This request is too large. Compress older memory or shorten the message or personality instructions. Your saved text is kept.'));
     return size;
   }
   function pack(messages, makeBody = m => ({ messages: m }), memorySize = limits.messages) {
@@ -66,7 +72,7 @@
     if (!legacy && state.progress && state.progress.partial) {
       const partial = state.progress.partial;
       if (!source[0] || source[0].id !== partial.id || signature(source[0].text) !== partial.signature) {
-        throw error('memory_changed', 'Older memory changed. Restart its compression before continuing.');
+        throw error('memory_changed', tr('memory.changed', 'Older memory changed. Restart its compression before continuing.'));
       }
     }
     let transcript = '', completed = 0, partial = null;
@@ -80,7 +86,7 @@
         if (completed) break; // Prefer complete messages when a batch already has work.
         let piece = prefix(remaining, limits.transcript - bytes(lead));
         while (piece && !fits(lead + piece)) piece = prefix(piece, Math.max(0, Math.floor(bytes(piece) * .9)));
-        if (!piece) throw error('context_too_large', 'The memory request cannot fit. Shorten the memory instructions.');
+        if (!piece) throw error('context_too_large', tr('memory.cannotFit', 'The memory request cannot fit. Shorten the memory instructions.'));
         part = lead + piece;
         partial = { id: entry.id, offset: offset + piece.length, signature: signature(entry.text) };
       }

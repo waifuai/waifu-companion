@@ -34,16 +34,24 @@
   let micMode = 'tap';
   let restingPlaceholder = null;
 
+  // Dictionary key plus the pre-existing English text, so the controller still
+  // reads correctly when the i18n runtime is not loaded.
   const FALLBACK_STRINGS = {
-    micIdleTitle: 'Voice input: hold to talk, or tap to start/stop',
-    micStartingPlaceholder: 'Starting microphone...',
-    micHoldPlaceholder: 'Listening... release to stop',
-    micTapPlaceholder: 'Listening... tap the mic again to stop',
-    micTranscribingPlaceholder: 'Transcribing...'
+    micIdleTitle: ['composer.micTitle', 'Voice input: hold to talk, or tap to start/stop'],
+    micStartingPlaceholder: ['composer.micStarting', 'Starting microphone...'],
+    micHoldPlaceholder: ['composer.micHold', 'Listening... release to stop'],
+    micTapPlaceholder: ['composer.micTap', 'Listening... tap the mic again to stop'],
+    micTranscribingPlaceholder: ['composer.micTranscribing', 'Transcribing...']
+  };
+
+  const tr = (key, fallback) => {
+    const api = typeof window !== 'undefined' && window.WaifuI18n;
+    try { return api && api.has(key) ? api.t(key) : fallback; } catch (e) { return fallback; }
   };
 
   function uiString(key) {
-    return (typeof window.getUIString === 'function' && window.getUIString(key)) || FALLBACK_STRINGS[key] || '';
+    const entry = FALLBACK_STRINGS[key];
+    return entry ? tr(entry[0], entry[1]) : '';
   }
 
   function listeningPlaceholder() {
@@ -195,7 +203,7 @@
           debugLog('STT: Service not allowed / unavailable. Hiding mic button.', 'warn');
         }
       } else if (e.error === 'not-allowed') {
-        addMessage('Microphone permission denied. Enable it in your browser settings to use voice input.', false);
+        addMessage(tr('voice.permissionDenied', 'Microphone permission denied. Enable it in your browser settings to use voice input.'), false);
       }
     };
     recognition.onend = () => {
@@ -233,7 +241,7 @@
   // ---------------- Proxy WaifuAI Cloud (MediaRecorder -> /transcribe) ----------------
   function startProxy() {
     if (!window.MicCapture || !navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-      addMessage('Microphone recording is not supported in this browser.', false);
+      addMessage(tr('error.micUnsupported', 'Microphone recording is not supported in this browser.'), false);
       return;
     }
     if (!proxyCapture) proxyCapture = window.MicCapture.create({
@@ -257,12 +265,12 @@
         } catch (error) {
           debugError('STT: Cloud transcription failed', error, { status: error?.status });
           throw new Error(error?.status === 429
-            ? 'Voice input is rate limited right now. Please try again in a moment.'
-            : 'Voice input failed: ' + (error?.message || 'transcription error'));
+            ? tr('voice.rateLimited', 'Voice input is rate limited right now. Please try again in a moment.')
+            : tr('voice.transcribeFailed', 'Voice input failed: %{message}').replace('%{message}', error?.message || 'transcription error'));
         }
         const text = (result?.text || '').trim();
         if (!text) {
-          addMessage("I couldn't hear anything in that recording. Check your microphone and try again.", false);
+          addMessage(tr('voice.heardNothing', "I couldn't hear anything in that recording. Check your microphone and try again."), false);
           return;
         }
         appendToInput(text);

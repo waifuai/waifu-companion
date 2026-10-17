@@ -2,7 +2,7 @@
 .settings-button {
   position: fixed;
   top: 24px;
-  right: 24px;
+  inset-inline-end: 24px;
   background: var(--glass-bg);
   backdrop-filter: blur(8px);
   color: white;
@@ -30,7 +30,7 @@
 .settings-panel {
   position: fixed;
   top: 80px;
-  right: 24px;
+  inset-inline-end: 24px;
   background: var(--glass-bg);
   backdrop-filter: blur(20px) saturate(160%);
   border-radius: 20px;
@@ -66,7 +66,8 @@
 
 .settings-search-input {
   width: 100%;
-  padding: 10px 35px 10px 12px;
+  padding-block: 10px;
+  padding-inline: 12px 35px;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -83,7 +84,7 @@
 
 .settings-search-container .search-icon {
   position: absolute;
-  right: 32px;
+  inset-inline-end: 32px;
   color: #888;
   pointer-events: none;
 }
@@ -119,13 +120,13 @@
 }
 
 .settings-menu-item:not(:first-child) {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
 }
 
 .settings-menu-item:not(:last-child) {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
 }
 
 .settings-menu-item:hover {
@@ -139,14 +140,14 @@
 }
 
 .settings-menu-item .icon {
-  margin-right: 12px;
+  margin-inline-end: 12px;
   font-size: 18px;
   width: 24px;
   text-align: center;
 }
 
 .settings-menu-item .chevron {
-  margin-left: auto;
+  margin-inline-start: auto;
   color: #888;
   font-size: 18px;
 }
@@ -187,7 +188,7 @@
   color: #007bff;
   letter-spacing: 1px;
   margin: 15px 0 5px 0;
-  padding-left: 4px;
+  padding-inline-start: 4px;
 }
 
 .settings-panel.searching .settings-submenu:not(:has(.search-match)) {
@@ -284,7 +285,7 @@
 }
 
 .settings-item input[type="checkbox"] {
-  margin-right: 10px;
+  margin-inline-end: 10px;
   vertical-align: middle;
 }
 
@@ -358,7 +359,7 @@
 .link-icon {
   width: 22px;
   text-align: center;
-  margin-right: 8px;
+  margin-inline-end: 8px;
   font-size: 16px;
 }
 
@@ -397,7 +398,7 @@
   height: 24px;
   object-fit: cover;
   border-radius: 50%;
-  margin-right: 8px;
+  margin-inline-end: 8px;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -408,7 +409,7 @@
 }
 
 .settings-panel .model-selector-arrow {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   color: #ccc;
   transition: transform 0.3s;
   font-size: 12px;
@@ -420,8 +421,7 @@
 
 .settings-panel .model-selector-dropdown {
   position: absolute;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   background: rgba(55, 55, 55, 0.98);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 5px;
@@ -457,7 +457,7 @@
   height: 24px;
   object-fit: cover;
   border-radius: 50%;
-  margin-right: 8px;
+  margin-inline-end: 8px;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 

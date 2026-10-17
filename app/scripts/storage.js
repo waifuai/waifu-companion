@@ -4,6 +4,13 @@
 (function () {
   'use strict';
 
+  // Interface string lookup with an English fallback, so the Node suites can
+  // load this file standalone without the i18n runtime.
+  const tr = (key, fallback) => {
+    const api = typeof window !== 'undefined' && window.WaifuI18n;
+    try { return api && api.has(key) ? api.t(key) : fallback; } catch (e) { return fallback; }
+  };
+
   // Cards never read the full app's saved chats, provider keys or preferences.
   const prefix = window.WaifuEmbed ? 'waifu_x_' : '';
   const memory = new Map();
@@ -195,8 +202,9 @@
     quotaWarningShown = true;
     if (typeof addMessage === 'function') {
       addMessage(
-        "I'm running out of browser storage, so I can't save new messages right now. " +
-        "Deleting an old chat from the sidebar will free some space.",
+        tr('error.storageFull',
+          "I'm running out of browser storage, so I can't save new messages right now. " +
+          "Deleting an old chat from the sidebar will free some space."),
         false
       );
     }

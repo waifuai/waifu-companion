@@ -465,6 +465,137 @@ class PlayerCardTests(unittest.TestCase):
         frame = self.open_app()
         self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_001')
 
+    def set_browser_languages(self, *tags):
+        """Pin navigator.languages/language before any document runs, so the
+        interface-language detection is deterministic."""
+        self.context.add_init_script(
+            "Object.defineProperty(navigator, 'languages', {value: %s});"
+            "Object.defineProperty(navigator, 'language', {value: %s});"
+            % (json.dumps(list(tags)), json.dumps(tags[0])))
+
+    def test_interface_language_follows_the_browser(self):
+        self.set_browser_languages('de-DE')
+        frame = self.open_app()
+        self.assertEqual(frame.evaluate('document.documentElement.lang'), 'de')
+        self.assertEqual(frame.evaluate('document.documentElement.dir'), 'ltr')
+        frame.locator('.settings-button').click()
+        self.assertEqual(frame.locator('.settings-menu-item[data-submenu="group-language"] [data-i18n="menu.language"]').inner_text(), 'Sprache')
+        frame.locator('[data-submenu="group-language"]').click()
+        self.assertEqual(frame.locator('label[for="interfaceLanguageSelector"]').inner_text(), 'Oberflächensprache')
+        # The picker offers native names, not English exonyms.
+        self.assertEqual(frame.locator('#interfaceLanguageSelector').input_value(), 'auto')
+        options = frame.evaluate("Array.from(document.getElementById('interfaceLanguageSelector').options).map(o => o.textContent)")
+        self.assertIn('Deutsch', options)
+        self.assertIn('日本語', options)
+        self.assertIn('العربية', options)
+        self.assertNotIn('German', options)
+        self.assertNotIn('Japanese', options)
+        self.assertFalse(self.errors, self.errors)
+
+    def test_arabic_interface_is_right_to_left_and_mirrors_the_layout(self):
+        self.set_browser_languages('ar-EG')
+        frame = self.open_app(embed=False)
+        self.assertEqual(frame.evaluate('document.documentElement.lang'), 'ar')
+        self.assertEqual(frame.evaluate('document.documentElement.dir'), 'rtl')
+        width = frame.evaluate('window.innerWidth')
+        button = frame.locator('.settings-button').bounding_box()
+        chat = frame.locator('.chat-container').bounding_box()
+        # Pinned to inline-end and inline-start respectively, the settings control
+        # moves to the left edge and the chat follows it instead of the LTR sides.
+        self.assertLess(button['x'] + button['width'], width / 2)
+        self.assertGreater(chat['x'], button['x'])
+        # The [dir="rtl"] pass mirrors what logical properties cannot: the menu
+        # chevron (scaleX(-1)) and the off-canvas drawer's slide direction.
+        frame.locator('.settings-button').click()
+        self.assertEqual(frame.evaluate("getComputedStyle(document.querySelector('.settings-menu-item .chevron')).transform"), 'matrix(-1, 0, 0, 1, 0, 0)')
+        drawer_x = frame.evaluate("(() => {const m = getComputedStyle(document.querySelector('.chat-sidebar')).transform.match(/matrix\\(([^)]+)\\)/); return m ? parseFloat(m[1].split(',')[4]) : 0})()")
+        self.assertGreater(drawer_x, 0)
+        self.assertFalse(self.errors, self.errors)
+
+    def test_saved_interface_language_beats_the_browser(self):
+        self.set_browser_languages('ja-JP')
+        self.context.add_init_script("if (location.hostname === 'companion.test') localStorage.setItem('waifu_x_interfaceLanguage', 'fr');")
+        frame = self.open_app()
+        self.assertEqual(frame.evaluate('document.documentElement.lang'), 'fr')
+        frame.locator('.settings-button').click()
+        self.assertEqual(frame.locator('.settings-menu-item[data-submenu="group-language"] [data-i18n="menu.language"]').inner_text(), 'Langue')
+        frame.locator('[data-submenu="group-language"]').click()
+        self.assertEqual(frame.locator('#interfaceLanguageSelector').input_value(), 'fr')
+        self.assertFalse(self.errors, self.errors)
+
+    def test_interface_language_choice_persists_across_a_reload(self):
+        frame = self.open_app()
+        self.assertEqual(frame.evaluate('document.documentElement.lang'), 'en')
+        frame.locator('.settings-button').click()
+        frame.locator('[data-submenu="group-language"]').click()
+        frame.locator('#interfaceLanguageSelector').select_option('de')
+        frame.wait_for_function("document.documentElement.lang === 'de'")
+        self.assertEqual(frame.evaluate("localStorage.getItem('waifu_x_interfaceLanguage')"), 'de')
+        frame.goto(APP + '?embed=x')
+        frame.wait_for_function('window.waifuBootComplete === true', timeout=60000)
+        self.assertEqual(frame.evaluate('document.documentElement.lang'), 'de')
+        frame.locator('.settings-button').click()
+        frame.locator('[data-submenu="group-language"]').click()
+        self.assertEqual(frame.locator('#interfaceLanguageSelector').input_value(), 'de')
+        self.assertFalse(self.errors, self.errors)
+
+    def test_interface_language_is_independent_of_reply_language(self):
+        frame = self.open_app()
+        reply_before = frame.evaluate("document.getElementById('languageSelector').value")
+        stored_before = frame.evaluate("AppStorage.getString(AppStorage.KEYS.SELECTED_LANGUAGE_CODE) || ''")
+        self.assertEqual(frame.evaluate('window.selectedLanguageCode'), 'en-US')
+        frame.locator('.settings-button').click()
+        frame.locator('[data-submenu="group-language"]').click()
+        frame.locator('#interfaceLanguageSelector').select_option('de')
+        frame.wait_for_function("document.documentElement.lang === 'de'")
+        # Switching the interface language leaves the response language, its
+        # English-valued dropdown and its stored preference untouched.
+        self.assertEqual(frame.evaluate('window.selectedLanguageCode'), 'en-US')
+        self.assertEqual(frame.evaluate("document.getElementById('languageSelector').value"), reply_before)
+        self.assertEqual(frame.evaluate("AppStorage.getString(AppStorage.KEYS.SELECTED_LANGUAGE_CODE) || ''"), stored_before)
+        self.assertTrue(reply_before.startswith('en'), reply_before)
+        self.assertEqual(frame.locator('#interfaceLanguageSelector').evaluate('el => el.selectedOptions[0].textContent'), 'Deutsch')
+        self.assertFalse(self.errors, self.errors)
+
+    def test_regional_tags_reduce_and_switching_is_immediate(self):
+        self.set_browser_languages('pt-BR')
+        frame = self.open_app()
+        # The regional tag reduces to the base locale; <html lang> keeps the tag.
+        self.assertEqual(frame.evaluate('document.documentElement.dataset.locale'), 'pt')
+        self.assertEqual(frame.evaluate('document.documentElement.lang'), 'pt-BR')
+        self.assertEqual(frame.evaluate('document.documentElement.dir'), 'ltr')
+        # A key with no entry falls back to the key itself, never to blank text.
+        self.assertEqual(frame.evaluate("WaifuI18n.t('no.such.key')"), 'no.such.key')
+        # Switching locale repaints the live document with no reload, loading a
+        # dictionary that the first paint did not need.
+        frame.evaluate("WaifuI18n.setLocale('fa')")
+        frame.wait_for_function("document.documentElement.dir === 'rtl'")
+        self.assertEqual(frame.evaluate('document.documentElement.lang'), 'fa')
+        frame.locator('.settings-button').click()
+        label = frame.locator('.settings-menu-item[data-submenu="group-language"] [data-i18n="menu.language"]').inner_text()
+        self.assertEqual(label, frame.evaluate("WaifuI18n.t('menu.language')"))
+        self.assertNotEqual(label, 'Language')
+        self.assertFalse(self.errors, self.errors)
+
+    def test_mixed_direction_message_stays_inside_its_bubble(self):
+        self.set_browser_languages('ar-EG')
+        frame = self.open_app()
+        chat = frame.locator('.chat-container').bounding_box()
+        for text in ['Hello (123) — an English line inside an Arabic interface!', 'مرحبا! هل أنت بخير اليوم؟']:
+            with self.subTest(text=text):
+                before = frame.locator('.message.user-message').count()
+                frame.locator('#messageInput').fill(text)
+                frame.locator('#sendMessageBtn').click()
+                frame.wait_for_function('!window.isProcessing')
+                bubble = frame.locator('.message.user-message').nth(before)
+                # Each run reads its own base direction instead of the bubble's,
+                # so mixed-direction text cannot push the bubble out of the chat.
+                self.assertEqual(bubble.locator('.message-original-text').evaluate('el => getComputedStyle(el).unicodeBidi'), 'plaintext')
+                box = bubble.bounding_box()
+                self.assertGreaterEqual(box['x'], chat['x'] - 1)
+                self.assertLessEqual(box['x'] + box['width'], chat['x'] + chat['width'] + 1)
+        self.assertFalse(self.errors, self.errors)
+
     def test_auto_routing_and_manual_voice_lock(self):
         frame = self.open_app()
         frame.locator('.settings-button').click()
