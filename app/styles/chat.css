@@ -795,3 +795,29 @@
 .chat-action-delete:hover {
   color: #ff4444;
 }
+
+/* Turn outcomes and manual recovery stay visible on touch and keyboard. */
+#sendMessageBtn.turn-stop { background: #93444e; }
+.turn-result, .turn-wait, .image-status, .turn-error-detail { display: block; margin-top: .5rem; font-size: .9em; }
+.turn-result, .turn-wait { color: var(--text-color, #eee); }
+.turn-retry, .image-operation button, .queue-resume, .queue-item button, .chat-starters button {
+  min-height: 32px; padding: .35rem .65rem; margin: .3rem .25rem .1rem 0; border: 1px solid currentColor;
+  border-radius: .65rem; background: rgba(24, 24, 36, .9); color: #fff; cursor: pointer;
+}
+.turn-retry:disabled { opacity: .45; cursor: default; }
+.turn-retry:focus-visible, .image-operation button:focus-visible, .chat-starters button:focus-visible, .queue-resume:focus-visible { outline: 2px solid #f0b2ff; outline-offset: 2px; }
+.chat-starters { display: flex; flex-wrap: wrap; gap: .25rem; }
+.queue-item { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.queue-item span { overflow-wrap: anywhere; min-width: 0; }
+#queueStatusContainer { max-height: 150px; overflow: auto; flex-wrap: wrap; }
+#queuedMessagesList { display: block; }
+.image-operation .chat-image { display: block; max-width: 100%; max-height: 340px; object-fit: contain; }
+
+#queueStatusContainer { flex-shrink: 0; }
+.queue-item { white-space: normal; }
+.queue-item button { flex-shrink: 0; max-width: 55%; }
+@media (max-width: 768px) {
+  .chat-container.has-turn-queue { height: min(70vh, 580px); padding: 0; }
+  .chat-container.has-turn-queue .chat-content { margin-top: 0; height: auto; }
+}
+.waifu-embed .chat-container.has-turn-queue { height: 70% !important; }

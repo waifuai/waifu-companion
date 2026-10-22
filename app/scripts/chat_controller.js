@@ -32,6 +32,7 @@ function deleteMessage(messageElement, content, isUser) {
   if (index === -1) index = conversationContext.findIndex(m => !m.id && m.content === content && m.role === role);
 
   if (index !== -1) {
+    window.ambientStopped = true; invalidateTurn();
     invalidateConversationMemory();
     window.summaryProgress = null;
     AppStorage.setJSON(AppStorage.KEYS.SUMMARY_PROGRESS, null);
@@ -51,94 +52,155 @@ function deleteMessage(messageElement, content, isUser) {
 }
 window.deleteMessage = deleteMessage;
 
-// --- Client-side message dedupe -----------------------------------------
-// Ignore identical resends within a short window so rapid re-taps and
-// accidental double-submits are dropped before they are dispatched.
-// Only exact-same text is affected; distinct messages pass freely.
-const MESSAGE_DEDUPE_WINDOW_MS = 2000;
-
-function isDuplicateSend(message) {
-  const prev = window._lastSentMessage;
-  return !!(prev && prev.text === message && (Date.now() - prev.at) < MESSAGE_DEDUPE_WINDOW_MS);
+// Ownership survives text completion while decisions, display and speech finish.
+let activeTurn = null;
+let turnSequence = 0;
+window.userQueuePaused = false;
+window.ambientStopped = false;
+function turnIsCurrent(owner) {
+  return !!owner && activeTurn === owner && !owner.controller.signal.aborted &&
+    (!window.ChatManager || window.ChatManager.getActiveChatId() === owner.chatId);
 }
-
-function noteSentMessage(message) {
-  window._lastSentMessage = { text: message, at: Date.now() };
+function turnOptions(owner) { return { signal: owner.controller.signal, valid: () => turnIsCurrent(owner) }; }
+function saveTurnState() {
+  AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
+  const id = window.ChatManager?.getActiveChatId();
+  if (id) window.ChatManager.saveCurrentChat(id);
 }
-
+function refreshTurnControls() {
+  const button = document.getElementById('sendMessageBtn');
+  if (button) {
+    const stop = !!activeTurn && turnIsCurrent(activeTurn) && (isProcessing || activeTurn.effects > 0);
+    button.dataset.i18n = stop ? 'composer.stop' : 'chat.send';
+    button.textContent = tr(button.dataset.i18n, stop ? 'Stop' : 'Send');
+    button.dataset.i18nAriaLabel = button.dataset.i18n;
+    button.setAttribute('aria-label', button.textContent);
+    button.classList.toggle('turn-stop', stop);
+    button.disabled = false;
+  }
+  document.querySelectorAll?.('.turn-retry').forEach(button => {
+    const entry = conversationContext.find(m => m.id === button.dataset.attemptId);
+    button.disabled = !canRetryTurn(entry);
+  });
+}
+function clearTurnWait(owner) {
+  (owner.timers || []).forEach(clearTimeout); owner.timers = [];
+  owner.waitElement?.remove(); owner.waitElement = null;
+}
+function setTurnWait(owner, key, fallback) {
+  if (!turnIsCurrent(owner) || owner.reply?.content?.trim() || owner.status !== 'pending') return;
+  if (!owner.waitElement) {
+    owner.waitElement = document.createElement('div');
+    owner.waitElement.className = 'turn-wait'; owner.waitElement.setAttribute('role', 'status');
+    document.getElementById(owner.reply?.id)?.appendChild(owner.waitElement);
+  }
+  owner.waitElement.dataset.i18n = key; owner.waitElement.textContent = tr(key, fallback);
+}
+function renderAttemptState(entry) {
+  if (!entry || entry.role !== 'assistant' || entry.imageOperation) return;
+  const bubble = document.getElementById(entry.id); if (!bubble) return;
+  bubble.querySelector('.turn-result')?.remove(); bubble.querySelector('.turn-retry')?.remove();
+  if (!entry.attemptStatus || entry.attemptStatus === 'completed' || entry.attemptStatus === 'pending') return;
+  const state = document.createElement('span'); state.className = 'turn-result'; state.setAttribute('role', 'status');
+  const key = entry.attemptStatus === 'stopped' ? 'chat.stopped' : entry.attemptStatus === 'interrupted' ? 'chat.interrupted' : 'chat.failed';
+  state.dataset.i18n = key; state.textContent = tr(key, entry.attemptStatus);
+  bubble.appendChild(state);
+  if (entry.failureText) { const detail = document.createElement('span'); detail.className = 'turn-error-detail'; detail.textContent = entry.failureText; state.appendChild(detail); }
+  const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'turn-retry';
+  retry.dataset.attemptId = entry.id; retry.dataset.i18n = 'chat.retry'; retry.textContent = tr('chat.retry', 'Retry');
+  retry.disabled = !canRetryTurn(entry); retry.onclick = () => retryTurn(entry); bubble.appendChild(retry);
+}
+function canRetryTurn(entry) {
+  if (!entry || isProcessing || entry.superseded || entry.imageOperation || !['stopped','failed','interrupted'].includes(entry.attemptStatus)) return false;
+  const i = conversationContext.indexOf(entry);
+  return i >= 0 && conversationContext.some(m => m.id === entry.userId && m.role === 'user') &&
+    !conversationContext.slice(i + 1).some(m => m.role === 'user' || (m.attemptStatus && !m.superseded));
+}
+function invalidateTurn(status = 'interrupted') {
+  const owner = activeTurn;
+  if (!owner) return;
+  activeTurn = null; // Invalidate before abort listeners or speech completion run.
+  owner.controller.abort(); clearTimeout(owner.deadline); clearTurnWait(owner);
+  if (owner.reply?.attemptStatus === 'pending') {
+    owner.reply.attemptStatus = status;
+    if (owner.stream) finalizeStreamingMessage(owner.stream, owner.reply.content, owner.language);
+    renderAttemptState(owner.reply);
+  }
+  conversationContext.forEach(m => {
+    if (m.attemptId !== owner.attemptId || !m.imageOperation) return;
+    if (m.imageOperation.generation === 'pending') m.imageOperation.generation = status;
+    if (m.imageOperation.display === 'loading') m.imageOperation.display = 'interrupted';
+    renderImageOperation(m, null, false);
+  });
+  saveTurnState();
+  window.cancelVoiceInput?.();
+  window.stopTTS?.();
+  isProcessing = false; isAIResponding = false; window.isWaitingForAIResponse = false;
+  showTypingIndicator(false); refreshTurnControls();
+}
+function stopActiveTurn() {
+  window.userQueuePaused = true; window.ambientStopped = true;
+  if (window.ambientTimer) clearTimeout(window.ambientTimer);
+  window.ambientPreloadBuffer = null; window.ambientPreloadTTSBuffer = null;
+  invalidateTurn('stopped'); updateQueueUI();
+  if (window.chatHistory) window.chatHistory.scrollTop = window.chatHistory.scrollHeight;
+}
+function beginOwnedTurn(user, isAmbient = false) {
+  window.ambientStopped = true; // Suppress completion hooks during replacement.
+  invalidateTurn();
+  window.cancelVoiceInput?.(); window.stopTTS?.();
+  window.ambientStopped = false;
+  window.invalidateConversationMemory?.();
+  const owner = { chatId: window.ChatManager?.getActiveChatId() || null, turnId: user?.id || nextMessageId(),
+    attemptId: 'attempt-' + Date.now() + '-' + (++turnSequence), controller: new AbortController(),
+    status: 'pending', effects: 0, language: selectedLanguageCode, user, isAmbient, timers: [] };
+  activeTurn = owner; isProcessing = true; isAIResponding = true;
+  return owner;
+}
+async function ownedEffect(owner, work) {
+  if (!turnIsCurrent(owner)) return;
+  owner.effects++; refreshTurnControls();
+  try { return await work(); } catch (e) { if (turnIsCurrent(owner) && e.name !== 'AbortError') debugError('Turn effect failed', e); }
+  finally { owner.effects--; if (turnIsCurrent(owner)) refreshTurnControls(); }
+}
+function normalizeSend(text) { return String(text || '').trim().replace(/\s+/g, ' '); }
+function isDuplicateSend(text) {
+  const value = normalizeSend(text);
+  return !!(activeTurn && turnIsCurrent(activeTurn) && (activeTurn.status === 'pending' || (activeTurn.imageOnly && activeTurn.effects > 0)) && normalizeSend(activeTurn.user?.content) === value) ||
+    userMessageQueue.some(m => normalizeSend(m) === value);
+}
+function noteSentMessage() {} // Compatibility with older integrations; dedupe is attempt-bound.
 async function sendMessage() {
-  const message = messageInput.value.trim();
-  if (!message) return;
-
-  if (isDuplicateSend(message)) {
-    if (typeof trackEvent === 'function') trackEvent('duplicate_message_suppressed');
-    debugLog(`Duplicate message suppressed (identical to a recent send): "${message.substring(0, 40)}"`, 'warn');
-    return;
-  }
-
-  // Clear input immediately to prevent double-processing or STT interference
-  messageInput.value = "";
-  if (window.hasOwnProperty('sttFinalTranscript')) {
-    window.sttFinalTranscript = "";
-  }
-
-  // /image command: generate a picture instead of a chat reply.
-  // Optional trailing flag: portrait | landscape | square.
-  if (/^\/(image|img)\b/i.test(message)) {
-    let prompt = message.replace(/^\/(image|img)\b\s*/i, '').trim();
-    let aspect = typeof getImageAspect === 'function' ? getImageAspect() : '2:3';
-    const aspectMatch = prompt.match(/\s+(portrait|landscape|square)\s*$/i);
-    if (aspectMatch) {
-      aspect = aspectMatch[1].toLowerCase() === 'portrait' ? '2:3' : (aspectMatch[1].toLowerCase() === 'landscape' ? '3:2' : '1:1');
-      prompt = prompt.slice(0, aspectMatch.index).trim();
-    }
-    if (!prompt) {
-      addMessage(tr('chat.imagePromptHelp', 'Describe what you want me to draw: /image a cozy cafe at sunset \u2014 or add portrait / landscape / square'), false);
-      return;
-    }
-    // Image renders are fire-and-forget, so they never wait on a reply.
-    noteSentMessage(message);
-    await handleImageRequest(prompt, aspect);
-    return;
-  }
-
-  // Barge-in: a new message cuts off whatever she is still saying, the way
-  // talking over someone does. Without this, slow TTS for an old reply kept
-  // playing (or hadn't even started) while the conversation moved on.
-  if (typeof window.isTTSBusy === 'function' && window.isTTSBusy()) {
-    debugLog('Barge-in: user sent a message while TTS was busy; stopping playback.', 'info');
-    if (typeof window.stopTTS === 'function') window.stopTTS();
-  }
-
-  // isProcessing only covers the reply being generated now (not TTS), so
-  // this queue is only hit while the text is still streaming in.
-  if (isProcessing && isUserMessageQueueEnabled) {
-    noteSentMessage(message);
-    userMessageQueue.push(message);
-    debugLog(`Message queued: "${message}" (Queue length: ${userMessageQueue.length})`, 'info');
-    updateQueueUI();
-
-    if (!window.isWaitingForAIResponse) {
-      preloadNextQueuedMessage();
-    }
-    return;
-  }
-
-  // If already processing and queueing NOT enabled, put the text back rather
-  // than silently discarding what the user typed.
+  const message = messageInput.value.trim(); if (!message) return;
+  if (isDuplicateSend(message)) { if (typeof trackEvent === 'function') trackEvent('duplicate_message_suppressed'); return; }
   if (isProcessing) {
-    messageInput.value = message;
-    debugLog('Busy and message queue disabled — message restored to the input box.', 'warn');
-    return;
+    if (!isUserMessageQueueEnabled) return;
+    userMessageQueue.push(message); messageInput.value = ''; updateQueueUI(); return;
   }
-
-  // Reset ambient timer, reset consecutive ambient count, and clear buffer on any user activity
-  if (window.resetAmbientTimer) window.resetAmbientTimer(true);
-  window.ambientPreloadBuffer = null;
-
-  noteSentMessage(message);
+  messageInput.value = ''; window.sttFinalTranscript = '';
+  window.userQueuePaused = false; window.ambientStopped = false;
+  window.resetAmbientTimer?.(true); window.ambientPreloadBuffer = null;
   await sendMessageInternal(message);
 }
+async function retryTurn(entry) {
+  if (!canRetryTurn(entry)) return;
+  const user = conversationContext.find(m => m.id === entry.userId);
+  entry.superseded = true;
+  await sendMessageInternal(user.content, false, null, null, user);
+}
+function resumeUserQueue() {
+  window.userQueuePaused = false; window.ambientStopped = false;
+  if (!isProcessing && userMessageQueue.length) {
+    const message = userMessageQueue.shift(); updateQueueUI(); sendMessageInternal(message);
+  }
+}
+window.stopActiveTurn = stopActiveTurn;
+window.turnIsCurrent = turnIsCurrent;
+window.turnOptions = turnOptions;
+window.refreshTurnControls = refreshTurnControls;
+window.renderAttemptState = renderAttemptState;
+window.resumeUserQueue = resumeUserQueue;
+window.getActiveTurn = () => activeTurn;
 
 // /image flow: draws a picture through the image endpoint and drops it into
 // the chat. The prompt goes out as-is; a short in-character caption is added
@@ -147,40 +209,41 @@ async function sendMessage() {
 // the keyword guess on the streaming reply and the decision upgrade for the
 // finished reply apply the exact same animation per label; unknown labels
 // render as the neutral expression.
-function applyEmotionAnimation(emotion) {
+function applyEmotionAnimation(emotion, owner = activeTurn) {
+  const later = (fn, ms) => setTimeout(() => { if (!owner || turnIsCurrent(owner)) fn(); }, ms);
   if (!currentModel) return;
   switch (emotion) {
     case "happy":
       currentModel.expression("f04");
       currentAnimationState.targetBodyAngle = Math.random() * 10 - 5;
-      setTimeout(() => { currentAnimationState.targetBodyAngle = 0; }, 3000);
+      later(() => { currentAnimationState.targetBodyAngle = 0; }, 3000);
       break;
     case "sad":
       currentModel.expression("f03");
       currentModel.internalModel.coreModel.setParameterValueById("ParamBrowY", -1);
       currentAnimationState.targetHeadAngle = -8;
-      setTimeout(() => { currentAnimationState.targetHeadAngle = 0; }, 4000);
+      later(() => { currentAnimationState.targetHeadAngle = 0; }, 4000);
       break;
     case "surprised":
       currentModel.expression("f02");
       currentModel.internalModel.coreModel.setParameterValueById("ParamEyeLOpen", 2);
       currentModel.internalModel.coreModel.setParameterValueById("ParamEyeROpen", 2);
       currentAnimationState.targetHeadAngle = (Math.random() - 0.5) * 15;
-      setTimeout(() => { currentAnimationState.targetHeadAngle = 0; }, 2000);
+      later(() => { currentAnimationState.targetHeadAngle = 0; }, 2000);
       break;
     case "thoughtful":
       currentModel.expression("f04");
       currentModel.internalModel.coreModel.setParameterValueById("ParamBrowY", 0.5);
       currentAnimationState.targetHeadAngle = Math.random() > 0.5 ? 12 : -12;
-      setTimeout(() => { currentAnimationState.targetHeadAngle = 0; }, 5000);
+      later(() => { currentAnimationState.targetHeadAngle = 0; }, 5000);
       break;
     case "excited":
       currentModel.motion("tap_body");
       currentModel.expression("f01");
       currentAnimationState.targetBodyAngle = 15;
-      setTimeout(() => {
+      later(() => {
         currentAnimationState.targetBodyAngle = -10;
-        setTimeout(() => { currentAnimationState.targetBodyAngle = 0; }, 1000);
+        later(() => { currentAnimationState.targetBodyAngle = 0; }, 1000);
       }, 1000);
       break;
     default:
@@ -190,97 +253,91 @@ function applyEmotionAnimation(emotion) {
   }
 }
 
-async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
-  // Non-blocking: the chat stays usable while the image renders. The
-  // placeholder bubble is replaced in place when the image lands. Images
-  // belong to the chat where they were requested even if the user switches
-  // away mid-render.
-
-  if (typeof trackEvent === 'function') trackEvent('image_generation_started');
-  debugLog(`Image generation requested: "${prompt.substring(0, 60)}" (${aspect})`, 'info');
-
-  // Origin chat: the image belongs where it was asked for.
-  const originChatId = window.ChatManager ? window.ChatManager.getActiveChatId() : null;
-
-  // Placeholder bubble: visible progress without blocking anything.
-  const placeholder = addMessage(tr('chat.painting', 'Painting your picture... \u{1F3A8}'), false, null, null, 'en-US');
-
-  // Fire and forget: nothing here awaits back at the call site.
-  (async () => {
-    let replyText = caption || tr('chat.pictureCaption', 'Here, I drew this for you~ \u2728');
-    let imageUrl = null;
-    let isError = false;
-
+async function handleImageRequest(prompt, aspect = '1:1', caption = null, owner = activeTurn, entry = null) {
+  if (!turnIsCurrent(owner)) return;
+  if (!entry) {
+    const id = addMessage('', false);
+    entry = { id, role: 'assistant', content: '', caption: caption || '', turnId: owner.turnId,
+      attemptId: owner.attemptId, userId: owner.user?.id, imageOperation: { prompt, aspect, generation: 'pending', display: 'unknown', retryable: false } };
+    conversationContext.push(entry);
+  }
+  const op = entry.imageOperation; op.generation = 'pending'; op.display = 'unknown'; op.retryable = false;
+  entry.attemptId = owner.attemptId; saveTurnState(); renderImageOperation(entry, owner);
+  return ownedEffect(owner, async () => {
+    if (typeof trackEvent === 'function') trackEvent('image_generation_started');
     try {
-      if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) {
-        throw new Error(tr('error.imageUnavailable', 'Image generation is not available.'));
-      }
-      const result = await window.WaifuProxyAPI.generateImage(prompt, aspect);
-      imageUrl = result.url;
+      const result = await awaitTurn(window.WaifuProxyAPI.generateImage(prompt, aspect, null, null, turnOptions(owner)), turnOptions(owner));
+      if (!turnIsCurrent(owner)) return;
+      entry.imageUrl = result.url; op.generation = 'generated'; op.display = 'loading';
       if (typeof trackEvent === 'function') trackEvent('image_generation_completed');
-    } catch (err) {
-      isError = true;
-      if (err && err.blocked) {
-        replyText = tr('error.imageBlocked', 'I can only draw safe-for-work pictures, so I can\'t make that one. Want something cute instead? Like me in a sundress at the beach \u{1F3A8}');
-      } else if (err && err.timedOut) {
-        replyText = tr('error.imageSlow', 'That one took too long and my brush gave up. Try again?');
-      } else {
-        replyText = tr('error.imageFailed', 'Sorry, my canvas is acting up. Could we try again in a moment?');
-      }
-      debugError('Image generation failed', err);
-      if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: Boolean(err && err.blocked), timed_out: Boolean(err && err.timedOut) });
+    } catch (error) {
+      if (!turnIsCurrent(owner)) return;
+      op.generation = error.blocked ? 'blocked' : 'failed';
+      op.retryable = !error.blocked && ![401,403,429].includes(error.status) && (error.retryable === true || error.network || error instanceof TypeError || error.status >= 500);
+      if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: !!error.blocked, timed_out: !!error.timedOut });
     }
-
-    const sameChatStillActive = !window.ChatManager || window.ChatManager.getActiveChatId() === originChatId;
-    const placeholderEl = document.getElementById(placeholder);
-    if (placeholderEl) placeholderEl.remove();
-
-    if (!sameChatStillActive) {
-      // The user moved on. An error belongs to the chat it came from, so it
-      // is dropped rather than shown in the chat now open.
-      if (isError) {
-        debugLog('Image generation failed after the user switched chats; error not shown.', 'info');
-        return;
-      }
-      // Persist into the originating chat's saved context so the image is
-      // there when they come back. No live bubble.
-      const data = window.ChatManager.getChatData(originChatId);
-      if (data) {
-        data.conversationContext.push({
-          role: 'assistant',
-          content: `[generated an image: ${prompt}]`,
-          caption: replyText,
-          imageUrl,
-          aspect,
-        });
-        window.ChatManager.saveChatData(originChatId, data);
-      }
-      debugLog('Image generation finished in the background; stored into the origin chat.', 'info');
-      return;
-    }
-
-    const langCode = window.selectedLanguageCode || 'en-US';
-    const messageId = addMessage(replyText, false, null, null, langCode, imageUrl);
-
-    if (!isError && imageUrl) {
-      conversationContext.push({
-        role: 'assistant',
-        content: `[generated an image: ${prompt}]`,
-        caption: replyText,
-        imageUrl,
-        aspect,
-        languageCode: langCode,
-        id: messageId
-      });
-    }
-
-    if (window.ChatManager) {
-      const activeId = window.ChatManager.getActiveChatId();
-      if (activeId) window.ChatManager.saveCurrentChat(activeId);
-    }
-    debugState('ChatController', 'image_done', { ok: !isError });
-  })();
+    if (!turnIsCurrent(owner)) return;
+    saveTurnState(); renderImageOperation(entry, owner);
+  });
 }
+function renderImageOperation(entry, owner = null, load = true) {
+  const bubble = document.getElementById(entry.id); if (!bubble) return;
+  bubble.querySelector('.message-original-text')?.replaceChildren();
+  const previousImage = entry.imageOperation?.display === 'loaded' ? bubble.querySelector('.chat-image') : null;
+  bubble.querySelector('.image-operation')?.remove();
+  const panel = document.createElement('div'); panel.className = 'image-operation'; bubble.appendChild(panel);
+  const op = entry.imageOperation || { generation: 'generated', display: 'unknown', prompt: '', aspect: entry.aspect || '1:1' };
+  entry.imageOperation = op;
+  const attempt = entry.attemptId;
+  const valid = () => panel.isConnected && conversationContext.includes(entry) && entry.attemptId === attempt && (!owner || turnIsCurrent(owner));
+  const label = document.createElement('span'); label.className = 'image-status'; label.setAttribute('role', 'status'); panel.appendChild(label);
+  const status = () => {
+    const state = op.generation === 'generated' ? ({ loaded:'loaded', failed:'displayFailed', interrupted:'interrupted', unknown:'unknown' }[op.display] || 'loading') : op.generation;
+    const keys = { pending:['picture.pending','Drawing…'], loading:['picture.loading','Generated / loading…'], loaded:['picture.loaded','Loaded in this browser'], blocked:['picture.blocked','Blocked'], failed:['picture.failed','Generation failed'], displayFailed:['picture.displayFailed','Display failed'], stopped:['picture.stopped','Stopped'], interrupted:['picture.interrupted','Interrupted'], unknown:['picture.unknown','Generated / display unconfirmed'] };
+    const [key, fallback] = keys[state] || keys.unknown; label.dataset.i18n = key; label.textContent = tr(key, fallback);
+  };
+  status();
+  const button = (key, fallback, action) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.i18n = key; b.textContent = tr(key, fallback); b.onclick = action; panel.appendChild(b); return b; };
+  if (op.generation === 'generated' && entry.imageUrl) {
+    const img = previousImage || document.createElement('img'); img.className = 'chat-image'; img.alt = entry.caption || tr('picture.loading', 'Generated image'); panel.appendChild(img);
+    let displayVersion = 0;
+    const reload = button('picture.reload', 'Reload image', async () => {
+      const version = ++displayVersion; const revision = window.conversationMemoryRevision;
+      reload.disabled = true; op.display = 'loading'; status();
+      let released = false;
+      if (owner && turnIsCurrent(owner)) { owner.effects++; refreshTurnControls(); }
+      const release = () => { if (released) return; released = true; if (owner) { owner.effects--; if (turnIsCurrent(owner)) refreshTurnControls(); owner.controller.signal.removeEventListener('abort', release); } };
+      owner?.controller.signal.addEventListener('abort', release, { once: true });
+      const current = () => valid() && version === displayVersion && window.conversationMemoryRevision === revision;
+      const failed = () => { release(); if (!current()) return; op.display = 'failed'; reload.disabled = false; status(); saveTurnState(); };
+      img.onload = () => { release(); if (!current()) return; op.display = 'loaded'; reload.disabled = false; status(); saveTurnState(); };
+      img.onerror = failed;
+      try {
+        const url = await ImageStore.resolve(entry.imageUrl);
+        if (!current()) { release(); return; }
+        if (!url) { failed(); return; }
+        img.src = url;
+      } catch (_) { failed(); }
+    });
+    if (load && op.display !== 'interrupted') reload.click();
+  } else if (op.generation === 'failed' && op.retryable) {
+    button('picture.again', 'Generate again', () => {
+      if (!valid() || isProcessing) return;
+      const user = conversationContext.find(m => m.id === entry.userId);
+      const next = beginOwnedTurn(user); next.status = 'completed'; isProcessing = false; isAIResponding = false;
+      handleImageRequest(op.prompt, op.aspect, entry.caption, next, entry);
+    });
+  }
+}
+window.renderImageOperation = renderImageOperation;
+function recoverSavedTurns(messages) {
+  messages.forEach(m => {
+    if (m.attemptStatus === 'pending') m.attemptStatus = 'interrupted';
+    if (m.imageOperation?.generation === 'pending') m.imageOperation.generation = 'interrupted';
+    if (m.imageOperation?.generation === 'generated') m.imageOperation.display = 'unknown';
+  });
+}
+window.recoverSavedTurns = recoverSavedTurns;
 
 // Tears down everything tied to the conversation that's being left behind.
 //
@@ -289,6 +346,8 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null) {
 // messages and ambient timer belonged to the previous conversation — so a
 // reply could land in, and be saved to, the chat the user had just opened.
 function resetConversationRuntime() {
+  window.userQueuePaused = true; window.ambientStopped = true;
+  invalidateTurn(); window.cancelVoiceInput?.();
   window.invalidateConversationMemory?.();
   // Clear the queue first: stopTTS releases the response, and a non-empty
   // queue at that moment would immediately start sending into the new chat.
@@ -353,11 +412,11 @@ function showMemorySizeStatus(text) {
 }
 window.showMemorySizeStatus = showMemorySizeStatus;
 
-async function maybeSummarizeConversation(force = false) {
+async function maybeSummarizeConversation(force = false, owner = null) {
   if (isSummarizing && force) throw window.ConversationBudget.error('memory_busy', 'A memory update is already running. Wait for it to finish.');
   if (isSummarizing || (!force && Date.now() - lastSummarizeFailureTime < SUMMARIZE_FAILURE_COOLDOWN_MS)) return false;
   const budget = window.ConversationBudget;
-  const entries = conversationContext.map(memoryEntry);
+  const entries = conversationContext.map(memoryEntry).filter(e => e.text);
   const chatId = window.ChatManager && window.ChatManager.getActiveChatId();
   const latestUser = [...entries].reverse().find(e => e.original.role === 'user');
   const turn = String(chatId || 'legacy') + ':' + (latestUser && latestUser.id);
@@ -374,13 +433,13 @@ async function maybeSummarizeConversation(force = false) {
   if (!task) return false;
   if (!force) lastAutomaticMemoryTurn = turn;
   const revision = window.conversationMemoryRevision;
-  const valid = () => window.conversationMemoryRevision === revision &&
+  const valid = () => (!owner || turnIsCurrent(owner)) && window.conversationMemoryRevision === revision &&
     (!window.ChatManager || window.ChatManager.getActiveChatId() === chatId) &&
     window.conversationSummary === state.summary && (window.summaryProgress || null) === state.progress &&
     (task.legacy || pending.every(e => conversationContext.includes(e.original) && memoryEntry(e.original).text === e.text));
   isSummarizing = true;
   try {
-    const text = await requestMemorySummary(task.messages);
+    const text = await requestMemorySummary(task.messages, owner ? turnOptions(owner) : {});
     if (!valid()) return false;
     const next = budget.accept(task, text);
     window.conversationSummary = next.summary;
@@ -406,330 +465,110 @@ async function maybeSummarizeConversation(force = false) {
 }
 window.maybeSummarizeConversation = maybeSummarizeConversation;
 
-async function sendMessageInternal(message, isAmbient = false, cachedResponse = null, ttsPreloadBuffer = null) {
-  let aiResponse = null;
-  let originalReply = '';
-  let messageId = null;
-
-  if (typeof trackEvent === 'function' && !isAmbient) {
-    trackEvent('chat_message_sent');
-  }
-
-  debugState('ChatController', 'processing_start', { isProcessing: isProcessing, isAIResponding: isAIResponding });
-  isProcessing = true;
-  isAIResponding = true;
-
-  debugLog(`Processing ${isAmbient ? 'ambient' : 'new'} message: "${message}"`, 'info');
-
+async function sendMessageInternal(message, isAmbient = false, cachedResponse = null, ttsPreloadBuffer = null, retryUser = null) {
+  if (isProcessing) return;
+  const owner = beginOwnedTurn(retryUser, isAmbient); // Before context, image decisions or any await.
+  let imagePromise = null;
   try {
-    let userMsgId = null;
-    if (!isAmbient) {
-      window.consecutiveAmbientCount = 0;
-      userMsgId = addMessage(message, true, null, null, 'en-US');
-      conversationContext.push({ role: "user", content: message, id: userMsgId });
-
-      // Increment summary counter
-      window.messageCountSinceLastSummary++;
-      AppStorage.setNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, window.messageCountSinceLastSummary);
-
-      trimConversationContext();
-      AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
-      debugLog('Saved user message to conversation context', 'info');
-      debugState('Conversation', 'user_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
-      updateSummaryMarker();
-
-      if (window.ChatManager) {
-        const activeId = window.ChatManager.getActiveChatId();
-        if (activeId) window.ChatManager.saveCurrentChat(activeId);
-      }
+    if (!isAmbient && !retryUser) {
+      const id = addMessage(message, true, null, null, 'en-US');
+      owner.user = { id, role: 'user', content: message }; owner.turnId = id;
+      conversationContext.push(owner.user);
+      window.messageCountSinceLastSummary++; window.consecutiveAmbientCount = 0;
+      if (typeof trackEvent === 'function') trackEvent('chat_message_sent');
     }
-
-    // Whether this turn wants a picture is decided by its own call, running
-    // alongside the reply (see getImageDecision). Ambient turns have no user
-    // request to draw.
-    const imageChatId = window.ChatManager ? window.ChatManager.getActiveChatId() : null;
-    const imageDecision = (!isAmbient && typeof getImageDecision === 'function')
-      ? getImageDecision(message)
-      : null;
-
-    // Any configured provider (Groq, OpenRouter, OpenAI-compatible) streams —
-    // this used to gate the streaming UI on OpenRouter specifically, so Groq
-    // and OpenAI-compatible users got a plain typing indicator followed by an
-    // instant full message instead of the live streaming UI, even though the
-    // underlying request was already streaming.
-    const useStreaming = typeof resolveLLMProvider === 'function' && !!resolveLLMProvider();
-
-    if (cachedResponse) {
-      aiResponse = cachedResponse;
-      originalReply = aiResponse.reply;
-      let transliterationText = null;
-      if (showTransliteration && (selectedLanguageCode === 'ja-JP' || selectedLanguageCode === 'ko-KR')) {
-        transliterationText = await getTransliteration(originalReply, selectedLanguageCode);
-      }
-      messageId = addMessage(originalReply, false, null, transliterationText, selectedLanguageCode);
-    } else {
-      window.isWaitingForAIResponse = true;
-      debugState('ChatController', 'waiting_for_ai', { isWaiting: true });
-
-      if (useStreaming) {
-        // ── STREAMING PATH ──
-        const streamObj = createStreamingMessage(selectedLanguageCode);
-        let streamingReplyText = '';
-
-        aiResponse = await getAIResponse(message, selectedLanguageCode, {
-          stream: true,
-          purpose: isAmbient ? 'ambient' : 'chat',
-          onChunk: (text) => {
-            streamingReplyText = text;
-            updateStreamingMessage(streamObj, text);
-          },
-          onComplete: () => {
-            debugLog('Streaming complete, full data received', 'info');
-          }
-        });
-
-        originalReply = aiResponse.reply;
-        if (streamingReplyText && streamingReplyText.length > originalReply.length) {
-          originalReply = streamingReplyText;
-        }
-
-        // Finalize exactly once. Transliteration arrives later and is
-        // appended to the finished element — calling finalize a second time
-        // used to duplicate the action buttons and append a second text block.
-        messageId = finalizeStreamingMessage(streamObj, originalReply, selectedLanguageCode, null, null);
-
-        if (!aiResponse.isError && showTransliteration && (selectedLanguageCode === 'ja-JP' || selectedLanguageCode === 'ko-KR')) {
-          getTransliteration(originalReply, selectedLanguageCode).then(trans => {
-            if (trans && typeof appendTransliteration === 'function') appendTransliteration(streamObj.messageDiv, trans);
-          });
-        }
-      } else {
-        // NON-STREAMING PATH
-        showTypingIndicator(true);
-        aiResponse = await getAIResponse(message, selectedLanguageCode);
-        showTypingIndicator(false);
-
-        originalReply = aiResponse.reply;
-        let transliterationText = null;
-
-        if (!aiResponse.isError && showTransliteration && (selectedLanguageCode === 'ja-JP' || selectedLanguageCode === 'ko-KR')) {
-          transliterationText = await getTransliteration(originalReply, selectedLanguageCode);
-        }
-
-        messageId = addMessage(originalReply, false, null, transliterationText, selectedLanguageCode);
-      }
-
-      window.isWaitingForAIResponse = false;
-      debugState('ChatController', 'ai_responded', { isWaiting: false });
+    const direct = message.match(/^\/(?:image|img)\b\s*(.*)/i);
+    if (direct && !isAmbient) {
+      owner.imageOnly = true;
+      let prompt = direct[1].trim(); let aspect = getImageAspect();
+      const shape = prompt.match(/\s+(portrait|landscape|square)\s*$/i);
+      if (shape) { aspect = {portrait:'2:3',landscape:'3:2',square:'1:1'}[shape[1].toLowerCase()]; prompt = prompt.slice(0,shape.index).trim(); }
+      if (prompt) { owner.status = 'completed'; isProcessing = false; isAIResponding = false; await handleImageRequest(prompt, aspect, null, owner); }
+      else { addMessage(tr('chat.imagePromptHelp', 'Describe what you want me to draw: /image a cozy cafe at sunset'), false); owner.status = 'failed'; }
+      return;
     }
-
-    // Flagged by getAIResponse rather than string-compared, so it survives
-    // translation and rewording of the connection-error text.
-    const isErrorReply = aiResponse.isError === true;
-
-    // Change With the Story counts real user turns only; it runs in the
-    // background and decides itself whether this turn needs a new background.
-    if (!isAmbient && !isErrorReply && typeof maybeAutoBackground === 'function') maybeAutoBackground();
-
-    // Render the picture once the decision is in, without blocking. No caption
-    // from the reply: it is already its own bubble, and passing it repeated
-    // the same text under the image. A decision that lands after the user
-    // switched chats is dropped rather than drawn into the wrong chat.
-    if (imageDecision && !isErrorReply) {
-      imageDecision.then(req => {
-        const sameChat = !window.ChatManager || window.ChatManager.getActiveChatId() === imageChatId;
-        if (req && sameChat) handleImageRequest(req.prompt, req.aspect);
-      });
-    }
-
-    // Apply settings updates if requested by AI and allowed by user
-    if (aiResponse.settingsUpdate && window.allowAIModSettings) {
-      if (typeof window.applyAIProposedSettings === 'function') {
-        window.applyAIProposedSettings(aiResponse.settingsUpdate);
-      }
-    }
-
-    // A connection-error notice is UI feedback, not dialogue. Storing it
-    // meant feeding "I'm having trouble connecting" back to the model as its
-    // own turn.
-    if (!isErrorReply) {
-      conversationContext.push({
-        role: "assistant",
-        content: originalReply,
-        languageCode: selectedLanguageCode,
-        id: messageId
-      });
-      const contextBeforeTrim = conversationContext.length;
-      trimConversationContext();
-      if (contextBeforeTrim !== conversationContext.length) {
-        debugState('Conversation', 'context_trimmed', { before: contextBeforeTrim, after: conversationContext.length, maxMemory: maxMemorySize });
-      }
-      AppStorage.setJSON(AppStorage.KEYS.CONVERSATION_CONTEXT, conversationContext);
-      debugLog('Saved AI response to conversation context.', 'info');
-      maybeSummarizeConversation().catch(e => showMemorySizeStatus(e.message));
-      debugState('Conversation', 'assistant_msg_added', { count: conversationContext.length, maxMemory: maxMemorySize });
-      updateSummaryMarker();
-
-      if (window.ChatManager) {
-        const activeId = window.ChatManager.getActiveChatId();
-        if (activeId) {
-          window.ChatManager.saveCurrentChat(activeId);
-          const meta = window.ChatManager.getChatMeta(activeId);
-          if (meta && meta.name === 'New Chat' && meta.messageCount >= 2 && typeof generateChatTitle === 'function') {
-            generateChatTitle(activeId);
-          }
-        }
-      }
-    } else {
-      debugLog('Connection-error reply shown to user but kept out of conversation context.', 'warn');
-    }
-
-    const speechPlan = !isErrorReply && window.enableVoice && typeof prepareTTSRouting === 'function' ? prepareTTSRouting(originalReply) : null;
-    const validSpeechReply = () => (!window.ChatManager || window.ChatManager.getActiveChatId() === imageChatId) && (!messageId || !!document.getElementById(messageId));
-    let speechDecision = null;
-    if (currentModel && !isErrorReply) {
-      // The keyword guess sets the initial expression; WaifuAI Cloud's read
-      // of the finished reply then upgrades it when confident. Both paths
-      // apply the exact same animation per label (applyEmotionAnimation).
-      applyEmotionAnimation(aiResponse.emotion);
-      if (!isAmbient && typeof upgradeEmotionFromDecision === 'function') {
-        speechDecision = upgradeEmotionFromDecision(message, originalReply, applyEmotionAnimation, speechPlan, validSpeechReply);
-      }
-    }
-    if (speechPlan && speechPlan.needsDecision && !speechPlan.finished && !speechPlan.pending && !speechDecision && window.WaifuProxyAPI) {
-      speechDecision = window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: speechPlan.text, conversation_language: speechPlan.previousLang });
-    }
-    const speechRouting = speechPlan && typeof finishTTSRouting === 'function' ? finishTTSRouting(speechPlan, speechDecision, validSpeechReply) : null;
-
-    const langConfig = languages.find(l => l.code === selectedLanguageCode) || languages.find(l => l.code === 'en-US');
-    const voiceId = selectedVoiceId || langConfig.defaultVoiceId;
-    debugLog(`TTS Queue: Using voice ID: ${voiceId} for language: ${langConfig.englishName}`, 'info');
-
-    // Initiate TTS playback
-    if (window.enableVoice && !isErrorReply) {
-      try {
-        // notifyOnComplete=true: fires onAIResponseSpeechFinished when this
-        // reply is done speaking, which is what ambient mode waits on. The
-        // chat pipeline itself is released below, without waiting for TTS.
-        playTTS(originalReply, selectedLanguageCode, messageId, 0, ttsPreloadBuffer, true, speechRouting);
-      } catch (e) {
-        debugError('TTS call failed (playTTS threw)', e, {
-          messageId: messageId,
-          language: selectedLanguageCode,
-          voiceId: voiceId,
-          replyLen: originalReply?.length
-        });
-      }
-    } else {
-      if (!window.enableVoice) debugLog('TTS is disabled, skipping playback.', 'info');
-      else if (isErrorReply) debugLog('TTS skipped for error message.', 'info');
-    }
-
-    // The reply text is on screen, so the user may send again right away.
-    // TTS carries on in its own queue; waiting for it here meant slow TTS
-    // blocked the next message for the whole length of the speech.
-    debugLog(`AI response complete. Emotion: ${aiResponse.emotion}. Releasing input (TTS continues in background).`, 'info');
-    onAIResponseFullyFinished();
-
-    // Trigger preloading if enabled
-    if (window.isAmbientQueueEnabled && window.isAmbientPreloadEnabled) {
-      if (typeof window.preloadNextAmbientMessage === 'function') {
-        window.preloadNextAmbientMessage();
-      }
-    }
-
-  } catch (err) {
-    debugError('Message processing failed', err, {
-      messagePreview: message.substring(0, 80),
-      isAmbient: isAmbient,
-      hadCachedResponse: !!cachedResponse,
-      contextSize: conversationContext?.length,
-      queueSize: userMessageQueue?.length
+    owner.stream = createStreamingMessage(owner.language);
+    owner.reply = { role: 'assistant', content: '', id: owner.stream.messageDiv.id, turnId: owner.turnId,
+      userId: owner.user?.id, attemptId: owner.attemptId, attemptStatus: 'pending', languageCode: owner.language };
+    conversationContext.push(owner.reply); saveTurnState(); refreshTurnControls(); updateSummaryMarker();
+    owner.timers = [setTimeout(() => setTurnWait(owner, 'chat.stillWorking', 'Still working…'), 8000),
+      setTimeout(() => setTurnWait(owner, 'chat.longWait', 'Taking longer than usual — Stop is available.'), 20000)];
+    const deadline = setTimeout(() => {
+      if (!turnIsCurrent(owner) || owner.status !== 'pending') return;
+      owner.timedOut = true; window.userQueuePaused = true; window.ambientStopped = true;
+      invalidateTurn('failed'); updateQueueUI();
+    }, 90000);
+    owner.deadline = deadline;
+    if (!isAmbient && typeof getImageDecision === 'function') imagePromise = ownedEffect(owner, () => getImageDecision(message, turnOptions(owner)));
+    const options = { ...turnOptions(owner), stream: typeof resolveLLMProvider === 'function' && !!resolveLLMProvider(),
+      purpose: isAmbient ? 'ambient' : 'chat', onChunk(text) {
+        if (!turnIsCurrent(owner)) return;
+        owner.reply.content = text; updateStreamingMessage(owner.stream, text); saveTurnState();
+        if (text.trim()) clearTurnWait(owner);
+      } };
+    const response = cachedResponse || await awaitTurn(getAIResponse(message, owner.language, options), options);
+    if (!turnIsCurrent(owner)) return;
+    if (response.isError) { const e = new Error('Reply request failed'); e.userMessage = response.reply; throw e; }
+    owner.reply.content = response.reply || owner.reply.content;
+    owner.reply.attemptStatus = 'completed'; owner.status = 'completed'; clearTimeout(owner.deadline);
+    clearTurnWait(owner); finalizeStreamingMessage(owner.stream, owner.reply.content, owner.language);
+    saveTurnState();
+    if (showTransliteration && ['ja-JP','ko-KR'].includes(owner.language)) ownedEffect(owner, async () => {
+      const text = await getTransliteration(owner.reply.content, owner.language, turnOptions(owner));
+      if (turnIsCurrent(owner) && conversationContext.includes(owner.reply)) appendTransliteration(owner.stream.messageDiv, text);
     });
-    window.isWaitingForAIResponse = false;
-    addMessage(tr('error.generic', 'Sorry, something went wrong while processing your message.'), false);
-    showTypingIndicator(false);
-    onAIResponseFullyFinished(); // Ensure processing flag is reset on error
-  }
-}
-
-function onAIResponseFullyFinished() {
-  // Idempotent: several paths can reach here for the same response (the
-  // normal completion and the catch in sendMessageInternal). Without this
-  // guard a double call shifts two messages off the queue and only sends one.
-  if (!isProcessing && !isAIResponding) {
-    debugLog('AI response already finalized, ignoring duplicate completion.', 'info');
-    return;
-  }
-
-  debugLog('AI response finished; input released.', 'info');
-  debugState('ChatController', 'processing_end', { isProcessing: isProcessing, isAIResponding: isAIResponding, queueRemaining: userMessageQueue.length });
-  isProcessing = false;
-  isAIResponding = false;
-  window.isWaitingForAIResponse = false;
-
-  // Process next message from queue if available
-  if (userMessageQueue.length > 0) {
-    const nextMsg = userMessageQueue.shift();
-
-    if (window.preloadedQueuedResponse && window.preloadedQueuedResponse.message === nextMsg) {
-      debugLog(`Using preloaded response for: "${nextMsg}"`, 'info');
-      const cached = window.preloadedQueuedResponse.response;
-      window.preloadedQueuedResponse = null;
-      updateQueueUI();
-      sendMessageInternal(nextMsg, false, cached);
-    } else {
-      debugLog(`Processing next message from queue: "${nextMsg}"`, 'info');
-      updateQueueUI();
-      sendMessageInternal(nextMsg);
-    }
-  } else if (!(typeof window.isTTSBusy === 'function' && window.isTTSBusy())) {
-    // Still speaking: onAIResponseSpeechFinished starts the timer instead,
-    // so ambient thoughts don't talk over the current reply.
-    if (window.resetAmbientTimer) window.resetAmbientTimer();
-  }
-}
-
-// Called by the TTS queue once an AI reply has finished speaking (or was
-// stopped). Only ambient mode cares; the chat pipeline was released earlier.
-function onAIResponseSpeechFinished() {
-  if (isProcessing || userMessageQueue.length > 0) return;
-  if (window.resetAmbientTimer) window.resetAmbientTimer();
-}
-
-async function preloadNextQueuedMessage() {
-  if (userMessageQueue.length === 0 || window.isPreloadingQueuedMessage || window.preloadedQueuedResponse) {
-    return;
-  }
-
-  const nextMsg = userMessageQueue[0];
-  debugLog(`Preloading next queued message: "${nextMsg}"`, 'info');
-
-  window.isPreloadingQueuedMessage = true;
-
-  try {
-    const response = await getAIResponse(nextMsg, selectedLanguageCode);
-
-    if (userMessageQueue.length > 0 && userMessageQueue[0] === nextMsg) {
-      window.preloadedQueuedResponse = {
-        message: nextMsg,
-        response: response
-      };
-      debugLog(`Preloaded response for queued message: "${nextMsg}"`, 'info');
-    } else {
-      debugLog(`Preload for "${nextMsg}" discarded because queue changed.`, 'warn');
-    }
-  } catch (e) {
-    debugError('Failed to preload queued message', e, {
-      messagePreview: nextMsg.substring(0, 80),
-      queueSize: userMessageQueue.length,
-      language: selectedLanguageCode
+    if (imagePromise) ownedEffect(owner, async () => {
+      const request = await imagePromise;
+      if (request && turnIsCurrent(owner)) await handleImageRequest(request.prompt, request.aspect, null, owner);
     });
+    if (!isAmbient && typeof maybeAutoBackground === 'function') ownedEffect(owner, () => maybeAutoBackground(owner));
+    if (response.settingsUpdate && window.allowAIModSettings) window.applyAIProposedSettings?.(response.settingsUpdate);
+    ownedEffect(owner, () => maybeSummarizeConversation(false, owner));
+    const meta = window.ChatManager?.getChatMeta(owner.chatId);
+    if (meta?.name === 'New Chat' && meta.messageCount >= 2) ownedEffect(owner, () => generateChatTitle(owner.chatId, false, owner));
+    const valid = () => turnIsCurrent(owner) && conversationContext.includes(owner.reply);
+    const plan = window.enableVoice && typeof prepareTTSRouting === 'function' ? prepareTTSRouting(owner.reply.content) : null;
+    let decision = null;
+    if (currentModel) {
+      applyEmotionAnimation(response.emotion, owner);
+      decision = ownedEffect(owner, () => upgradeEmotionFromDecision(message, owner.reply.content, e => { if (valid()) applyEmotionAnimation(e, owner); }, plan, valid, turnOptions(owner)));
+    }
+    if (plan?.needsDecision && !decision && window.WaifuProxyAPI) decision = ownedEffect(owner, () => window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: plan.text, conversation_language: plan.previousLang }, turnOptions(owner)));
+    const routing = plan && typeof finishTTSRouting === 'function' ? finishTTSRouting(plan, decision, valid) : null;
+    if (window.enableVoice && valid()) playTTS(owner.reply.content, owner.language, owner.reply.id, 0, ttsPreloadBuffer, true, routing);
+    onAIResponseFullyFinished(owner);
+    if (turnIsCurrent(owner) && window.isAmbientQueueEnabled && window.isAmbientPreloadEnabled) window.preloadNextAmbientMessage?.();
+  } catch (error) {
+    if (!turnIsCurrent(owner)) return;
+    window.userQueuePaused = true; window.ambientStopped = true;
+    owner.status = 'failed'; clearTimeout(owner.deadline); if (owner.reply) owner.reply.attemptStatus = 'failed';
+    if (owner.reply) owner.reply.failureText = error.userMessage || '';
+    if (owner.stream) finalizeStreamingMessage(owner.stream, owner.reply.content, owner.language);
+    clearTurnWait(owner); renderAttemptState(owner.reply); saveTurnState();
+    // Failed text cannot authorize late picture/background/speech work.
+    conversationContext.forEach(m => { if (m.attemptId === owner.attemptId && m.imageOperation?.generation === 'pending') { m.imageOperation.generation = 'interrupted'; renderImageOperation(m, null, false); } });
+    owner.controller.abort(); activeTurn = null; saveTurnState();
+    isProcessing = false; isAIResponding = false; window.isWaitingForAIResponse = false;
+    showTypingIndicator(false); updateQueueUI(); refreshTurnControls();
   } finally {
-    window.isPreloadingQueuedMessage = false;
+    if (turnIsCurrent(owner) && owner.status !== 'pending') { clearTurnWait(owner); onAIResponseFullyFinished(owner); }
   }
 }
-
+function onAIResponseFullyFinished(owner = activeTurn) {
+  if (!turnIsCurrent(owner)) return;
+  if (!isProcessing && !isAIResponding) { refreshTurnControls(); return; }
+  isProcessing = false; isAIResponding = false; window.isWaitingForAIResponse = false;
+  refreshTurnControls();
+  if (!window.userQueuePaused && userMessageQueue.length) resumeUserQueue();
+  else if (!window.ambientStopped && !(typeof window.isTTSBusy === 'function' && window.isTTSBusy())) window.resetAmbientTimer?.();
+}
+function onAIResponseSpeechFinished() {
+  if (window.ambientStopped || isProcessing || userMessageQueue.length) return;
+  window.resetAmbientTimer?.();
+}
+async function preloadNextQueuedMessage() {
+  // Queued text receives an owner only when accepted; never dispatch speculative requests.
+}
 window.sendMessageInternal = sendMessageInternal;
 window.onAIResponseFullyFinished = onAIResponseFullyFinished;
 window.onAIResponseSpeechFinished = onAIResponseSpeechFinished;
@@ -781,8 +620,10 @@ function initChatController() {
 
   const sendButton = document.getElementById('sendMessageBtn');
   if (sendButton) {
-    sendButton.addEventListener('click', () => {
-      sendMessage();
+    sendButton.addEventListener('click', (event) => {
+      if (event.detail >= 2) return;
+      if (turnIsCurrent(activeTurn) && (isProcessing || activeTurn.effects > 0)) stopActiveTurn();
+      else sendMessage();
     });
   }
 }

@@ -130,3 +130,9 @@ test('valid emotion winners apply even at zero confidence; missing, invalid and 
     assert.deepEqual(applied,[]);
   }
 });
+test('Stop during browser voice discovery cannot speak after voices arrive',async()=>{
+ const r=runtime(null);let ready,spoken=0,valid=true;r.c.waitForBrowserVoices=()=>new Promise(resolve=>ready=resolve);
+ r.c.speechSynthesis.speak=()=>spoken++;
+ const pending=r.c.speakViaBrowser('Old reply','browser-female','en-US',()=>valid);
+ valid=false;r.c.stopTTS();ready();await pending;assert.equal(spoken,0);
+});

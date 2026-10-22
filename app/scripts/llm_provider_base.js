@@ -29,7 +29,7 @@ function tr(key, fallback, params) {
 // Returns {content} for a normal request, or {stream, response} when
 // `stream` is true. Throws on network failure or a non-2xx response, with
 // `.status` set whenever an HTTP status is known.
-async function performLLMRequest({ url, headers, body, stream, providerLabel, providerSlug, extraLogContext = {} }) {
+async function performLLMRequest({ url, headers, body, stream, signal, providerLabel, providerSlug, extraLogContext = {} }) {
   const requestStart = Date.now();
   const streamLabel = stream ? ' stream' : '';
 
@@ -48,7 +48,8 @@ async function performLLMRequest({ url, headers, body, stream, providerLabel, pr
     response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal
     });
   } catch (fetchErr) {
     debugError(`[${providerLabel}]${streamLabel} fetch() failed`, fetchErr, {

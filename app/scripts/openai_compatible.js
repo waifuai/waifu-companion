@@ -59,6 +59,7 @@ const OpenAICompatibleAPI = {
       },
       body,
       stream,
+      signal: options.signal,
       providerLabel: 'OpenAI Compatible',
       providerSlug: 'openai_compatible'
     };

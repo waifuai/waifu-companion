@@ -165,12 +165,14 @@ async function processNextTTSInQueue() {
         }
 
         const used = await tryPlaySingleChunk(chunkText, voiceId, 0, resolved, speechRoute, liveRoute);
+        if (cancelled()) return;
         if (used && used.provider && !used.skipped) {
           providersUsed.add(used.provider);
           if (used.lang) languagesUsed.add(used.lang);
           if (used.fellBack) anyFellBack = true;
         }
       } catch (err) {
+        if (cancelled()) return;
         nextChunkPromise = null; // Discard any in-flight resolve on error
         const isRateLimit = err.status === 429 || (err.message && err.message.includes('429'));
         debugError('TTS chunk playback failed', err, {

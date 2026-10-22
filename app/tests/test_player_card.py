@@ -686,13 +686,21 @@ class PlayerCardTests(unittest.TestCase):
 
     def test_tts_clear_french_and_spanish_are_local(self):
         frame = self.open_app()
-        for text, voice in [('Bonjour, je suis contente de te voir.', 'fr_001'), ('Hola, gracias!', 'es_002')]:
+        frame.evaluate("""() => {
+            window.spokenLanguages = [];
+            window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+            speechSynthesis.getVoices = () => [
+                {name:'Microsoft Denise',lang:'fr-FR'}, {name:'Spanish Female',lang:'es-ES'}
+            ];
+            speechSynthesis.speak = utterance => { spokenLanguages.push(utterance.lang); utterance.onend?.(); };
+        }""")
+        for text, lang in [('Bonjour, je suis contente de te voir.', 'fr-FR'), ('Hola, gracias!', 'es-ES')]:
             self.reply = text
-            before = len(self.tts_calls)
-            frame.locator('#messageInput').fill('Read this reply: ' + voice)
-            frame.locator('#sendMessageBtn').click()
-            frame.wait_for_function('n => dataLayer.filter(e => e[0] === "event" && e[1] === "tts_played").length > n', arg=before)
-            self.assertEqual(self.tts_calls[-1]['voice'], voice)
+            frame.locator('#messageInput').fill('Read this reply: ' + lang)
+            frame.locator('#messageInput').press('Enter')
+            frame.wait_for_function('lang => spokenLanguages.includes(lang)', arg=lang)
+            frame.wait_for_function('!window.isProcessing')
+        self.assertFalse(self.tts_calls)
         self.assertFalse(any('live2d_tts_language_v1' in r['tasks'] for r in self.decision_requests))
         self.assertFalse(self.errors, self.errors)
 

@@ -52,6 +52,15 @@ Send, Enter, IME input, blocked forms/storage, narrow layouts, resizing,
 settings, voice toggling, browser-driven interface language, saved-language
 persistence and reload, right-to-left mirroring, and full-app storage isolation.
 
+Lifecycle regressions run with `python -m unittest discover -s app/tests -p
+'test_*.py' -v` (including the Player Card checks above). `test_turn_ownership.cjs`
+and `test_lifecycle_browser.py` cover delayed replies and side effects, Stop,
+partial preservation, safe Retry, duplicate sends, paused queues, saved-operation
+recovery, and explicit image generation/display recovery. Browser checks exercise
+desktop, narrow mobile and embedded layouts, keyboard controls and localized
+8/20-second wait statuses. Inference, speech and analytics are mocked; the
+renderer/model CDN assets are real. These checks do not prove live delivery.
+
 Local iframe checks do not confirm X will accept or display an interactive
 card. After a future deployment, verify an actual post on desktop and mobile.
 Microphone/audio/popups depend on the host permissions; the Full app link is

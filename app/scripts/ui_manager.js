@@ -125,18 +125,7 @@ function addMessage(originalText, isUser, translationText = null, transliteratio
   
   messageDiv.appendChild(originalSpan);
 
-  // Generated image (if provided and not user message)
-  if (!isUser && imageUrl) {
-    const img = document.createElement('img');
-    img.className = 'chat-image';
-    img.alt = originalText;
-    img.loading = 'lazy';
-    // imageUrl may be an "idb:" image stored on this device.
-    ImageStore.apply(imageUrl, u => { img.src = u; });
-    img.addEventListener('click', () => { if (img.src) window.open(img.src, '_blank'); });
-    messageDiv.appendChild(img);
-  }
-
+  // Saved generated images are rendered by renderImageOperation after their stable entry exists.
   // Transliteration (if provided and not user message)
   if (!isUser && transliterationText) {
     const transliterationSpan = document.createElement('span');
@@ -212,6 +201,15 @@ function showWelcomeHint() {
     mic.textContent = tr('chat.welcomeMic', 'Press and hold the \u{1F3A4} mic to talk, and let go when you are done. Or tap it once to start and again to stop.');
     div.appendChild(mic);
   }
+  const starters = document.createElement('div'); starters.className = 'chat-starters';
+  ['hi', 'fun', 'selfie', 'focus'].forEach(name => {
+    const key = 'starter.' + (window.WaifuEmbed && name === 'hi' ? 'hiShort' : window.WaifuEmbed && name === 'focus' ? 'focusShort' : name);
+    const button = document.createElement('button'); button.type = 'button'; button.dataset.i18n = key;
+    button.textContent = tr(key, name);
+    button.onclick = () => { messageInput.value = tr('starter.' + name, button.textContent); window.sendMessage(); };
+    starters.appendChild(button);
+  });
+  div.appendChild(starters);
   window.chatHistory.appendChild(div);
 }
 window.showWelcomeHint = showWelcomeHint;

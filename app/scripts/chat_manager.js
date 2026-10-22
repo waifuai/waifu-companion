@@ -53,6 +53,7 @@ function getActiveChatId() {
 
 // Set the active chat ID
 function setActiveChatId(chatId) {
+  if (getActiveChatId() !== chatId) window.resetConversationRuntime?.();
   if (chatId) {
     AppStorage.setItem(ACTIVE_CHAT_KEY, chatId);
   } else {
@@ -73,6 +74,7 @@ function getChatMeta(chatId) {
 
 // Create a new chat and return its ID
 function createNewChat(name) {
+  window.resetConversationRuntime?.();
   const id = _generateId();
   const now = Date.now();
   const meta = {
@@ -163,6 +165,7 @@ function loadChat(chatId) {
   }
 
   window.conversationContext = data.conversationContext || [];
+  window.recoverSavedTurns?.(window.conversationContext);
   window.conversationSummary = data.conversationSummary || '';
   window.summaryProgress = data.summaryProgress || null;
   window.summaryBackup = data.summaryBackup || '';
@@ -185,17 +188,21 @@ function loadChat(chatId) {
       const langCode = msg.role === 'user' ? 'en-US' : (msg.languageCode || window.selectedLanguageCode || 'en-US');
       // Image messages store a [generated an image: ...] marker as content for
       // the LLM; show the caption instead (older saves have none).
-      const text = msg.imageUrl ? (msg.caption || 'Here, I drew this for you~ ✨') : msg.content;
-      const id = addMessage(text, msg.role === 'user', null, null, langCode, msg.imageUrl || null);
+      const text = (msg.imageOperation || msg.imageUrl) ? (msg.caption || 'Here, I drew this for you~ ✨') : msg.content;
+      const id = addMessage(text, msg.role === 'user', null, null, langCode, null);
       if (msg.id) {
         const bubble = document.getElementById(id);
         if (bubble) bubble.id = msg.id;
       } else msg.id = id;
+      if (msg.imageOperation || msg.imageUrl) window.renderImageOperation?.(msg);
+      else window.renderAttemptState?.(msg);
     });
     if (typeof showWelcomeHint === 'function') showWelcomeHint();
     if (typeof updateSummaryMarker === 'function') updateSummaryMarker();
   }
 
+  window.refreshTurnControls?.();
+  saveCurrentChat(chatId);
   // Update summary textarea if visible
   const summaryEl = document.getElementById('conversationSummary');
   if (summaryEl) summaryEl.value = window.conversationSummary;
@@ -207,6 +214,7 @@ function loadChat(chatId) {
 
 // Delete a chat
 function deleteChat(chatId) {
+  if (getActiveChatId() === chatId) window.resetConversationRuntime?.();
   let index = _getChatIndex();
   const meta = index.find(c => c.id === chatId);
   index = index.filter(c => c.id !== chatId);
@@ -340,7 +348,9 @@ function _relativeTime(timestamp) {
 }
 
 // Generate a chat title using the LLM based on recent messages
-async function generateChatTitle(chatId, force = false) {
+async function generateChatTitle(chatId, force = false, owner = null) {
+  const revision = window.conversationMemoryRevision;
+  const valid = () => (!owner || window.turnIsCurrent?.(owner)) && getActiveChatId() === chatId && window.conversationMemoryRevision === revision && !!getChatMeta(chatId);
   if (window.WaifuEmbed && !force) return;
   const data = _getChatData(chatId);
   if (!data) return;
@@ -351,7 +361,7 @@ async function generateChatTitle(chatId, force = false) {
   const meta = getChatMeta(chatId);
   if (!meta || (!force && meta.name !== 'New Chat')) return;
 
-  const recentMessages = messages.slice(-6);
+  const recentMessages = typeof contextForModel === 'function' ? contextForModel(messages).slice(-6) : messages.slice(-6);
   const contextText = recentMessages
     .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.substring(0, 150)}`)
     .join('\n');
@@ -369,12 +379,13 @@ async function generateChatTitle(chatId, force = false) {
           { role: 'system', content: 'Generate a very short title (3-6 words) that summarizes the topic of this conversation. Reply with ONLY the title, no quotes or punctuation.' },
           { role: 'user', content: contextText }
         ],
+        signal: owner?.controller.signal,
         purpose: 'title'
       });
       title = result?.content;
     }
 
-    if (title && title.trim()) {
+    if (valid() && title && title.trim()) {
       title = title.trim().replace(/^["']|["']$/g, '').substring(0, 40);
       renameChat(chatId, title);
       if (getActiveChatId() === chatId) {
@@ -450,6 +461,7 @@ function handleSwitchChat(chatId) {
   const currentId = getActiveChatId();
   if (currentId === chatId) return;
 
+  window.resetConversationRuntime?.();
   // Save current chat
   if (currentId) {
     saveCurrentChat(currentId);

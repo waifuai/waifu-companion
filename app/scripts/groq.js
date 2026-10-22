@@ -41,6 +41,7 @@ const GroqAPI = {
       },
       body,
       stream,
+      signal: options.signal,
       providerLabel: 'Groq',
       providerSlug: 'groq'
     };

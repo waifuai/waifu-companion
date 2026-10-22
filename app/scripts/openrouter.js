@@ -123,12 +123,14 @@ const OpenRouterAPI = {
           headers,
           body,
           stream,
+          signal: options.signal,
           providerLabel: 'OpenRouter',
           providerSlug: 'openrouter',
           extraLogContext: { attempt: `${attemptNumber}/${modelsToTry.length}` }
         });
         return { ...result, model };
       } catch (err) {
+        if (options.signal?.aborted || err.name === "AbortError") throw err;
         failures.push(`${model}: ${err.message}`);
 
         if (!isLastAttempt) {

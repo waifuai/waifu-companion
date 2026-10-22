@@ -28,7 +28,9 @@ const ImageStore = (() => {
   }
 
   // Saves blob under id and resolves with the "idb:<id>" value to persist.
-  async function put(id, blob) {
+  async function put(id, blob, options = {}) {
+    const stale = () => options.signal?.aborted || (options.valid && !options.valid());
+    if (stale()) { const e = new Error('Image canceled'); e.name = 'AbortError'; throw e; }
     if (window.WaifuEmbed) objectUrls.set(id, URL.createObjectURL(blob));
     try {
       const db = await openDb();
@@ -39,9 +41,18 @@ const ImageStore = (() => {
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error);
       });
+      if (stale()) {
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE, 'readwrite'); tx.objectStore(STORE).delete(id);
+          tx.oncomplete = resolve; tx.onerror = tx.onabort = () => reject(tx.error);
+        });
+        if (objectUrls.has(id)) URL.revokeObjectURL(objectUrls.get(id)); objectUrls.delete(id);
+        const e = new Error('Image canceled'); e.name = 'AbortError'; throw e;
+      }
       if (!objectUrls.has(id)) objectUrls.set(id, URL.createObjectURL(blob));
     } catch (e) {
-      if (!window.WaifuEmbed) throw e;
+      if (stale()) { if (objectUrls.has(id)) URL.revokeObjectURL(objectUrls.get(id)); objectUrls.delete(id); }
+      if (!window.WaifuEmbed || stale()) throw e;
       // A sandbox may block IndexedDB. Keep this frame's picture in memory.
     }
     return PREFIX + id;
@@ -59,7 +70,7 @@ const ImageStore = (() => {
       req.onsuccess = () => res(req.result || null);
       req.onerror = () => rej(req.error);
     });
-    if (!blob) return null;
+    if (!blob || !(blob instanceof Blob) || !blob.size) return null;
     const objectUrl = URL.createObjectURL(blob);
     objectUrls.set(id, objectUrl);
     return objectUrl;

@@ -137,7 +137,7 @@
             setState('transcribing');
             await options.onAudio(blob);
           } catch (error) {
-            options.onError?.(error?.message || tr('voice.genericFailed', 'Voice input failed. Please try again.'));
+            if (current === session) options.onError?.(error?.message || tr('voice.genericFailed', 'Voice input failed. Please try again.'));
           } finally {
             if (current === session) { current = null; setState('idle'); }
           }
@@ -154,7 +154,12 @@
           : tr('mic.startFailed', 'Could not start voice input. Check your microphone and try again.'));
       }
     };
-    return { start, stop, get state() { return state; }, get recording() { return state === 'starting' || state === 'listening'; } };
+    const cancel = () => {
+      const session = current; current = null;
+      if (session) { session.finished = true; release(session); try { if (session.recorder?.state !== 'inactive') session.recorder?.stop(); } catch (_) {} }
+      setState('idle');
+    };
+    return { start, stop, cancel, get state() { return state; }, get recording() { return state === 'starting' || state === 'listening'; } };
   }
 
   window.MicCapture = { create };

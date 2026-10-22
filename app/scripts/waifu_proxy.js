@@ -128,6 +128,7 @@ const WaifuProxyAPI = {
       headers,
       body,
       stream,
+      signal: options.signal,
       providerLabel: 'WaifuAI Cloud',
       providerSlug: 'waifu_proxy'
     };
@@ -141,19 +142,24 @@ const WaifuProxyAPI = {
   // Error with .blocked = true when the request was not allowed. purpose
   // 'background' makes the proxy log it as kind 'background'.
   // Each generation makes one request; failures are returned to the caller.
-  async generateImage(prompt, aspect = '1:1', seed = null, purpose = null) {
+  async generateImage(prompt, aspect = '1:1', seed = null, purpose = null, options = {}) {
+    const check = () => { if (options.signal?.aborted || (options.valid && !options.valid())) { const e = new Error('Turn interrupted'); e.name = 'AbortError'; throw e; } };
+    check();
     const params = new URLSearchParams({ text: prompt, aspect });
     if (seed !== null && seed !== undefined && !isNaN(Number(seed))) {
       params.set('seed', String(parseInt(seed, 10)));
     }
     const headers = getRequestIdentityHeaders();
     if (purpose) headers['X-Waifu-Purpose'] = purpose;
-    const res = await fetch(this.IMAGE_URL + '?' + params.toString(), { headers });
+    const res = await fetch(this.IMAGE_URL + '?' + params.toString(), { headers, signal: options.signal });
+    check();
     if (!res.ok) {
       let body = null;
       try { body = await res.json(); } catch (e) { }
       const err = new Error((body && body.error) || 'Image generation failed.');
       err.blocked = Boolean(body && body.blocked);
+      err.status = res.status;
+      err.retryable = !err.blocked && (res.status >= 500 || res.status === 408);
       // The proxy answers 504 when the image provider took too long.
       err.timedOut = res.status === 504;
       throw err;
@@ -169,12 +175,14 @@ const WaifuProxyAPI = {
     // this device.
     const imageId = res.headers.get('X-Image-Id');
     if (imageId && window.ImageStore) {
-      return { url: await window.ImageStore.put(imageId, await res.blob()) };
+      const blob = await res.blob(); check();
+      if (!blob.size) throw new Error('Empty image bytes');
+      return { url: await window.ImageStore.put(imageId, blob, options) };
     }
     // Last resort: res.url is the /image request itself. Rendering or saving
     // it regenerates the image on every load.
     try { if (res.body) res.body.cancel().catch(() => { }); } catch (e) { }
-    return { url: res.url };
+    throw new Error('Image response has no saved URL or image bytes');
   },
 
   async createCompletionStream(options) {
@@ -188,11 +196,12 @@ const WaifuProxyAPI = {
   // answer, or null when the endpoint is unavailable, the request was
   // rejected or the answer was not ok — callers keep their local behavior on
   // null. Never throws.
-  async decide(tasks, state) {
+  async decide(tasks, state, options = {}) {
     try {
       const res = await fetch(this.DECISIONS_URL, {
         method: 'POST',
         headers: { ...getRequestIdentityHeaders(), 'Content-Type': 'application/json' },
+        signal: options.signal,
         body: JSON.stringify({
           request_id: (crypto.randomUUID && crypto.randomUUID()) || null,
           tasks,
@@ -222,6 +231,9 @@ const WaifuProxyAPI = {
     // Include the response body in the wait so a stalled upload/response can
     // always release the microphone UI. A retry is a new user action.
     const timer = setTimeout(() => controller.abort(), 75000);
+    const cancel = () => controller.abort();
+    opts.signal?.addEventListener('abort', cancel, { once: true });
+    if (opts.signal?.aborted) cancel();
     try {
       const res = await fetch(this.TRANSCRIBE_URL, {
         method: 'POST', headers: getRequestIdentityHeaders(), body: form, signal: controller.signal
@@ -235,10 +247,12 @@ const WaifuProxyAPI = {
       }
       return body;
     } catch (error) {
+      if (opts.signal?.aborted) { const e = new Error('Transcription canceled'); e.name = 'AbortError'; throw e; }
       if (controller.signal.aborted) throw new Error(tr('error.transcribeSlow', 'Transcription took too long. Please try again.'));
       throw error;
     } finally {
       clearTimeout(timer);
+      opts.signal?.removeEventListener('abort', cancel);
     }
   }
 };

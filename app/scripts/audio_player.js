@@ -150,7 +150,7 @@ async function getTTSRouting(text, provided = null, valid = () => true) {
   if (plan && plan.needsDecision && !plan.finished && !plan.pending && valid()) {
     let request = null;
     if (window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function') {
-      const recent = (window.conversationContext || []).slice(-4).map(m => ({ role: m.role, text: String(m.content || '').slice(0, 300) }));
+      const recent = (typeof contextForModel === 'function' ? contextForModel(window.conversationContext || []) : (window.conversationContext || [])).slice(-4).map(m => ({ role: m.role, text: String(m.content || '').slice(0, 300) }));
       request = window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: plan.text, conversation_language: plan.previousLang, recent_context: recent });
     }
     plan = await finishTTSRouting(plan, request, valid);
@@ -224,7 +224,8 @@ async function waitForBrowserVoices(timeoutMs = 3000) {
 // Always resolves within a bounded time: previously there was no timeout at
 // all, only utterance.onend/onerror — a stalled utterance (a known Chrome
 // behaviour on long text) hung the whole TTS pipeline forever.
-async function speakViaBrowser(textChunk, voiceId, langOverride) {
+async function speakViaBrowser(textChunk, voiceId, langOverride, valid = () => true) {
+  if (!valid()) return { played: false };
   if (!window.speechSynthesis) {
     debugLog('TTS: Browser SpeechSynthesis not available', 'error');
     return;
@@ -235,6 +236,7 @@ async function speakViaBrowser(textChunk, voiceId, langOverride) {
   }
 
   await waitForBrowserVoices();
+  if (!valid()) return { played: false };
   const selectedBrowserVoice = selectBrowserVoice(voiceId, langOverride);
   if (selectedBrowserVoice.unsupported) return { lang: null, played: false };
   debugLog(`TTS: Speaking via browser SpeechSynthesis: "${textChunk.substring(0, 50)}..."`, 'info');
@@ -393,13 +395,14 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
 window.fetchTTSBuffer = fetchTTSBuffer;
 
 // Plays an already-resolved chunk descriptor.
-async function playResolvedChunk(resolved, label = '') {
+async function playResolvedChunk(resolved, label = '', valid = () => true) {
+  if (!valid()) return;
   if (!resolved) {
     debugLog(`TTS: Nothing to play, skipping chunk: "${label.substring(0, 30)}..."`, 'warn');
     return;
   }
   if (resolved.kind === 'browser') {
-    const played = await speakViaBrowser(resolved.text, resolved.voiceId, resolved.lang);
+    const played = await speakViaBrowser(resolved.text, resolved.voiceId, resolved.lang, valid);
     resolved.skipped = !played || !played.played;
     if (played && played.lang) resolved.lang = played.lang;
     return;
@@ -430,7 +433,8 @@ async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = n
   try {
     const resolved = preloaded || await fetchTTSBuffer(textChunk, voiceId, routingPlan);
     if (!valid()) return null;
-    await playResolvedChunk(resolved, textChunk.substring(0, 30));
+    await playResolvedChunk(resolved, textChunk.substring(0, 30), valid);
+    if (!valid()) return null;
     return resolved;
   } catch (err) {
     if (err.message && err.message.toLowerCase().includes('text too long') && attempt < MAX_SPLIT_ATTEMPTS) {

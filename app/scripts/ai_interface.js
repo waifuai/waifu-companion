@@ -1,3 +1,18 @@
+// Guard after every asynchronous boundary; transports also receive the signal.
+function checkTurn(options = {}) {
+  if (options.signal?.aborted || (options.valid && !options.valid())) {
+    const error = new Error('Turn interrupted'); error.name = 'AbortError'; throw error;
+  }
+}
+function awaitTurn(promise, options = {}) {
+  checkTurn(options);
+  if (!options.signal) return Promise.resolve(promise);
+  return new Promise((resolve, reject) => {
+    const aborted = () => { const e = new Error('Turn interrupted'); e.name = 'AbortError'; reject(e); };
+    options.signal.addEventListener('abort', aborted, { once: true });
+    Promise.resolve(promise).then(resolve, reject).finally(() => options.signal.removeEventListener('abort', aborted));
+  }).then(value => { checkTurn(options); return value; });
+}
 // ---------------------------------------------------------------------------
 // Shared provider resolution
 //
@@ -65,7 +80,8 @@ function sanitizeMessages(msgs) {
 }
 
 // Non-streaming completion through whichever provider is configured.
-async function callConfiguredLLM(messages, eventPrefix, purpose = 'chat') {
+async function callConfiguredLLM(messages, eventPrefix, purpose = 'chat', options = {}) {
+  checkTurn(options);
   const provider = resolveLLMProvider();
   if (!provider) throw new Error('LLMNotConfigured');
 
@@ -75,20 +91,23 @@ async function callConfiguredLLM(messages, eventPrefix, purpose = 'chat') {
   }
 
   try {
-    await ensureLLMTransport();
+    await awaitTurn(ensureLLMTransport(), options);
+    checkTurn(options);
     // No response_format/json_object on purpose: forcing structured output on
     // small models is what produced the malformed-JSON turns that surfaced raw
     // braces and truncated replies. parseAIResponse still salvages JSON if a
     // model emits it anyway.
-    const completion = await provider.api.createCompletion({
+    const completion = await awaitTurn(provider.api.createCompletion({
       messages: sanitizeMessages(messages),
-      purpose
-    });
+      purpose, signal: options.signal
+    }), options);
+    checkTurn(options);
     if (eventPrefix && typeof trackEvent === 'function') {
       trackEvent(`${eventPrefix}_completed`, { provider: provider.name, model: provider.model, response_time_ms: Date.now() - startTime });
     }
     return completion;
   } catch (error) {
+    if (error.name === 'AbortError' || options.signal?.aborted || (options.valid && !options.valid())) throw error;
     // Never send error.message to analytics: provider error bodies can echo
     // request content, including API keys. trackError sends only a category
     // and a numeric-ish code.
@@ -197,38 +216,32 @@ Current Application Settings:
 ${languageRule}
 ${contextInfo.join('\n\n')}
 
-You can draw pictures, including pictures of yourself (${selfLook}). When the user asks for a picture, photo, selfie or drawing, it is drawn separately and appears in the chat on its own: just react in character, happy to make it for them. Never write out the picture's description, tags or brackets yourself, and never turn a picture request down by saying you are an AI, have no body, or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.
+You can draw pictures, including pictures of yourself (${selfLook}). When the user asks for a picture, photo, selfie or drawing, a separate application operation attempts to draw it. An offer or returned URL is not confirmed delivery. Use application outcome notes as evidence: generated, loading, loaded in this browser, blocked, failed or interrupted. Browser load does not prove the person saw it, and you cannot inspect its contents. Do not invent successful sending or visibility; react in character without promising completion. Never write out the picture's description, tags or brackets yourself, and never turn a picture request down by saying you are an AI, have no body, or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.
 
 Respond with plain conversational dialogue only — one natural message that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.`;
 }
 
-// conversationContext stores a generated image as its own assistant entry
-// whose content is a "[generated an image: <prompt>]" marker. Sent as-is, the
-// model copied the marker into later replies. So for the model it becomes a
-// plain "(sent a picture: ...)" note on the reply it belongs to, which
-// parseAIResponse strips if the model echoes it.
+// Legacy markers remain readable, but model context uses explicit application
+// generation/display evidence. Captions and old summaries are never success evidence.
 const GENERATED_IMAGE_MARKER_SOURCE = String.raw`\[generated an image:\s*([^\]\n]+?)\s*\]`;
 const PICTURE_NOTE_SOURCE = String.raw`\(sent a picture:[^)\n]*\)?`;
 
-function contextForModel(context) {
-  const out = [];
-  for (const m of context) {
-    const marker = m.role === 'assistant' && m.imageUrl
-      && (m.content || '').match(new RegExp(`^${GENERATED_IMAGE_MARKER_SOURCE}$`, 'i'));
-    if (!marker) {
-      out.push({ role: m.role, content: m.content });
-      continue;
-    }
-    const note = `(sent a picture: ${marker[1]})`;
-    const prev = out[out.length - 1];
-    if (prev && prev.role === 'assistant') {
-      prev.content = `${prev.content}\n${note}`;
-    } else {
-      out.push({ role: 'assistant', content: `${m.caption || 'Here, I drew this for you~'}\n${note}` });
-    }
-  }
-  return out;
+function imageOutcomeText(m) {
+  const generation = m.imageOperation?.generation || 'unknown';
+  const display = m.imageOperation?.display || 'unknown';
+  const prompt = m.imageOperation?.prompt || String(m.content || '').match(new RegExp(GENERATED_IMAGE_MARKER_SOURCE, 'i'))?.[1] || '';
+  const evidence = generation === 'generated' || (!m.imageOperation && m.imageUrl)
+    ? `Image generated; browser display ${display}. Browser load does not prove the person saw it.`
+    : `Image generation ${generation}; browser display ${display}. Delivery is unconfirmed.`;
+  return `[Application image outcome: ${evidence} Requested scene: ${prompt}]`;
 }
+function contextForModel(context) {
+  return context.filter(m => !m.superseded && (!m.attemptStatus || m.attemptStatus === 'completed' || m.imageOperation))
+    .map(m => ({ role: m.role, content: m.imageOperation || m.imageUrl
+      ? imageOutcomeText(m) : String(m.content || '') }));
+}
+window.contextForModel = contextForModel;
+window.imageOutcomeText = imageOutcomeText;
 
 // The avatar on screen's description from model_config.js, or null for
 // avatars without one (user-added models).
@@ -321,7 +334,8 @@ function clipPictureContext(text) {
 // asks for a picture, and writes the English description for it. Resolves
 // with {prompt, aspect} or null, and never throws: a failed decision just
 // means no picture this turn.
-async function getImageDecision(userMessage) {
+async function getImageDecision(userMessage, options = {}) {
+  checkTurn(options);
   if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) return null;
   try {
     // Only the companion's last reply and the new message: given a longer
@@ -336,11 +350,12 @@ async function getImageDecision(userMessage) {
     let writePicture = false;
     if (typeof window.WaifuProxyAPI.decide === 'function') {
       try {
-        const answers = await window.WaifuProxyAPI.decide(['picture_action_v1'], {
+        const answers = await awaitTurn(window.WaifuProxyAPI.decide(['picture_action_v1'], {
           user_message: clip(userMessage),
           previous_reply: previous,
           picture_offered: Boolean(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))
-        });
+        }, options), options);
+        checkTurn(options);
         const picture = answers && answers.picture_action_v1;
         if (picture && picture.choice_id === 'none') {
           debugLog('Image decision: cloud says no picture, skipping the writing call', 'info');
@@ -348,16 +363,19 @@ async function getImageDecision(userMessage) {
         }
         writePicture = picture?.choice_id === 'draw';
       } catch (e) {
+        checkTurn(options);
         debugError('Image action unavailable', e);
       }
     }
 
+    checkTurn(options);
     const input = `Companion's previous message: ${previous || '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
 
     const completion = await callConfiguredLLM([
       { role: 'system', content: (writePicture ? IMAGE_WRITER_SYSTEM_PROMPT : IMAGE_DECISION_SYSTEM_PROMPT)(currentAvatarAppearance()) },
       { role: 'user', content: input }
-    ], null, 'image_prompt');
+    ], null, 'image_prompt', options);
+    checkTurn(options);
     const decision = parseImageDecision(completion && completion.content);
     debugLog(`Image decision: ${decision ? `draw "${decision.prompt.substring(0, 60)}" (${decision.aspect})` : 'none'}`, 'info');
     return decision;
@@ -371,8 +389,9 @@ async function getImageDecision(userMessage) {
 // stores assistant turns as plain reply text (already unwrapped from JSON
 // before storage in chat_controller.js); image entries go through
 // contextForModel.
-async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '') {
-  const contextInfo = await buildContextInfo();
+async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '', options = {}) {
+  const contextInfo = await awaitTurn(buildContextInfo(), options);
+  checkTurn(options);
   const targetLanguageName = (!targetLanguageCode || targetLanguageCode === 'en-US')
     ? null
     : resolveTargetLanguageName(targetLanguageCode);
@@ -382,7 +401,8 @@ async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '')
     ...contextForModel(conversationContext)
   ];
 
-  const lastMsg = conversationContext[conversationContext.length - 1];
+  const visibleContext = contextForModel(conversationContext);
+  const lastMsg = visibleContext[visibleContext.length - 1];
   if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== userMessage) {
     messages.push({ role: 'user', content: userMessage });
   }
@@ -418,24 +438,25 @@ function inferEmotion(text) {
 // animation using the best-fitting valid expression. The keyword guess sets the
 // initial expression; on no valid answer nothing changes here. Resolves
 // quietly; never throws.
-async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion, speechPlan = null, valid = () => true) {
+async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion, speechPlan = null, valid = () => true, options = {}) {
   try {
     if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function')) return;
     const clip = (s) => String(s || '').slice(0, 300);
     // The finished reply was already pushed onto the context, so the window
     // excludes it: it arrives on its own as the primary evidence.
-    const recent = [...conversationContext].slice(-5, -1)
+    const recent = contextForModel(conversationContext).slice(-5, -1)
       .map(m => ({ role: m.role, text: clip(m.content) }))
       .filter(e => e.text);
     const tasks = ['live2d_emotion_v1'];
     if (speechPlan && speechPlan.needsDecision && !speechPlan.finished && !speechPlan.pending) tasks.push('live2d_tts_language_v1');
-    const answers = await window.WaifuProxyAPI.decide(tasks, {
+    checkTurn(options);
+    const answers = await awaitTurn(window.WaifuProxyAPI.decide(tasks, {
       reply: String(reply || ''),
       user_message: clip(userMessage),
       recent_context: recent,
       ...(tasks.length > 1 ? { conversation_language: speechPlan.previousLang } : {}),
       ...(tasks.length > 1 && speechPlan.text !== String(reply).trim() ? { spoken_reply: speechPlan.text } : {})
-    });
+    }, options), options);
     const answer = answers && answers.live2d_emotion_v1;
     if (valid() && answer && ['happy', 'sad', 'surprised', 'thoughtful', 'excited', 'neutral'].includes(answer.choice_id)) {
       debugLog(`Emotion decision: ${answer.choice_id} (confidence ${answer.confidence ?? 'n/a'})`, 'info');
@@ -507,6 +528,7 @@ function stripImageArtifacts(s) {
     .replace(new RegExp(HEADLESS_IMAGE_TAG_SOURCE, 'gi'), '\n')
     .replace(new RegExp(GENERATED_IMAGE_MARKER_SOURCE, 'gi'), '')
     .replace(new RegExp(PICTURE_NOTE_SOURCE, 'gi'), '')
+    .replace(/\[Application image outcome:[^\]\n]*\]?/gi, '')
     .replace(/\[IMAGE:[^\]]*\]?/gi, '')
     .replace(/\n{3,}/g, '\n\n');
 }
@@ -608,14 +630,15 @@ async function getAIResponse(userMessage, targetLanguageCode = 'en-US', options 
       throw new Error('LLMNotConfigured');
     }
 
-    const messages = await buildChatMessages(userMessage, targetLanguageCode);
-    const completion = await callConfiguredLLM(messages);
+    const messages = await buildChatMessages(userMessage, targetLanguageCode, '', options);
+    const completion = await callConfiguredLLM(messages, null, options.purpose || 'chat', options);
     debugLog(`Received AI response from ${provider.name}`, 'info');
 
     const data = parseAIResponse(completion.content);
     return data;
 
   } catch (error) {
+    if (error.name === 'AbortError' || options.signal?.aborted || (options.valid && !options.valid())) throw error;
     debugError('AI response (non-streaming) failed', error, {
       messagePreview: userMessage.substring(0, 80)
     });
@@ -663,13 +686,13 @@ async function summarizeConversation(oldMessages, existingSummary) {
   return requestMemorySummary(task.messages);
 }
 
-async function requestMemorySummary(messages) {
-  const completion = await callConfiguredLLM(messages, 'llm_summarize', 'summary');
+async function requestMemorySummary(messages, options = {}) {
+  const completion = await callConfiguredLLM(messages, 'llm_summarize', 'summary', options);
   return window.ConversationBudget.validateSummary(completion && completion.content);
 }
 window.requestMemorySummary = requestMemorySummary;
 
-async function getTransliteration(text, langCode) {
+async function getTransliteration(text, langCode, options = {}) {
   debugLog(`Getting transliteration for ${langCode}. Original text: "${text.substring(0, 50)}..."`, 'info');
   if (!text || !langCode) return null;
 
@@ -692,7 +715,8 @@ async function getTransliteration(text, langCode) {
     const completion = await callConfiguredLLM([
       { role: 'system', content: instruction },
       { role: 'user', content: text }
-    ], 'llm_transliteration');
+    ], 'llm_transliteration', 'chat', options);
+    checkTurn(options);
     debugLog(`Transliteration successful: "${completion.content.substring(0, 50)}..."`, 'info');
     return completion.content;
   } catch (error) {
@@ -741,8 +765,9 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
       throw new Error('LLMNotConfigured');
     }
 
-    await ensureLLMTransport();
-    const messages = await buildChatMessages(userMessage, targetLanguageCode, 'STREAMING');
+    await awaitTurn(ensureLLMTransport(), options);
+    checkTurn(options);
+    const messages = await buildChatMessages(userMessage, targetLanguageCode, 'STREAMING', options);
 
     const streamRequestStartTime = Date.now();
     if (typeof trackEvent === 'function') {
@@ -750,10 +775,11 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     }
 
     debugLog(`Starting streaming request to ${provider.name}`, 'info');
-    const { stream, response } = await provider.api.createCompletionStream({
+    const { stream, response } = await awaitTurn(provider.api.createCompletionStream({
       messages: sanitizeMessages(messages),
-      purpose: options.purpose === 'ambient' ? 'ambient' : 'chat'
-    });
+      purpose: options.purpose === 'ambient' ? 'ambient' : 'chat', signal: options.signal
+    }), options);
+    checkTurn(options);
 
     streamStarted = true;
     if (typeof trackEvent === 'function') {
@@ -761,8 +787,11 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     }
 
     const reader = stream.getReader();
+    const cancelReader = () => { reader.cancel().catch(() => {}); };
+    options.signal?.addEventListener('abort', cancelReader, { once: true });
     const decoder = new TextDecoder();
 
+    let terminal = false;
     let buffer = '';
     let fullContent = '';
     let inReply = false;
@@ -824,9 +853,10 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     const consumeSSELine = (line) => {
       if (!line.startsWith('data: ')) return;
       const payload = line.slice(6);
-      if (payload === '[DONE]') return;
+      if (payload === '[DONE]') { terminal = true; return; }
       try {
         const parsed = JSON.parse(payload);
+        if (parsed?.choices?.[0]?.finish_reason) terminal = true;
         const content = parsed?.choices?.[0]?.delta?.content || '';
         if (content) {
           fullContent += content;
@@ -837,16 +867,24 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
       }
     };
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await awaitTurn(reader.read(), options);
+        checkTurn(options);
+        if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      lines.forEach(consumeSSELine);
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        lines.forEach(consumeSSELine);
+      }
+      if (buffer.startsWith('data: ')) consumeSSELine(buffer);
+      checkTurn(options);
+      if (!terminal) throw new Error('Stream ended before completion');
+    } finally {
+      options.signal?.removeEventListener('abort', cancelReader);
+      cancelReader();
     }
-    if (buffer.startsWith('data: ')) consumeSSELine(buffer);
 
     debugLog('Streaming complete, parsing full response', 'info');
 
@@ -866,6 +904,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     return data;
 
   } catch (error) {
+    if (error.name === 'AbortError' || options.signal?.aborted || (options.valid && !options.valid())) throw error;
     debugError('AI streaming response failed', error, {
       provider: provider && provider.name,
       model: provider && provider.model,

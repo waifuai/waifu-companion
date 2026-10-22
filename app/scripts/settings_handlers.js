@@ -404,6 +404,7 @@ function handleSavePersona() {
   catch (e) { window.showMemorySizeStatus?.(e.message); return; }
   if (summary !== window.conversationSummary) {
     if (window.ConversationBudget.bytes(window.conversationSummary) > window.ConversationBudget.limits.summary) window.summaryBackup = window.conversationSummary;
+    window.stopActiveTurn?.();
     window.invalidateConversationMemory?.();
     window.summaryProgress = null;
   }
@@ -466,6 +467,7 @@ async function handleManualSummarize() {
 }
 
 function handleResetPersona() {
+  window.stopActiveTurn?.();
   window.invalidateConversationMemory?.();
   window.summaryProgress = null;
   window.summaryBackup = '';
@@ -807,7 +809,16 @@ function getBackgroundAspect() {
 
 // Asks the model where the chat is taking place. Resolves with an English
 // scene description, or null for "same place".
-async function getBackgroundScene(force = false) {
+function backgroundOptions(owner = null) {
+  const revision = window.conversationMemoryRevision;
+  const chatId = window.ChatManager?.getActiveChatId();
+  return owner && window.turnOptions ? window.turnOptions(owner) : { valid: () => window.conversationMemoryRevision === revision && window.ChatManager?.getActiveChatId() === chatId };
+}
+function checkBackground(options) {
+  if (options.signal?.aborted || (options.valid && !options.valid())) { const e = new Error('Background interrupted'); e.name = 'AbortError'; throw e; }
+}
+async function getBackgroundScene(force = false, options = backgroundOptions()) {
+  checkBackground(options);
   const messages = (typeof contextForModel === 'function' ? contextForModel(conversationContext || []) : [])
     .filter(m => m.role === 'user' || m.role === 'assistant')
     .slice(-8);
@@ -824,7 +835,8 @@ async function getBackgroundScene(force = false) {
       const answers = await window.WaifuProxyAPI.decide(['background_action_v1'], {
         current_scene: clip(current),
         recent_messages: messages.map(m => ({ role: m.role, text: clip(m.content) }))
-      });
+      }, options);
+      checkBackground(options);
       const background = answers && answers.background_action_v1;
       if (background && background.choice_id === 'keep') {
         debugLog('BG: cloud says the scene still fits, skipping the writing call', 'info');
@@ -832,17 +844,20 @@ async function getBackgroundScene(force = false) {
       }
       writeScene = background?.choice_id === 'change';
     } catch (e) {
+      checkBackground(options);
       debugError('BG action unavailable', e);
     }
   }
 
+  checkBackground(options);
   const input = `Current background: ${current}\n\nLatest messages:\n`
     + messages.map(m => `${m.role === 'user' ? 'User' : 'Companion'}: ${clip(m.content)}`).join('\n');
 
   const completion = await callConfiguredLLM([
     { role: 'system', content: BG_SCENE_SYSTEM_PROMPT(writeScene) },
     { role: 'user', content: input }
-  ], null, 'background_prompt');
+  ], null, 'background_prompt', options);
+  checkBackground(options);
   const m = String((completion && completion.content) || '').match(/SCENE:\s*([^\n]+)/i);
   if (!m) return null;
   const scene = m[1].replace(/^[\s"'[<]+|[\s"'\]>]+$/g, '').trim();
@@ -852,20 +867,26 @@ async function getBackgroundScene(force = false) {
 
 // Draws scene and makes it the background once it has loaded, so the
 // screen never flashes blank. Resolves true when the background changed.
-async function generateBackground(scene, source, eventType) {
+async function generateBackground(scene, source, eventType, options = backgroundOptions()) {
+  checkBackground(options);
   if (bgGenerationInFlight) { setBgStatus(tr('background.statusAlready', 'Already drawing a background…')); return false; }
   if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) return false;
   bgGenerationInFlight = true;
   setBgStatus(tr('background.statusDrawing', 'Drawing background…'));
   try {
-    const { url } = await window.WaifuProxyAPI.generateImage(`${scene}, ${BG_PROMPT_SUFFIX}`, getBackgroundAspect(), null, 'background');
+    const { url } = await window.WaifuProxyAPI.generateImage(`${scene}, ${BG_PROMPT_SUFFIX}`, getBackgroundAspect(), null, 'background', options);
+    checkBackground(options);
     const displayUrl = await ImageStore.resolve(url);
-    await new Promise((resolve, reject) => {
+    checkBackground(options);
+    if (!displayUrl) throw new Error('Background image unavailable');
+    const loading = new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = resolve;
       img.onerror = () => reject(new Error(tr('error.imageLoad', 'Background image failed to load.')));
       img.src = displayUrl;
     });
+    if (typeof awaitTurn === 'function') await awaitTurn(loading, options); else await loading;
+    checkBackground(options);
     saveToBgLibrary(url, scene);
     renderBackgroundLibrary();
     setBgStatus('');
@@ -880,6 +901,7 @@ async function generateBackground(scene, source, eventType) {
     if (typeof trackEvent === 'function') trackEvent('background_changed', { type: eventType });
     return true;
   } catch (e) {
+    if (options.signal?.aborted || (options.valid && !options.valid())) return false;
     debugError('BG generation failed', e);
     setBgStatus(e && e.blocked
       ? tr('background.errorBlocked', 'The image service did not allow this background. Try another description.')
@@ -889,6 +911,7 @@ async function generateBackground(scene, source, eventType) {
     return false;
   } finally {
     bgGenerationInFlight = false;
+    if (options.signal?.aborted || (options.valid && !options.valid())) setBgStatus('');
   }
 }
 
@@ -905,10 +928,12 @@ async function handleGenerateBackground() {
 async function handleGenerateBackgroundFromContext() {
   if (bgGenerationInFlight) { setBgStatus(tr('background.statusAlready', 'Already drawing a background…')); return; }
   setBgStatus(tr('background.statusReading', 'Reading the conversation…'));
+  const options = backgroundOptions();
   let scene = null;
-  try { scene = await getBackgroundScene(true); } catch (e) { debugError('BG scene failed', e); }
+  try { scene = await getBackgroundScene(true, options); } catch (e) { debugError('BG scene failed', e); }
+  if (!options.valid()) return;
   if (!scene) { setBgStatus(tr('background.statusChatFirst', 'Chat a little first, then try again.')); return; }
-  await generateBackground(scene, 'auto', 'ai_conversation');
+  await generateBackground(scene, 'auto', 'ai_conversation', options);
 }
 
 function getBgAutoMode() {
@@ -923,8 +948,10 @@ function getBgAutoEveryN() {
 
 // Called once per real user turn (chat_controller.js). Runs in the background
 // and never throws.
-async function maybeAutoBackground() {
+async function maybeAutoBackground(owner = null) {
+  const options = backgroundOptions(owner);
   try {
+    checkBackground(options);
     const mode = getBgAutoMode();
     if (mode === 'off' || bgGenerationInFlight) return;
     const source = S.getString(K.BG_SOURCE, 'manual');
@@ -935,8 +962,9 @@ async function maybeAutoBackground() {
     if (mode === 'every') {
       if (bgMessagesSinceChange < getBgAutoEveryN()) return;
       bgMessagesSinceCheck = 0;
-      const scene = await getBackgroundScene(true);
-      if (scene) await generateBackground(scene, 'auto', 'auto_every');
+      const scene = await getBackgroundScene(true, options);
+      checkBackground(options);
+      if (scene) await generateBackground(scene, 'auto', 'auto_every', options);
       return;
     }
 
@@ -944,9 +972,10 @@ async function maybeAutoBackground() {
     if (bgMessagesSinceChange < minGap) return;
     if (bgMessagesSinceChange > minGap && bgMessagesSinceCheck < BG_SCENE_CHECK_EVERY) return;
     bgMessagesSinceCheck = 0;
-    const scene = await getBackgroundScene(false);
+    const scene = await getBackgroundScene(false, options);
+    checkBackground(options);
     debugLog(`BG: scene check: ${scene ? `"${scene.substring(0, 60)}"` : 'same'}`, 'info');
-    if (scene) await generateBackground(scene, 'auto', 'auto_scene');
+    if (scene) await generateBackground(scene, 'auto', 'auto_scene', options);
   } catch (e) {
     debugError('BG auto update failed', e);
   }
@@ -1243,16 +1272,27 @@ function updateQueueUI() {
   if (qStatus) {
     qStatus.style.display = (window.isUserMessageQueueEnabled && window.userMessageQueue.length > 0) ? 'flex' : 'none';
   }
+  qStatus?.closest?.('.chat-container')?.classList.toggle('has-turn-queue', window.userMessageQueue.length > 0);
   if (qText) {
-    qText.textContent = `Queued: ${window.userMessageQueue.length}`;
+    delete qText.dataset.i18n;
+    qText.textContent = window.userQueuePaused ? tr('chat.queuePaused', 'Queue paused') : tr('queue.count', 'Queued: %{count}', { count: window.userMessageQueue.length });
+  }
+  if (qStatus) {
+    qStatus.querySelector('.queue-resume')?.remove();
+    if (window.userQueuePaused && window.userMessageQueue.length) {
+      const resume = document.createElement('button'); resume.type = 'button'; resume.className = 'queue-resume';
+      resume.dataset.i18n = 'chat.resumeQueue'; resume.textContent = tr('chat.resumeQueue', 'Resume queue');
+      resume.onclick = () => window.resumeUserQueue?.(); qStatus.appendChild(resume);
+    }
   }
   if (qList) {
     qList.innerHTML = '';
     window.userMessageQueue.forEach((msg, index) => {
-      const item = document.createElement('div');
-      item.className = 'queue-item';
-      item.textContent = `${index + 1}. ${msg}`;
-      qList.appendChild(item);
+      const item = document.createElement('div'); item.className = 'queue-item';
+      const text = document.createElement('span'); text.textContent = msg; item.appendChild(text);
+      const remove = document.createElement('button'); remove.type = 'button'; remove.dataset.i18n = 'chat.removeQueued';
+      remove.textContent = tr('chat.removeQueued', 'Remove'); remove.onclick = () => { window.userMessageQueue.splice(index, 1); updateQueueUI(); };
+      item.appendChild(remove); qList.appendChild(item);
     });
   }
 }
@@ -1333,7 +1373,7 @@ function resetAmbientTimer(fromUser = false) {
     window.consecutiveAmbientCount = 0;
   }
   if (window.ambientTimer) clearTimeout(window.ambientTimer);
-  if (!window.isAmbientQueueEnabled) return;
+  if (window.ambientStopped || !window.isAmbientQueueEnabled) return;
   const maxLimit = getMaxConsecutiveAmbient();
   if ((window.consecutiveAmbientCount || 0) >= maxLimit) {
     debugLog(`Ambient mode paused: reached limit of ${maxLimit} consecutive thoughts without user reply.`, 'info');
@@ -1348,7 +1388,7 @@ function resetAmbientTimer(fromUser = false) {
 async function triggerAmbientPrompt() {
   // isProcessing must be checked too: firing while a reply is in flight
   // would run a second concurrent sendMessageInternal.
-  if (window.isAIResponding || window.isProcessing || !window.isAmbientQueueEnabled) return;
+  if (window.ambientStopped || window.isAIResponding || window.isProcessing || !window.isAmbientQueueEnabled) return;
   // Replies release isProcessing before TTS finishes, so don't talk over
   // her own speech (or manual playback): try again after another delay.
   if (typeof window.isTTSBusy === 'function' && window.isTTSBusy()) {
@@ -1386,6 +1426,8 @@ async function triggerAmbientPrompt() {
 }
 
 async function preloadNextAmbientMessage() {
+  const options = backgroundOptions(window.getActiveTurn?.());
+  if (window.ambientStopped) return;
   // We removed window.isAIResponding because preloading is meant to happen 
   // WHILE AI is responding/speaking to reduce gaps.
   if (!window.isAmbientPreloadEnabled || window.ambientPreloadBuffer || window.isAmbientPreloading) return;
@@ -1400,7 +1442,8 @@ async function preloadNextAmbientMessage() {
       // isAmbient flag — passing true resolved to English regardless of the
       // selected language, so preloaded ambient thoughts diverged from the
       // real-time ones.
-      const response = await getAIResponse(ambientPrompt, selectedLanguageCode);
+      const response = await getAIResponse(ambientPrompt, selectedLanguageCode, { ...options, purpose: 'ambient' });
+      checkBackground(options);
       if (response && response.reply) {
         window.ambientPreloadBuffer = response;
         debugLog('Ambient message pre-loaded.', 'info');
@@ -1408,9 +1451,9 @@ async function preloadNextAmbientMessage() {
     }
   } catch (e) {
     debugLog(`Ambient pre-load failed: ${e.message}`, 'warn');
-    window.ambientPreloadBuffer = null;
+    if (options.valid()) window.ambientPreloadBuffer = null;
   } finally {
-    window.isAmbientPreloading = false;
+    if (options.valid()) window.isAmbientPreloading = false;
   }
 }
 
@@ -1418,6 +1461,8 @@ async function preloadNextAmbientMessage() {
  * Pre-generates the first chunk of Kokoro TTS audio for the buffered ambient message.
  */
 async function preloadAmbientTTS(text) {
+  const options = backgroundOptions(window.getActiveTurn?.());
+  if (window.ambientStopped) return;
   if (!text || window.isAmbientPreloadingTTS) return;
   if (window.ambientPreloadTTSBuffer) return; // Already pre-loaded
 
@@ -1444,9 +1489,10 @@ async function preloadAmbientTTS(text) {
       // fetchTTSBuffer resolves provider by looking up a voiceId in the
       // `voices` list) sent it down the wrong provider path entirely.
       const voiceId = (typeof window.selectedVoiceId === 'string' && window.selectedVoiceId) || 'en_us_001';
-      const plan = typeof window.getTTSRouting === 'function' ? await window.getTTSRouting(cleanText) : null;
+      const plan = typeof window.getTTSRouting === 'function' ? await window.getTTSRouting(cleanText, null, options.valid) : null;
+      checkBackground(options);
       const resolved = await window.fetchTTSBuffer(firstChunkText, voiceId, plan);
-      if (resolved) {
+      if (resolved && options.valid() && !window.ambientStopped) {
         // fetchTTSBuffer never plays; a 'browser' descriptor is inert until played.
         window.ambientPreloadTTSBuffer = resolved;
         debugLog('TTS: Success pre-loading first ambient chunk.', 'info');
@@ -1455,7 +1501,7 @@ async function preloadAmbientTTS(text) {
   } catch (err) {
     debugError('TTS: Failed to pre-load ambient TTS', err);
   } finally {
-    window.isAmbientPreloadingTTS = false;
+    if (options.valid()) window.isAmbientPreloadingTTS = false;
   }
 }
 

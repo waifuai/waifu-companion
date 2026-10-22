@@ -121,6 +121,16 @@
     document.querySelectorAll('.welcome-hint-mic').forEach(el => el.remove());
   }
 
+  let voiceGeneration = 0;
+  let webSpeechValid = false;
+  let transcriptionController = null;
+  window.cancelVoiceInput = () => {
+    voiceGeneration++; webSpeechValid = false;
+    transcriptionController?.abort(); transcriptionController = null;
+    proxyCapture?.cancel();
+    try { recognition?.abort(); } catch (_) {}
+    window.sttFinalTranscript = ''; sttPresetText = ''; setMicState('idle');
+  };
   function appendToInput(text) {
     if (!window.messageInput) return;
     const current = window.messageInput.value ? window.messageInput.value + ' ' : '';
@@ -143,6 +153,8 @@
   }
 
   function startWebSpeech() {
+    // Each capture keeps its recognition identity, including delayed native callbacks.
+    initWebSpeech(document.getElementById('micBtn'));
     if (!recognition) {
       debugLog('STT: Recognition not available.', 'error');
       return;
@@ -153,6 +165,7 @@
     } catch (e) { /* noop */ }
 
     try {
+      webSpeechValid = true;
       setMicState('starting');
       recognition.start();
       if (typeof trackEvent === 'function') trackEvent('voice_input_used');
@@ -177,7 +190,11 @@
       return false;
     }
 
+    const session = recognition;
+    const generation = voiceGeneration;
+    const current = () => webSpeechValid && recognition === session && voiceGeneration === generation;
     recognition.onstart = () => {
+      if (!current()) return;
       setMicState('listening');
       // Keep text typed before dictation as a fixed prefix; everything the
       // recogniser produces is rebuilt from its results snapshot (onresult).
@@ -186,6 +203,7 @@
       debugLog('STT: Recognition started.', 'info');
     };
     recognition.onerror = (e) => {
+      if (!current()) return;
       setMicState('idle');
       debugError('STT error', e, {
         errorCode: e.error,
@@ -207,6 +225,7 @@
       }
     };
     recognition.onend = () => {
+      if (!current()) return;
       setMicState('idle');
       // Final text is already in the input field, just ensure it's set
       if (window.messageInput && window.sttFinalTranscript) {
@@ -215,6 +234,7 @@
       debugLog('STT: Recognition ended.', 'info');
     };
     recognition.onresult = (event) => {
+      if (!current()) return;
       // Rebuild from the full results snapshot on every event: browsers can
       // re-deliver results from index 0 or revise earlier ones, and the old
       // accumulate-from-resultIndex logic duplicated that text (2026-10-11).
@@ -257,17 +277,21 @@
         addMessage(message, false);
       },
       async onAudio(blob) {
+        const generation = voiceGeneration;
+        const controller = transcriptionController = new AbortController();
         const ext = blob.type.includes('ogg') ? 'ogg' : (blob.type.includes('mp4') ? 'mp4' : (blob.type.includes('mpeg') ? 'mp3' : 'webm'));
         const lang = (window.selectedLanguageCode || 'en-US').split('-')[0];
         let result;
         try {
-          result = await window.WaifuProxyAPI.transcribeAudio(blob, { language: lang, filename: 'audio.' + ext });
+          result = await window.WaifuProxyAPI.transcribeAudio(blob, { language: lang, filename: 'audio.' + ext, signal: controller.signal });
         } catch (error) {
+          if (generation !== voiceGeneration || controller.signal.aborted) return;
           debugError('STT: Cloud transcription failed', error, { status: error?.status });
           throw new Error(error?.status === 429
             ? tr('voice.rateLimited', 'Voice input is rate limited right now. Please try again in a moment.')
             : tr('voice.transcribeFailed', 'Voice input failed: %{message}').replace('%{message}', error?.message || 'transcription error'));
         }
+        if (generation !== voiceGeneration || controller.signal.aborted) return;
         const text = (result?.text || '').trim();
         if (!text) {
           addMessage(tr('voice.heardNothing', "I couldn't hear anything in that recording. Check your microphone and try again."), false);
