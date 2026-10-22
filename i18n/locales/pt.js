@@ -400,5 +400,14 @@
     'starter.focusShort': 'Me ajude a focar',
     'starter.focus': 'Me ajude a focar no trabalho',
     "chat.retry": "Tentar novamente",
+    "avatar.empty": "Nenhum personagem selecionado. Escolha um personagem para mostrar um avatar.",
+    "avatar.loading": "Carregando personagem… Você pode escolher outro enquanto espera.",
+    "avatar.failed": "Não foi possível carregar o personagem. Tente novamente ou escolha outro. Sua seleção salva foi mantida.",
+    "avatar.stalled": "O carregamento do personagem excedeu o tempo limite. Tente novamente quando a conexão estiver pronta ou escolha outro.",
+    "avatar.hidden": "A visualização do avatar está oculta ou fora da tela. Restaure-a para ver seu personagem.",
+    "avatar.choose": "Escolher personagem",
+    "avatar.retry": "Tentar carregar novamente",
+    "avatar.restore": "Restaurar visualização do avatar",
+    "avatar.default": "Carregar personagem padrão",
   });
 })(typeof window !== 'undefined' ? window : globalThis);

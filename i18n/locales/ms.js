@@ -400,5 +400,14 @@
     'starter.focusShort': 'Bantu saya fokus',
     'starter.focus': 'Bantu saya fokus pada kerja saya',
     "chat.retry": "Cuba lagi",
+    "avatar.empty": "Tiada watak dipilih. Pilih watak untuk memaparkan avatar.",
+    "avatar.loading": "Memuatkan watak… Anda boleh memilih watak lain sementara menunggu.",
+    "avatar.failed": "Watak tidak dapat dimuatkan. Cuba lagi atau pilih watak lain. Pilihan tersimpan anda dikekalkan.",
+    "avatar.stalled": "Masa memuatkan watak telah tamat. Cuba lagi apabila sambungan tersedia, atau pilih watak lain.",
+    "avatar.hidden": "Paparan avatar tersembunyi atau di luar skrin. Pulihkan paparan untuk melihat watak anda.",
+    "avatar.choose": "Pilih watak",
+    "avatar.retry": "Cuba muatkan semula",
+    "avatar.restore": "Pulihkan paparan avatar",
+    "avatar.default": "Muatkan watak lalai",
   });
 })(typeof window !== 'undefined' ? window : globalThis);

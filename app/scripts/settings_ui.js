@@ -300,11 +300,8 @@ function populateModelSelector() {
       if (loadModel) {
         debugLog(`Model selection changed to: ${selectedUrl}`, 'info');
         loadModel(selectedUrl)
-          .then(() => AppStorage.setString(AppStorage.KEYS.SELECTED_MODEL_URL, selectedUrl))
           .catch(error => {
             debugError('Failed to load selected Live2D model', error, { url: selectedUrl });
-            addMessage(tr('error.modelLoad', `Sorry, I couldn't load that model (${error.message}).`, { message: error.message }), false);
-            // Optionally revert display?
           });
       } else {
         debugLog('loadModel function not found.', 'error');
@@ -342,11 +339,15 @@ function populateModelSelector() {
   });
 
   // Set initial selected display (using saved or default)
-  const initialModelUrl = AppStorage.getString(AppStorage.KEYS.SELECTED_MODEL_URL, '') || defaultModelUrl;
-  const initialModel = availableModels.find(m => m.url === initialModelUrl) || availableModels[0];
+  const savedUrl = AppStorage.getItem(AppStorage.KEYS.SELECTED_MODEL_URL);
+  const initialModelUrl = window.AvatarRecovery?.state.url || (savedUrl === null ? defaultModelUrl : savedUrl);
+  const initialModel = availableModels.find(m => m.url === initialModelUrl);
   if (initialModel) {
     selectedDisplay.querySelector('.model-selector-selected-img').src = initialModel.image;
     selectedDisplay.querySelector('.model-selector-selected-name').textContent = initialModel.name;
+  } else {
+    selectedDisplay.querySelector('.model-selector-selected-img').hidden = true;
+    selectedDisplay.querySelector('.model-selector-selected-name').textContent = tr('avatar.choose', 'Choose a character');
   }
   // Render the custom models list after selector is ready
   if (typeof renderCustomModelsList === 'function') renderCustomModelsList();
@@ -389,7 +390,6 @@ function renderCustomModelsList() {
     if (nameEl) nameEl.textContent = model.name || 'Custom Model';
     if (typeof loadModel === 'function') {
       loadModel(url)
-        .then(() => { AppStorage.setString(AppStorage.KEYS.SELECTED_MODEL_URL, url); })
         .catch(err => debugError('Failed to load custom model from dropdown', err, { url: url }));
     }
     updateCustomModelInfo(url);

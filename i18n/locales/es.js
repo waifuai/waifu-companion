@@ -424,5 +424,14 @@
     'starter.focusShort': 'Ayúdame a concentrarme',
     'starter.focus': 'Ayúdame a concentrarme en mi trabajo',
     "chat.retry": "Reintentar",
+    "avatar.empty": "No hay ningún personaje seleccionado. Elige uno para mostrar un avatar.",
+    "avatar.loading": "Cargando personaje… Puedes elegir otro mientras esperas.",
+    "avatar.failed": "No se pudo cargar el personaje. Reintenta o elige otro. Se ha conservado tu selección guardada.",
+    "avatar.stalled": "La carga del personaje agotó el tiempo de espera. Reintenta cuando tengas conexión o elige otro.",
+    "avatar.hidden": "La vista del avatar está oculta o fuera de la pantalla. Restáurala para ver tu personaje.",
+    "avatar.choose": "Elegir personaje",
+    "avatar.retry": "Reintentar carga",
+    "avatar.restore": "Restaurar vista del avatar",
+    "avatar.default": "Cargar personaje predeterminado",
   });
 })(typeof window !== 'undefined' ? window : globalThis);

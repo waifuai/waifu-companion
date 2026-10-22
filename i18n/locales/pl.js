@@ -400,5 +400,14 @@
     'starter.focusShort': 'Pomóż mi się skupić',
     'starter.focus': 'Pomóż mi skupić się na pracy',
     "chat.retry": "Ponów",
+    "avatar.empty": "Nie wybrano postaci. Wybierz postać, aby wyświetlić awatara.",
+    "avatar.loading": "Ładowanie postaci… W tym czasie możesz wybrać inną postać.",
+    "avatar.failed": "Nie udało się załadować postaci. Spróbuj ponownie lub wybierz inną. Zapisany wybór został zachowany.",
+    "avatar.stalled": "Przekroczono czas ładowania postaci. Spróbuj ponownie po odzyskaniu połączenia lub wybierz inną postać.",
+    "avatar.hidden": "Widok awatara jest ukryty lub poza ekranem. Przywróć widok, aby zobaczyć postać.",
+    "avatar.choose": "Wybierz postać",
+    "avatar.retry": "Ponów ładowanie",
+    "avatar.restore": "Przywróć widok awatara",
+    "avatar.default": "Załaduj domyślną postać",
   });
 })(typeof window !== 'undefined' ? window : globalThis);

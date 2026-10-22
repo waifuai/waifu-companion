@@ -570,8 +570,7 @@ function handleAddCustomModel() {
   S.setJSON(K.USER_MODELS, userModels);
   availableModels.push(entry);
   availableModels.sort(modelComparator);
-  // Persist and reflect selection immediately in UI
-  S.setString(K.SELECTED_MODEL_URL, url);
+  // The loader commits the selection only after successful preparation.
   if (typeof populateModelSelector === 'function') populateModelSelector();
   if (typeof trackEvent === 'function') trackEvent('custom_model_added', { name: name || 'unnamed', url: url });
   debugLog(`Added custom model: ${name}`, 'info');
@@ -603,7 +602,6 @@ function handleRemoveCustomModel(url) {
   // If currently selected model is removed, fallback to default
   const selectedUrl = S.getString(K.SELECTED_MODEL_URL, '');
   if (selectedUrl === url) {
-    S.setString(K.SELECTED_MODEL_URL, defaultModelUrl);
     if (typeof loadModel === 'function') {
       loadModel(defaultModelUrl, 'fallback').catch(err=>debugError('Failed to load default after removal', err, { url: defaultModelUrl }));
     }
@@ -623,7 +621,7 @@ function handleClearAllCustomModels() {
   S.setJSON(K.USER_MODELS, []);
   window.availableModels = (window.availableModels || []).filter(m => !removedUrls.has(m.url));
   const selectedUrl = S.getString(K.SELECTED_MODEL_URL, '');
-  if (selectedUrl && removedUrls.has(selectedUrl)) { S.setString(K.SELECTED_MODEL_URL, defaultModelUrl); loadModel?.(defaultModelUrl).catch(()=>{}); }
+  if (selectedUrl && removedUrls.has(selectedUrl)) { loadModel?.(defaultModelUrl).catch(()=>{}); }
   populateModelSelector?.(); renderCustomModelsList?.(); updateCustomModelInfo?.('');
   if (typeof trackEvent === 'function') trackEvent('all_custom_models_cleared', { count: userModels.length });
   debugLog(`Cleared ${userModels.length} custom model(s).`, 'info');

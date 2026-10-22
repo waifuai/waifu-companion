@@ -435,5 +435,14 @@
     'starter.focusShort': 'Help me focus',
     'starter.focus': 'Help me focus on my work',
     "chat.retry": "Retry",
+    "avatar.empty": "No character selected. Choose a character to show an avatar.",
+    "avatar.loading": "Loading character… You can choose another character while you wait.",
+    "avatar.failed": "Character could not load. Retry or choose another character. Your saved selection has been kept.",
+    "avatar.stalled": "Character loading timed out. Retry when your connection is ready, or choose another character.",
+    "avatar.hidden": "The avatar view is hidden or outside the screen. Restore the view to see your character.",
+    "avatar.choose": "Choose a character",
+    "avatar.retry": "Retry character",
+    "avatar.restore": "Restore avatar view",
+    "avatar.default": "Load default character",
   });
 })(typeof window !== 'undefined' ? window : globalThis);

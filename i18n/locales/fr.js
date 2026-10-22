@@ -400,5 +400,14 @@
     'starter.focusShort': 'Aide-moi à me concentrer',
     'starter.focus': 'Aide-moi à me concentrer sur mon travail',
     "chat.retry": "Réessayer",
+    "avatar.empty": "Aucun personnage sélectionné. Choisissez un personnage pour afficher un avatar.",
+    "avatar.loading": "Chargement du personnage… Vous pouvez en choisir un autre en attendant.",
+    "avatar.failed": "Impossible de charger le personnage. Réessayez ou choisissez-en un autre. Votre sélection enregistrée est conservée.",
+    "avatar.stalled": "Le chargement du personnage a expiré. Réessayez lorsque la connexion est prête ou choisissez un autre personnage.",
+    "avatar.hidden": "La vue de l’avatar est masquée ou hors écran. Restaurez-la pour voir votre personnage.",
+    "avatar.choose": "Choisir un personnage",
+    "avatar.retry": "Réessayer le chargement",
+    "avatar.restore": "Restaurer la vue de l’avatar",
+    "avatar.default": "Charger le personnage par défaut",
   });
 })(typeof window !== 'undefined' ? window : globalThis);

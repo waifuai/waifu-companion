@@ -400,5 +400,14 @@
     'starter.focusShort': '帮我专注',
     'starter.focus': '帮我专心工作',
     "chat.retry": "重试",
+    "avatar.empty": "尚未选择角色。请选择一个角色以显示虚拟形象。",
+    "avatar.loading": "正在加载角色… 等待时可以选择其他角色。",
+    "avatar.failed": "角色加载失败。请重试或选择其他角色。已保留您保存的选择。",
+    "avatar.stalled": "角色加载超时。请在连接恢复后重试，或选择其他角色。",
+    "avatar.hidden": "虚拟形象已隐藏或位于屏幕外。请恢复显示以查看角色。",
+    "avatar.choose": "选择角色",
+    "avatar.retry": "重试加载角色",
+    "avatar.restore": "恢复虚拟形象显示",
+    "avatar.default": "加载默认角色",
   });
 })(typeof window !== 'undefined' ? window : globalThis);

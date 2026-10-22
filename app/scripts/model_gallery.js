@@ -23,14 +23,11 @@
     el?.querySelectorAll('.model-card').forEach(card=>{
       card.addEventListener('click', async ()=>{
         const url = card.dataset.url;
+        closeModelGallery();
         try {
           await loadModel(url);
-          try{ AppStorage.setItem('selectedModelUrl', url); }catch(e){ debugLog(`Gallery: persist selectedModelUrl failed: ${e.message}`, 'warn', true); }
-          if (typeof populateModelSelector==='function') populateModelSelector();
         } catch(e){
           debugError('Model gallery load failed', e, { url: url });
-        } finally {
-          closeModelGallery();
         }
       });
     });

@@ -1,0 +1,36 @@
+/* Recovery remains reachable above chat/settings, and never covers the full
+   viewport. Native controls provide touch and keyboard selection. */
+#avatarRecovery {
+  position: fixed;
+  top: 64px;
+  inset-inline-end: 12px;
+  z-index: 10002;
+  box-sizing: border-box;
+  width: min(420px, calc(100vw - 24px));
+  max-height: calc(100dvh - 84px);
+  overflow: auto;
+  padding: 12px;
+  color: #fff;
+  background: #192132;
+  border: 1px solid #8ca4cc;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px #0008;
+  font: 14px/1.45 system-ui, sans-serif;
+}
+#avatarRecovery[hidden], #avatarRecovery [hidden] { display: none; }
+#avatarRecovery p { margin: 0 0 10px; }
+#avatarRecovery .avatar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#avatarRecovery select, #avatarRecovery button {
+  font: inherit;
+  color: #fff;
+  background: #293a55;
+  border: 1px solid #8ca4cc;
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
+  max-width: 100%;
+  cursor: pointer;
+}
+#avatarRecovery select { width: 100%; }
+#avatarRecovery :focus-visible { outline: 3px solid #ffd86b; outline-offset: 2px; }
+@media (max-height: 420px) { #avatarRecovery { top: 48px; max-height: calc(100dvh - 60px); } }

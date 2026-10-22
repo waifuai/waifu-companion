@@ -286,25 +286,26 @@ function initOpacity() {
 }
 
 async function initModels() {
-  populateModelSelector();
   try {
     const userModels = AppStorage.getJSON(AppStorage.KEYS.USER_MODELS, []);
     if (Array.isArray(userModels) && userModels.length) availableModels.push(...userModels);
     availableModels.sort(modelComparator);
     debugLog(`Loaded ${userModels.length || 0} user models. Total models: ${availableModels.length}`, 'info');
   } catch(e) { debugLog('Failed to load user models.', 'warn'); }
+  populateModelSelector();
   if (typeof renderCustomModelsList === 'function') renderCustomModelsList();
   if (addCustomModelBtn) addCustomModelBtn.addEventListener('click', handleAddCustomModel);
 
-  const savedModelUrl = AppStorage.getString(AppStorage.KEYS.SELECTED_MODEL_URL, '');
-  const initialModelUrl = savedModelUrl || defaultModelUrl;
+  // A missing preference is a first visit; an explicitly empty preference is
+  // no selection. Neither a failure nor an empty value overwrites preferences.
+  const savedModelUrl = AppStorage.getItem(AppStorage.KEYS.SELECTED_MODEL_URL);
+  const initialModelUrl = savedModelUrl === null ? defaultModelUrl : savedModelUrl;
   
   // Fire and forget Live2D parsing so it doesn't block the serial boot chain
-  loadModel(initialModelUrl, 'initial').then(() => {
-    debugLog('Initial Live2D model loaded successfully.', 'info');
+  loadModel(initialModelUrl, 'initial').then(model => {
+    if (model) debugLog('Initial Live2D model loaded successfully.', 'info');
   }).catch(error => {
     debugError('Failed to load initial Live2D model', error, { url: initialModelUrl });
-    if (typeof addMessage === 'function') addMessage(tr('error.initialModelLoad', `Sorry, I couldn't load the initial character model (${error.message}).`, { message: error.message }), false);
   });
   
   debugLog('Models initialized.', 'info');

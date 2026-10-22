@@ -400,5 +400,14 @@
     'starter.focusShort': 'Bantu aku fokus',
     'starter.focus': 'Bantu aku fokus pada pekerjaanku',
     "chat.retry": "Coba lagi",
+    "avatar.empty": "Belum ada karakter yang dipilih. Pilih karakter untuk menampilkan avatar.",
+    "avatar.loading": "Memuat karakter… Anda dapat memilih karakter lain sambil menunggu.",
+    "avatar.failed": "Karakter gagal dimuat. Coba lagi atau pilih karakter lain. Pilihan tersimpan Anda tetap dipertahankan.",
+    "avatar.stalled": "Waktu pemuatan karakter habis. Coba lagi saat koneksi siap, atau pilih karakter lain.",
+    "avatar.hidden": "Tampilan avatar tersembunyi atau berada di luar layar. Pulihkan tampilan untuk melihat karakter Anda.",
+    "avatar.choose": "Pilih karakter",
+    "avatar.retry": "Coba muat lagi",
+    "avatar.restore": "Pulihkan tampilan avatar",
+    "avatar.default": "Muat karakter bawaan",
   });
 })(typeof window !== 'undefined' ? window : globalThis);

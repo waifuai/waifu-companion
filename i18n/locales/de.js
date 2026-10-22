@@ -400,5 +400,14 @@
     'starter.focusShort': 'Hilf mir beim Fokussieren',
     'starter.focus': 'Hilf mir, mich auf meine Arbeit zu konzentrieren',
     "chat.retry": "Erneut versuchen",
+    "avatar.empty": "Keine Figur ausgewählt. Wähle eine Figur, um einen Avatar anzuzeigen.",
+    "avatar.loading": "Figur wird geladen… Du kannst währenddessen eine andere Figur wählen.",
+    "avatar.failed": "Die Figur konnte nicht geladen werden. Versuche es erneut oder wähle eine andere. Deine gespeicherte Auswahl bleibt erhalten.",
+    "avatar.stalled": "Das Laden der Figur hat zu lange gedauert. Versuche es erneut, sobald die Verbindung bereit ist, oder wähle eine andere Figur.",
+    "avatar.hidden": "Die Avataransicht ist ausgeblendet oder außerhalb des Bildschirms. Stelle die Ansicht wieder her.",
+    "avatar.choose": "Figur auswählen",
+    "avatar.retry": "Figur erneut laden",
+    "avatar.restore": "Avataransicht wiederherstellen",
+    "avatar.default": "Standardfigur laden",
   });
 })(typeof window !== 'undefined' ? window : globalThis);

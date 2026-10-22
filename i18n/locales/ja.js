@@ -400,5 +400,14 @@
     'starter.focusShort': '集中を手伝って',
     'starter.focus': '仕事に集中できるよう手伝って',
     "chat.retry": "再試行",
+    "avatar.empty": "キャラクターが選択されていません。アバターを表示するにはキャラクターを選んでください。",
+    "avatar.loading": "キャラクターを読み込み中… 待っている間に別のキャラクターを選べます。",
+    "avatar.failed": "キャラクターを読み込めませんでした。再試行するか別のキャラクターを選んでください。保存済みの選択は維持されています。",
+    "avatar.stalled": "キャラクターの読み込みがタイムアウトしました。接続が回復したら再試行するか、別のキャラクターを選んでください。",
+    "avatar.hidden": "アバター表示が非表示か画面外にあります。表示を復元してキャラクターを確認してください。",
+    "avatar.choose": "キャラクターを選ぶ",
+    "avatar.retry": "読み込みを再試行",
+    "avatar.restore": "アバター表示を復元",
+    "avatar.default": "既定のキャラクターを読み込む",
   });
 })(typeof window !== 'undefined' ? window : globalThis);
