@@ -293,16 +293,8 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
   let routed = window.TTSLanguageRouter
     ? window.TTSLanguageRouter.selectVoice(voices, voiceId, routingPlan ? routingPlan.lang : window.TTSLanguageRouter.analyze(textChunk).lang, window.enableAutoTtsLang !== false)
     : { voiceId, lang: null, provider: voiceConfig ? voiceConfig.provider : 'tiktok' };
-  if (routed.unsupportedPrimary) {
-    if (window.enableFallbackVoice !== false && window.speechSynthesis) {
-      await waitForBrowserVoices();
-      if (speechSynthesis.getVoices().some(v => v.lang.toLowerCase().split('-')[0] === routed.lang.split('-')[0])) {
-        return { kind: 'browser', text: textChunk, voiceId: voiceConfig && voiceConfig.gender === 'male' ? 'browser-male' : 'browser-female', lang: routed.lang, provider: 'browser', fellBack: true, routingSignature: routingPlan && routingPlan.signature };
-      }
-    }
-    // No installed voice for that language: retain the configured provider.
-    routed = { voiceId, lang: voiceConfig ? voiceConfig.language : 'en-US', provider: voiceConfig ? voiceConfig.provider : 'tiktok', unsupported: true };
-  }
+  // Unsupported primary languages must not switch to browser speech.
+  if (routed.unsupportedPrimary) return null;
   const provider = routed.provider;
   if (routed.lang) debugLog(`TTS: Language routing: ${routed.lang} -> voice ${routed.voiceId} (user setting: ${voiceId})`, 'info');
 
@@ -370,27 +362,13 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
       fellBack = true;
     }
   } else if (window.enableKokoro && !window.isKokoroReady) {
-    debugLog('TTS: Local Kokoro still preloading. Falling through to browser TTS.', 'info');
+    debugLog('TTS: Local Kokoro still preloading. Skipping speech.', 'info');
   }
 
-  // 3. Browser fallback.
-  if (window.enableFallbackVoice === false) {
-    debugLog('TTS: Fallback voice disabled.', 'warn');
-    // Surface a rate limit rather than silently going quiet, so the queue can pause.
-    if (primaryError && primaryError.status === 429) throw primaryError;
-    return null;
-  }
-
-  debugLog('TTS: Falling back to browser SpeechSynthesis.', 'info');
-  return {
-    kind: 'browser',
-    text: textChunk,
-    voiceId: window.ttsFallbackVoiceId || 'browser-female',
-    lang: routed.lang,
-    provider: 'browser',
-    fellBack,
-    routingSignature: routingPlan && routingPlan.signature
-  };
+  // Automatic browser fallback is disabled, including for saved preferences.
+  // Explicit browser selections are handled above. Keep queue rate-limit handling.
+  if (primaryError && primaryError.status === 429) throw primaryError;
+  return null;
 }
 window.fetchTTSBuffer = fetchTTSBuffer;
 

@@ -36,12 +36,12 @@ test('uncertain speech shares the emotion request and one route serves every chu
   assert.equal(r.events[0].data.routing_source,'decision');
 });
 test('clear speech neither adds a language task nor waits for emotion',async()=>{
-  const r=runtime(()=>new Promise(()=>{}));r.c.speechSynthesis.getVoices=()=>[{name:'French Female',lang:'fr-FR'}];const text='Bonjour, je suis contente de te voir.';
+  const r=runtime(()=>new Promise(()=>{}));r.c.speechSynthesis.getVoices=()=>[{name:'French Female',lang:'fr-FR'}];const text='Hallo, ich bin hier und ich liebe dich.';
   const plan=r.c.prepareTTSRouting(text);assert.equal(plan.needsDecision,false);
   const answers=r.c.upgradeEmotionFromDecision('Bonjour',text,()=>{},plan);
   r.c.playTTS(text,'en-US',null,0,null,true,r.c.finishTTSRouting(plan,answers));
   await until(()=>r.audio.length===1);
-  assert.deepEqual(r.decisions[0].tasks,['live2d_emotion_v1']);assert.equal(r.requests.length,0);assert.equal(r.audio[0].provider,'browser');assert.equal(r.audio[0].voiceId,'browser-female');assert.equal(r.audio[0].lang,'fr-FR');
+  assert.deepEqual(r.decisions[0].tasks,['live2d_emotion_v1']);assert.equal(r.requests.length,1);assert.equal(r.audio[0].provider,'tiktok');assert.equal(r.audio[0].voiceId,'de_001');assert.equal(r.audio[0].lang,'de-DE');
 });
 test('replaying the same uncertain reply uses its completed decision',async()=>{
   const r=runtime({live2d_tts_language_v1:{choice_id:'ja-JP',confidence:.9}});
@@ -53,9 +53,9 @@ test('stop during a pending decision allows new speech and prevents old audio',a
   let deliver;const old=new Promise(resolve=>deliver=resolve);
   const r=runtime(()=>old);r.c.playTTS('mysterious unfamiliar phrases','en-US');
   await until(()=>r.decisions.length===1);r.c.stopTTS();
-  r.c.playTTS('Hola, gracias!','en-US');await until(()=>r.audio.length===1);
+  r.c.playTTS('こんにちは。','en-US');await until(()=>r.audio.length===1);
   deliver({live2d_tts_language_v1:{choice_id:'ja-JP',confidence:1}});await new Promise(resolve=>setTimeout(resolve,25));
-  assert.equal(r.audio.length,1);assert.equal(r.requests[0].voice,'en_us_001');
+  assert.equal(r.audio.length,1);assert.equal(r.requests[0].voice,'jp_003');
 });
 test('stop during audio preparation never starts the fetched audio',async()=>{
   let finish;const fetched=new Promise(resolve=>finish=resolve);const r=runtime(null);
@@ -63,14 +63,24 @@ test('stop during audio preparation never starts the fetched audio',async()=>{
   r.c.stopTTS();finish({ok:true,status:200,json:async()=>({data:'AA=='})});await new Promise(resolve=>setTimeout(resolve,10));
   assert.equal(r.audio.length,0);
 });
-test('available Arabic browser speech bypasses the English primary; unavailable speech retains preference',async()=>{
-  const r=runtime(null);r.c.speechSynthesis.getVoices=()=>[{name:'Arabic Female',lang:'ar-SA'}];
-  const available=await r.c.fetchTTSBuffer('مرحبا كيف حالك اليوم؟','en_us_001');
-  assert.equal(available.provider,'browser');assert.equal(available.lang,'ar-SA');assert.equal(r.requests.length,0);
-  r.c.speechSynthesis.getVoices=()=>[{name:'English Female',lang:'en-US'}];
-  const fallback=await r.c.fetchTTSBuffer('مرحبا كيف حالك اليوم؟','en_us_001');
-  assert.equal(fallback.lang,'en-US');assert.equal(fallback.unsupported,true);assert.equal(r.requests[0].voice,'en_us_001');
+test('unsupported primary language stays silent even with an installed browser voice',async()=>{
+ const r=runtime(null);r.c.speechSynthesis.getVoices=()=>[{name:'Arabic Female',lang:'ar-SA'}];
+ assert.equal(await r.c.fetchTTSBuffer('مرحبا كيف حالك اليوم؟','en_us_001'),null);assert.equal(r.requests.length,0);
 });
+for(const failure of ['network','http','api','decode'])test(`TikTok ${failure} failure stays silent with legacy fallback enabled`,async()=>{
+ const r=runtime(null);r.c.fetch=async()=>{if(failure==='network')throw new TypeError('Failed to fetch');return{ok:failure!=='http',status:503,text:async()=>'',json:async()=>failure==='api'?{success:false,error:'offline'}:{data:'AA=='}}};
+ if(failure==='decode')r.c.getTTSAudioContext=()=>({decodeAudioData:async()=>{throw new Error('Invalid audio')}});
+ assert.equal(await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001'),null);
+});
+test('rate limit still reaches queue handling without browser speech',async()=>{
+ const r=runtime(null);r.c.fetch=async()=>({ok:false,status:429,text:async()=>''});
+ await assert.rejects(r.c.fetchTTSBuffer('Hello','en_us_001'),e=>e.status===429);
+});
+test('explicit browser selection remains available',async()=>{
+ const r=runtime(null);const result=await r.c.fetchTTSBuffer('Hello','browser-female');
+ assert.equal(result.kind,'browser');assert.equal(result.fellBack,false);assert.equal(r.requests.length,0);
+});
+
 test('compatible Kokoro selection is preserved, but it does not speak Japanese',async()=>{
   const r=runtime(null);r.window.enableKokoro=true;r.window.isKokoroReady=true;
   const local=[];r.window.generateKokoroAudioBuffer=async(text,id)=>{local.push(id);return{duration:0}};
