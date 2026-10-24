@@ -177,7 +177,7 @@
     'voice.kokoroLabel': '🚀 Voz do Kokoro',
     'voice.kokoroDesc': 'TTS local de alta qualidade. Pré-carregado em segundo plano para trocar sem pausas.',
     'voice.fallbackLabel': '🔄 Voz reserva',
-    'voice.fallbackDesc': 'Usada automaticamente se o provedor de voz principal falhar (ex.: limite de requisições).',
+    'voice.fallbackDesc': 'Usada quando a voz do TikTok está desativada.',
     'voice.chunkLimitLabel': '📏 Limite de caracteres por trecho de TTS',
     'voice.chunkLimitCurrent': 'Máx. de caracteres:',
     'voice.volumeLabel': '🔉 Volume da voz TTS',

@@ -80,6 +80,26 @@ test('explicit browser selection remains available',async()=>{
  const r=runtime(null);const result=await r.c.fetchTTSBuffer('Hello','browser-female');
  assert.equal(result.kind,'browser');assert.equal(result.fellBack,false);assert.equal(r.requests.length,0);
 });
+test('explicit browser selection speaks even with the TikTok provider off',async()=>{
+ const r=runtime(null);r.window.enablePrimaryVoice=false;
+ const result=await r.c.fetchTTSBuffer('Hello','browser-male');
+ assert.equal(result.kind,'browser');assert.equal(result.voiceId,'browser-male');assert.equal(r.requests.length,0);
+});
+test('disabled primary with enabled fallback speaks the configured fallback voice',async()=>{
+ const r=runtime(null);r.window.enablePrimaryVoice=false;r.window.ttsFallbackVoiceId='browser-male';
+ const result=await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001');
+ assert.equal(result.kind,'browser');assert.equal(result.voiceId,'browser-male');assert.equal(result.fellBack,false);assert.equal(r.requests.length,0);
+});
+test('disabled primary with enabled fallback lets ready Kokoro win',async()=>{
+ const r=runtime(null);r.window.enablePrimaryVoice=false;r.window.enableKokoro=true;r.window.isKokoroReady=true;
+ const local=[];r.window.generateKokoroAudioBuffer=async(text,id)=>{local.push(id);return{duration:0}};
+ const result=await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001');
+ assert.equal(result.provider,'kokoro');assert.deepEqual(local,['af_heart']);
+});
+test('disabled primary and disabled fallback stays silent',async()=>{
+ const r=runtime(null);r.window.enablePrimaryVoice=false;r.window.enableFallbackVoice=false;
+ assert.equal(await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001'),null);assert.equal(r.requests.length,0);
+});
 
 test('compatible Kokoro selection is preserved, but it does not speak Japanese',async()=>{
   const r=runtime(null);r.window.enableKokoro=true;r.window.isKokoroReady=true;

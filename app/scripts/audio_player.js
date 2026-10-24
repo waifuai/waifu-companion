@@ -303,6 +303,9 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
   // True once the primary provider was tried and failed, so analytics/logging
   // can tell "user chose browser TTS" apart from "primary is down".
   let fellBack = false;
+  // Set when the TikTok provider is disabled but the fallback voice is on:
+  // the browser voice is then the chosen speaker, after Kokoro below.
+  let manualFallbackVoice = null;
 
   // 1. TikTok TTS (primary provider by default). Called directly — the API
   // sends Access-Control-Allow-Origin: * on its own, no proxy needed.
@@ -342,13 +345,23 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
       primaryError = err;
       fellBack = true;
     }
-  } else if (provider === 'browser' && window.enablePrimaryVoice !== false) {
+  } else if (provider === 'browser') {
     // A browser voice selection keeps its gender/provider when auto routing
-    // supplies a language, rather than inheriting a routed TikTok voice.
+    // supplies a language, rather than inheriting a routed TikTok voice. It
+    // speaks regardless of the TikTok checkbox: that checkbox disables the
+    // TikTok provider, not browser speech.
     return { kind: 'browser', text: textChunk, voiceId, lang: routed.lang, provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
   } else if (window.enablePrimaryVoice === false) {
     debugLog('TTS: Primary voice disabled.', 'info');
-    fellBack = true;
+    // The user turned the TikTok provider off and enabled the fallback voice,
+    // so the fallback browser voice is the chosen speaker — not an automatic
+    // fallback on failure (failures stay silent so the queue can retry).
+    // Kokoro below still wins when it is enabled and ready.
+    if (window.enableFallbackVoice !== false) {
+      manualFallbackVoice = window.ttsFallbackVoiceId || 'browser-female';
+    } else {
+      fellBack = true;
+    }
   }
 
   // 2. Local Kokoro.
@@ -363,6 +376,11 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
     }
   } else if (window.enableKokoro && !window.isKokoroReady) {
     debugLog('TTS: Local Kokoro still preloading. Skipping speech.', 'info');
+  }
+
+  // 3. The manually enabled fallback voice, for the disabled-primary case.
+  if (manualFallbackVoice) {
+    return { kind: 'browser', text: textChunk, voiceId: manualFallbackVoice, lang: routed.lang, provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
   }
 
   // Automatic browser fallback is disabled, including for saved preferences.

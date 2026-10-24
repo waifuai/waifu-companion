@@ -177,7 +177,7 @@
     'voice.kokoroLabel': '🚀 Kokoro 语音',
     'voice.kokoroDesc': '高质量的本地 TTS。后台预加载，切换时不会中断。',
     'voice.fallbackLabel': '🔄 备用语音',
-    'voice.fallbackDesc': '当主要语音提供商失败时（例如触发限流）自动使用。',
+    'voice.fallbackDesc': '在关闭 TikTok 语音时用于朗读。',
     'voice.chunkLimitLabel': '📏 TTS 分片字符上限',
     'voice.chunkLimitCurrent': '最大字符数：',
     'voice.volumeLabel': '🔉 TTS 语音音量',

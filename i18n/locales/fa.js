@@ -178,7 +178,7 @@
     'voice.kokoroLabel': '🚀 صدای Kokoro',
     'voice.kokoroDesc': 'صدای محلی باکیفیت. برای جابه‌جایی بی‌صدا در پس‌زمینه پیش‌بارگذاری می‌شود.',
     'voice.fallbackLabel': '🔄 صدای جایگزین',
-    'voice.fallbackDesc': 'اگر فراهم‌کننده صدای اصلی شکست بخورد (مثلاً محدودیت نرخ) خودکار استفاده می‌شود.',
+    'voice.fallbackDesc': 'وقتی صدای TikTok خاموش باشد برای گفتار استفاده می‌شود.',
     'voice.chunkLimitLabel': '📏 محدودیت نویسه هر قطعه TTS',
     'voice.chunkLimitCurrent': 'حداکثر نویسه:',
     'voice.volumeLabel': '🔉 بلندی صدای TTS',

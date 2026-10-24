@@ -177,7 +177,7 @@
     'voice.kokoroLabel': '🚀 Kokoroの音声',
     'voice.kokoroDesc': '高品質なローカルTTS。切れ目なく引き継げるようバックグラウンドで先読みします。',
     'voice.fallbackLabel': '🔄 フォールバック音声',
-    'voice.fallbackDesc': '主要な音声プロバイダーが失敗したとき（例：レート制限）に自動で使われます。',
+    'voice.fallbackDesc': 'TikTok音声をオフにしているときに読み上げに使われます。',
     'voice.chunkLimitLabel': '📏 TTSチャンクの文字数上限',
     'voice.chunkLimitCurrent': '最大文字数：',
     'voice.volumeLabel': '🔉 TTS音声の音量',

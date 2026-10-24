@@ -177,7 +177,7 @@
     'voice.kokoroLabel': '🚀 Suara Kokoro',
     'voice.kokoroDesc': 'TTS tempatan berkualiti tinggi. Dimuatkan di latar belakang untuk peralihan senyap.',
     'voice.fallbackLabel': '🔄 Suara sandaran',
-    'voice.fallbackDesc': 'Digunakan secara automatik jika penyedia suara utama gagal (cth. had kadar).',
+    'voice.fallbackDesc': 'Digunakan apabila suara TikTok dimatikan.',
     'voice.chunkLimitLabel': '📏 Had aksara setiap cebis TTS',
     'voice.chunkLimitCurrent': 'Maks. aksara:',
     'voice.volumeLabel': '🔉 Kelantangan suara TTS',

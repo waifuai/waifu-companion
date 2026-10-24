@@ -178,7 +178,7 @@
     'voice.kokoroLabel': '🚀 صوت Kokoro',
     'voice.kokoroDesc': 'صوت محلي عالي الجودة. يُحمّل مسبقًا في الخلفية لتبديل صامت.',
     'voice.fallbackLabel': '🔄 الصوت الاحتياطي',
-    'voice.fallbackDesc': 'يُستخدم تلقائيًا إذا فشل مزوّد الصوت الأساسي (مثل تجاوز الحد).',
+    'voice.fallbackDesc': 'يُستخدم للنطق عند إيقاف صوت TikTok.',
     'voice.chunkLimitLabel': '📏 حد أحرف مقاطع TTS',
     'voice.chunkLimitCurrent': 'أقصى عدد أحرف:',
     'voice.volumeLabel': '🔉 مستوى صوت TTS',

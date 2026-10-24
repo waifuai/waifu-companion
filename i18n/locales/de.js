@@ -177,7 +177,7 @@
     'voice.kokoroLabel': '🚀 Kokoro-Stimme',
     'voice.kokoroDesc': 'Hochwertiges lokales TTS. Wird im Hintergrund vorgeladen, damit die Übergabe stumm bleibt.',
     'voice.fallbackLabel': '🔄 Ausweichstimme',
-    'voice.fallbackDesc': 'Wird automatisch genutzt, wenn der Hauptanbieter ausfällt (z. B. Ratenlimit).',
+    'voice.fallbackDesc': 'Wird gesprochen, wenn die TikTok-Stimme deaktiviert ist.',
     'voice.chunkLimitLabel': '📏 Zeichenlimit pro TTS-Abschnitt',
     'voice.chunkLimitCurrent': 'Max. Zeichen:',
     'voice.volumeLabel': '🔉 TTS-Lautstärke',

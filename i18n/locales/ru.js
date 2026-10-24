@@ -177,7 +177,7 @@
     'voice.kokoroLabel': '🚀 Голос Kokoro',
     'voice.kokoroDesc': 'Качественный локальный TTS. Предзагружается в фоне для бесшовной смены.',
     'voice.fallbackLabel': '🔄 Резервный голос',
-    'voice.fallbackDesc': 'Используется автоматически, если основной провайдер голоса недоступен (например, лимит запросов).',
+    'voice.fallbackDesc': 'Используется, когда голос TikTok отключён.',
     'voice.chunkLimitLabel': '📏 Лимит символов во фрагменте TTS',
     'voice.chunkLimitCurrent': 'Макс. символов:',
     'voice.volumeLabel': '🔉 Громкость голоса TTS',

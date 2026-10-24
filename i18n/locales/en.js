@@ -198,7 +198,7 @@
     'voice.kokoroLabel': '🚀 Kokoro Voice',
     'voice.kokoroDesc': 'High-quality local TTS. Preloaded in background for silent handoff.',
     'voice.fallbackLabel': '🔄 Fallback Voice',
-    'voice.fallbackDesc': 'Used automatically if the primary voice provider fails (e.g. rate limit).',
+    'voice.fallbackDesc': 'Spoken when the TikTok voice is turned off.',
     'voice.chunkLimitLabel': '📏 TTS Chunk Character Limit',
     'voice.chunkLimitCurrent': 'Max Characters:',
     'voice.volumeLabel': '🔉 TTS Voice Volume',

@@ -177,7 +177,7 @@
     'voice.kokoroLabel': '🚀 Suara Kokoro',
     'voice.kokoroDesc': 'TTS lokal berkualitas tinggi. Dimuat di latar belakang agar peralihannya senyap.',
     'voice.fallbackLabel': '🔄 Suara cadangan',
-    'voice.fallbackDesc': 'Dipakai otomatis jika penyedia suara utama gagal (mis. batas laju).',
+    'voice.fallbackDesc': 'Dipakai saat suara TikTok dimatikan.',
     'voice.chunkLimitLabel': '📏 Batas karakter per potongan TTS',
     'voice.chunkLimitCurrent': 'Maks. karakter:',
     'voice.volumeLabel': '🔉 Volume suara TTS',
