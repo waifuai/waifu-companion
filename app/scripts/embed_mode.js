@@ -40,7 +40,7 @@ window.initEmbedControls = function () {
   button.addEventListener('click', () => {
     const enabled = !window.enableVoice;
     if (!enabled) restoreFallback = window.enableFallbackVoice;
-    const primary = document.getElementById('enableTikTokVoiceCheckbox');
+    const primary = document.getElementById('enablePrimaryVoiceCheckbox');
     primary.checked = enabled;
     primary.dispatchEvent(new Event('change'));
     if (enabled) {
@@ -58,7 +58,7 @@ window.initEmbedControls = function () {
     }
     update();
   });
-  ['enableTikTokVoiceCheckbox', 'enableFallbackVoiceCheckbox', 'enableKokoroVoiceCheckbox'].forEach(id => {
+  ['enablePrimaryVoiceCheckbox', 'enableFallbackVoiceCheckbox', 'enableKokoroVoiceCheckbox'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', update);
   });
   update();

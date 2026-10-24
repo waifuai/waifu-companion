@@ -177,8 +177,8 @@
 
     // ── Voice pane ──
     'voice.title': '🔊 Voz',
-    'voice.tiktokLabel': '🔈 Activar TTS de TikTok',
-    'voice.tiktokDesc': 'Síntesis de voz principal con la API de TTS gratuita de TikTok.',
+    'voice.primaryLabel': '🔈 Activar respuestas de voz',
+    'voice.primaryDesc': 'Síntesis de voz principal a través de WaifuAI Cloud, en el idioma de la respuesta.',
     'voice.kokoroEnableLabel': '🚀 Activar voz local (Kokoro)',
     'voice.fallbackEnableLabel': '🔄 Activar voz de reserva (navegador)',
     'voice.autoLangLabel': '🌐 Idioma automático del TTS',
@@ -187,7 +187,7 @@
     'voice.kokoroLabel': '🚀 Voz de Kokoro',
     'voice.kokoroDesc': 'TTS local de alta calidad. Se precarga en segundo plano para un cambio sin cortes.',
     'voice.fallbackLabel': '🔄 Voz de reserva',
-    'voice.fallbackDesc': 'Se usa cuando la voz de TikTok está desactivada.',
+    'voice.fallbackDesc': 'Se usa cuando las respuestas de voz están desactivadas.',
     'voice.chunkLimitLabel': '📏 Límite de caracteres por fragmento de TTS',
     'voice.chunkLimitCurrent': 'Máx. caracteres:',
     'voice.volumeLabel': '🔉 Volumen de la voz TTS',

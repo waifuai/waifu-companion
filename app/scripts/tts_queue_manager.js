@@ -78,9 +78,9 @@ async function processNextTTSInQueue() {
   if (notifyOnComplete) pendingResponseCompletion = true;
 
   try {
-    const langs = Array.isArray(window.languages) ? window.languages : [{ code: 'en-US', englishName: 'English (US)', defaultVoiceId: 'en_us_001' }];
+    const langs = Array.isArray(window.languages) ? window.languages : [{ code: 'en-US', englishName: 'English (US)' }];
     const langConfig = langs.find(l => l.code === languageCode) || langs.find(l => l.code === 'en-US') || langs[0];
-    let voiceId = (typeof window.selectedVoiceId === 'string' && window.selectedVoiceId) || langConfig.defaultVoiceId || 'en_us_001';
+    let voiceId = (typeof window.selectedVoiceId === 'string' && window.selectedVoiceId) || 'cloud';
 
     const cleanText = (typeof stripForTTS === 'function') ? stripForTTS(fullText) : String(fullText || '').trim();
     const routeKey = typeof ttsConversationKey === 'function' ? ttsConversationKey() : null;
@@ -88,7 +88,7 @@ async function processNextTTSInQueue() {
     const speechRoute = typeof getTTSRouting === 'function' ? await getTTSRouting(cleanText, routingPlan, liveRoute) : null;
     if (cancelled()) return;
     if (!liveRoute()) { isCurrentlySpeaking = false; releaseResponseCompletion(); return; }
-    voiceId = window.selectedVoiceId || langConfig.defaultVoiceId || 'en_us_001';
+    voiceId = window.selectedVoiceId || 'cloud';
     const sentences = (typeof splitIntoSentences === 'function') ? splitIntoSentences(cleanText) : [cleanText];
 
     // Group sentences into chunks based on window.ttsChunkLimit

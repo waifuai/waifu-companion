@@ -130,16 +130,10 @@ function initVoice() {
   const isSelectedVoiceValid = availableVoices.some(v => v.id === selectedVoiceId);
 
   if (!savedVoiceId || !isSelectedVoiceValid) {
-    // Cards follow the visitor's browser language, just like Sprites. Their
-    // response/interface language remains a separate preference.
-    const baseLangCode = (window.WaifuEmbed ? (navigator.language || 'en') : selectedLanguageCode).split('-')[0].toLowerCase();
-    const langFemaleVoice = availableVoices.find(v => v.language.startsWith(baseLangCode) && v.gender === 'female' && v.provider === 'tiktok');
-    const langConfig = languages.find(l => l.code === selectedLanguageCode);
-    const defaultForLang = langConfig ? langConfig.defaultVoiceId : null;
-    if (langFemaleVoice) selectedVoiceId = langFemaleVoice.id;
-    else if (window.WaifuEmbed) selectedVoiceId = 'en_us_001';
-    else if (defaultForLang && availableVoices.some(v => v.id === defaultForLang && v.gender === 'female')) selectedVoiceId = defaultForLang;
-    else selectedVoiceId = availableVoices.find(v => v.provider === 'tiktok' && v.gender === 'female')?.id || 'none';
+    // The cloud voice matches the reply's language on its own, so one default
+    // serves every locale. Saved selections from the removed on-client voice
+    // catalog are invalid and reset here.
+    selectedVoiceId = availableVoices.some(v => v.id === 'cloud') ? 'cloud' : 'none';
     AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID, selectedVoiceId);
     debugLog(`Initialized/Reset voice to default: ${selectedVoiceId}`, 'info');
   } else {
@@ -171,15 +165,15 @@ function initVoiceProviders() {
   window.enableKokoro = AppStorage.getBoolean(AppStorage.KEYS.ENABLE_KOKORO, false);
   window.enableAutoTtsLang = storedAutoTtsLang !== null ? (storedAutoTtsLang === 'true') : true;
 
-  if (document.getElementById('enableTikTokVoiceCheckbox')) {
-    document.getElementById('enableTikTokVoiceCheckbox').checked = window.enablePrimaryVoice;
-    document.getElementById('enableTikTokVoiceCheckbox').addEventListener('change', (e) => {
+  if (document.getElementById('enablePrimaryVoiceCheckbox')) {
+    document.getElementById('enablePrimaryVoiceCheckbox').checked = window.enablePrimaryVoice;
+    document.getElementById('enablePrimaryVoiceCheckbox').addEventListener('change', (e) => {
       window.enablePrimaryVoice = e.target.checked;
       window.enableVoice = window.enablePrimaryVoice || window.enableFallbackVoice || window.enableKokoro;
       AppStorage.setBoolean(AppStorage.KEYS.ENABLE_PRIMARY_VOICE, window.enablePrimaryVoice);
-      if (typeof trackEvent === 'function') trackEvent('voice_enabled_toggle', { type: 'tiktok', enabled: window.enablePrimaryVoice });
+      if (typeof trackEvent === 'function') trackEvent('voice_enabled_toggle', { type: 'cloud', enabled: window.enablePrimaryVoice });
       syncLegacyEnableVoiceCheckbox(); syncVoiceControlsVisibility();
-      debugLog(`TikTok voice enabled: ${window.enablePrimaryVoice}`, 'info');
+      debugLog(`Primary voice enabled: ${window.enablePrimaryVoice}`, 'info');
     });
   }
 
@@ -192,16 +186,6 @@ function initVoiceProviders() {
       if (typeof trackEvent === 'function') trackEvent('voice_enabled_toggle', { type: 'fallback', enabled: window.enableFallbackVoice });
       syncLegacyEnableVoiceCheckbox(); syncVoiceControlsVisibility();
       debugLog(`Fallback voice enabled: ${window.enableFallbackVoice}`, 'info');
-    });
-  }
-
-  if (document.getElementById('enableAutoTtsLangCheckbox')) {
-    document.getElementById('enableAutoTtsLangCheckbox').checked = window.enableAutoTtsLang;
-    document.getElementById('enableAutoTtsLangCheckbox').addEventListener('change', (e) => {
-      window.enableAutoTtsLang = e.target.checked;
-      AppStorage.setBoolean(AppStorage.KEYS.ENABLE_AUTO_TTS_LANG, window.enableAutoTtsLang);
-      if (typeof trackEvent === 'function') trackEvent('auto_tts_lang_toggle', { enabled: window.enableAutoTtsLang });
-      debugLog(`Auto TTS language routing enabled: ${window.enableAutoTtsLang}`, 'info');
     });
   }
 

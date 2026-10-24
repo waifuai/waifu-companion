@@ -3,12 +3,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
 function runtime(answer) {
   const requests=[], audio=[], events=[];
-  const window={enableVoice:true,enableAutoTtsLang:true,enablePrimaryVoice:true,enableFallbackVoice:true,selectedVoiceId:'en_us_001',languages:[{code:'en-US',defaultVoiceId:'en_us_001'}],ChatManager:{getActiveChatId:()=> 'one'},onAIResponseSpeechFinished(){}};
+  const window={enableVoice:true,enableAutoTtsLang:true,enablePrimaryVoice:true,enableFallbackVoice:true,selectedVoiceId:'cloud',languages:[{code:'en-US'}],ChatManager:{getActiveChatId:()=> 'one'},onAIResponseSpeechFinished(){}};
   const c=vm.createContext({window,setTimeout,clearTimeout,setInterval,clearInterval,console,debugLog(){},debugError(){},debugState(){},
     document:{querySelectorAll:()=>[],getElementById:()=>null},highlightSentence(){},
     trackEvent:(name,data)=>events.push({name,data}),
-    getTTSAudioContext:()=>({decodeAudioData:async()=>({duration:0})}),atob:x=>Buffer.from(x,'base64').toString('binary'),
-    fetch:async(_url,opts)=>{requests.push(JSON.parse(opts.body));return{ok:true,status:200,json:async()=>({data:'AA=='})}},
+    getTTSAudioContext:()=>({decodeAudioData:async()=>({duration:0})}),
+    URL,URLSearchParams,AbortSignal,
+    fetch:async(url)=>{const u=new URL(String(url));requests.push({lang:u.searchParams.get('lang'),text:u.searchParams.get('text')});return{ok:true,status:200,headers:new Map(),arrayBuffer:async()=>new ArrayBuffer(4)}},
     conversationContext:[],speechSynthesis:{getVoices:()=>[{name:'English Female',lang:'en-US'}],cancel(){}},
   });
   window.speechSynthesis=c.speechSynthesis;
@@ -20,7 +21,7 @@ function runtime(answer) {
   }
   c.playResolvedChunk=async descriptor=>{if(descriptor)audio.push(descriptor)};
   const decisions=[];
-  window.WaifuProxyAPI={async decide(tasks,state){decisions.push({tasks:JSON.parse(JSON.stringify(tasks)),state});return typeof answer==='function'?answer(tasks,state):answer}};
+  window.WaifuProxyAPI={TTS_URL:'https://cloud.test/tts',async decide(tasks,state){decisions.push({tasks:JSON.parse(JSON.stringify(tasks)),state});return typeof answer==='function'?answer(tasks,state):answer}};
   return {c,window,requests,audio,events,decisions};
 }
 async function until(check) {for(let i=0;i<100;i++){if(check())return;await new Promise(r=>setTimeout(r,5));}assert.fail('pipeline did not finish');}
@@ -32,7 +33,7 @@ test('uncertain speech shares the emotion request and one route serves every chu
   r.c.playTTS(text,'en-US',null,0,null,true,r.c.finishTTSRouting(plan,answers));
   await until(()=>r.events.some(e=>e.name==='tts_played'));
   assert.equal(r.decisions.length,1);assert.deepEqual(r.decisions[0].tasks,['live2d_emotion_v1','live2d_tts_language_v1']);
-  assert.ok(r.requests.length>=2);assert.ok(r.requests.every(x=>x.voice==='jp_003'));
+  assert.ok(r.requests.length>=2);assert.ok(r.requests.every(x=>x.lang==='ja-JP'));
   assert.equal(r.events[0].data.routing_source,'decision');
 });
 test('clear speech neither adds a language task nor waits for emotion',async()=>{
@@ -41,7 +42,7 @@ test('clear speech neither adds a language task nor waits for emotion',async()=>
   const answers=r.c.upgradeEmotionFromDecision('Bonjour',text,()=>{},plan);
   r.c.playTTS(text,'en-US',null,0,null,true,r.c.finishTTSRouting(plan,answers));
   await until(()=>r.audio.length===1);
-  assert.deepEqual(r.decisions[0].tasks,['live2d_emotion_v1']);assert.equal(r.requests.length,1);assert.equal(r.audio[0].provider,'tiktok');assert.equal(r.audio[0].voiceId,'de_001');assert.equal(r.audio[0].lang,'de-DE');
+  assert.deepEqual(r.decisions[0].tasks,['live2d_emotion_v1']);assert.equal(r.requests.length,1);assert.equal(r.audio[0].provider,'cloud');assert.equal(r.audio[0].voiceId,'cloud');assert.equal(r.audio[0].lang,'de-DE');assert.equal(r.requests[0].lang,'de-DE');
 });
 test('replaying the same uncertain reply uses its completed decision',async()=>{
   const r=runtime({live2d_tts_language_v1:{choice_id:'ja-JP',confidence:.9}});
@@ -55,63 +56,66 @@ test('stop during a pending decision allows new speech and prevents old audio',a
   await until(()=>r.decisions.length===1);r.c.stopTTS();
   r.c.playTTS('こんにちは。','en-US');await until(()=>r.audio.length===1);
   deliver({live2d_tts_language_v1:{choice_id:'ja-JP',confidence:1}});await new Promise(resolve=>setTimeout(resolve,25));
-  assert.equal(r.audio.length,1);assert.equal(r.requests[0].voice,'jp_003');
+  assert.equal(r.audio.length,1);assert.equal(r.requests[0].lang,'ja-JP');
 });
 test('stop during audio preparation never starts the fetched audio',async()=>{
   let finish;const fetched=new Promise(resolve=>finish=resolve);const r=runtime(null);
   r.c.fetch=()=>fetched;r.c.playTTS('Hola, gracias!','en-US');await new Promise(resolve=>setTimeout(resolve,5));
-  r.c.stopTTS();finish({ok:true,status:200,json:async()=>({data:'AA=='})});await new Promise(resolve=>setTimeout(resolve,10));
+  r.c.stopTTS();finish({ok:true,status:200,headers:new Map(),arrayBuffer:async()=>new ArrayBuffer(4)});await new Promise(resolve=>setTimeout(resolve,10));
   assert.equal(r.audio.length,0);
 });
-test('unsupported primary language stays silent even with an installed browser voice',async()=>{
+test('the cloud voice speaks languages the old catalog did not carry',async()=>{
  const r=runtime(null);r.c.speechSynthesis.getVoices=()=>[{name:'Arabic Female',lang:'ar-SA'}];
- assert.equal(await r.c.fetchTTSBuffer('مرحبا كيف حالك اليوم؟','en_us_001'),null);assert.equal(r.requests.length,0);
+ const result=await r.c.fetchTTSBuffer('مرحبا كيف حالك اليوم؟','cloud');
+ assert.equal(result.kind,'buffer');assert.equal(r.requests[0].lang,'ar-SA');
 });
-for(const failure of ['network','http','api','decode'])test(`TikTok ${failure} failure stays silent with legacy fallback enabled`,async()=>{
- const r=runtime(null);r.c.fetch=async()=>{if(failure==='network')throw new TypeError('Failed to fetch');return{ok:failure!=='http',status:503,text:async()=>'',json:async()=>failure==='api'?{success:false,error:'offline'}:{data:'AA=='}}};
+for(const failure of ['network','http','unavailable','empty','decode'])test(`Cloud speech ${failure} failure stays silent with legacy fallback enabled`,async()=>{
+ const r=runtime(null);r.c.fetch=async()=>{if(failure==='network')throw new TypeError('Failed to fetch');
+  if(failure==='unavailable')return{ok:true,status:204,headers:new Map()};
+  return{ok:failure!=='http',status:failure==='http'?503:200,headers:new Map(),arrayBuffer:async()=>failure==='empty'?new ArrayBuffer(0):new ArrayBuffer(4)}};
  if(failure==='decode')r.c.getTTSAudioContext=()=>({decodeAudioData:async()=>{throw new Error('Invalid audio')}});
- assert.equal(await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001'),null);
+ assert.equal(await r.c.fetchTTSBuffer('Hello, how are you today?','cloud'),null);
 });
 test('rate limit still reaches queue handling without browser speech',async()=>{
- const r=runtime(null);r.c.fetch=async()=>({ok:false,status:429,text:async()=>''});
+ const r=runtime(null);r.c.fetch=async()=>({ok:false,status:429,headers:new Map(),arrayBuffer:async()=>new ArrayBuffer(0)});
  await assert.rejects(r.c.fetchTTSBuffer('Hello','en_us_001'),e=>e.status===429);
 });
 test('explicit browser selection remains available',async()=>{
  const r=runtime(null);const result=await r.c.fetchTTSBuffer('Hello','browser-female');
  assert.equal(result.kind,'browser');assert.equal(result.fellBack,false);assert.equal(r.requests.length,0);
 });
-test('explicit browser selection speaks even with the TikTok provider off',async()=>{
+test('explicit browser selection speaks even with the cloud voice off',async()=>{
  const r=runtime(null);r.window.enablePrimaryVoice=false;
  const result=await r.c.fetchTTSBuffer('Hello','browser-male');
  assert.equal(result.kind,'browser');assert.equal(result.voiceId,'browser-male');assert.equal(r.requests.length,0);
 });
 test('disabled primary with enabled fallback speaks the configured fallback voice',async()=>{
  const r=runtime(null);r.window.enablePrimaryVoice=false;r.window.ttsFallbackVoiceId='browser-male';
- const result=await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001');
+ const result=await r.c.fetchTTSBuffer('Hello, how are you today?','cloud');
  assert.equal(result.kind,'browser');assert.equal(result.voiceId,'browser-male');assert.equal(result.fellBack,false);assert.equal(r.requests.length,0);
 });
 test('disabled primary with enabled fallback lets ready Kokoro win',async()=>{
  const r=runtime(null);r.window.enablePrimaryVoice=false;r.window.enableKokoro=true;r.window.isKokoroReady=true;
  const local=[];r.window.generateKokoroAudioBuffer=async(text,id)=>{local.push(id);return{duration:0}};
- const result=await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001');
+ const result=await r.c.fetchTTSBuffer('Hello, how are you today?','cloud');
  assert.equal(result.provider,'kokoro');assert.deepEqual(local,['af_heart']);
 });
 test('disabled primary and disabled fallback stays silent',async()=>{
  const r=runtime(null);r.window.enablePrimaryVoice=false;r.window.enableFallbackVoice=false;
- assert.equal(await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001'),null);assert.equal(r.requests.length,0);
+ assert.equal(await r.c.fetchTTSBuffer('Hello, how are you today?','cloud'),null);assert.equal(r.requests.length,0);
 });
 
 test('compatible Kokoro selection is preserved, but it does not speak Japanese',async()=>{
   const r=runtime(null);r.window.enableKokoro=true;r.window.isKokoroReady=true;
   const local=[];r.window.generateKokoroAudioBuffer=async(text,id)=>{local.push(id);return{duration:0}};
   const english=await r.c.fetchTTSBuffer('Hello, how are you today?','af_bella');assert.equal(english.provider,'kokoro');assert.deepEqual(local,['af_bella']);
-  const japanese=await r.c.fetchTTSBuffer('こんにちは。','af_bella');assert.equal(japanese.provider,'tiktok');assert.equal(r.requests[0].voice,'jp_003');
+  const japanese=await r.c.fetchTTSBuffer('こんにちは。','af_bella');assert.equal(japanese,null);assert.equal(r.requests.length,0);
 });
 test('muted speech and automatic routing off make no language requests',async()=>{
   const r=runtime(null);r.window.enableVoice=false;await r.c.playTTS('mysterious unfamiliar phrases','en-US');
   assert.equal(r.decisions.length,0);r.window.enableVoice=true;r.window.enableAutoTtsLang=false;
   r.c.playTTS('mysterious unfamiliar phrases','en-US');await until(()=>r.audio.length===1);
-  assert.equal(r.decisions.length,0);assert.equal(r.requests[0].voice,'en_us_001');
+  assert.equal(r.decisions.length,0);assert.equal(r.requests[0].lang,null);
 });
 
 for (const name of ['David', 'Unknown default']) test(`female browser fallback refuses ${name}`, async()=>{
@@ -125,19 +129,19 @@ test('empty browser inventory never uses an unspecified system voice',()=>{
  assert.equal(r.c.selectBrowserVoice('browser-female').unsupported,true);
 });
 
-test('initial default and language-menu defaults reject male language defaults',()=>{
- const available=[{id:'fr_001',language:'fr-FR',gender:'male',provider:'tiktok'}, {id:'en_us_001',language:'en-US',gender:'female',provider:'tiktok'}];
- const languages=[{code:'fr-FR',defaultVoiceId:'fr_001'}];
+test('initial default and language-menu defaults select the cloud voice',()=>{
+ const available=[{id:'cloud',language:'en-US',gender:'female',provider:'cloud'}];
+ const languages=[{code:'fr-FR'}];
  const window={};const c=vm.createContext({window,voices:available,languages,selectedLanguageCode:'fr-FR',selectedVoiceId:'',navigator:{language:'fr-FR'},
   AppStorage:{KEYS:{},getString:()=>'',setString(){}},debugLog(){},populateVoiceSelector(){},document:{getElementById:()=>null}});
  let source=fs.readFileSync(path.join(__dirname,'../scripts/app_init.js'),'utf8');
  const fn=source.slice(source.indexOf('function initVoice()'),source.indexOf('function initVoiceProviders()'));
  // Run just the default selection, before unrelated speech-input preferences.
  vm.runInContext(fn.slice(0,fn.indexOf('  populateVoiceSelector();'))+'}',c);
- c.initVoice();assert.equal(c.selectedVoiceId,'en_us_001');
+ c.initVoice();assert.equal(c.selectedVoiceId,'cloud');
  source=fs.readFileSync(path.join(__dirname,'../scripts/settings_ui.js'),'utf8');
  const helper=source.slice(source.indexOf('  function getDefaultVoiceForLanguage('),source.indexOf('  // Get the default voice for current language'));
- c.availableVoices=available;vm.runInContext(helper,c);assert.equal(c.getDefaultVoiceForLanguage('fr-FR'),'en_us_001');
+ c.availableVoices=available;vm.runInContext(helper,c);assert.equal(c.getDefaultVoiceForLanguage('fr-FR'),'cloud');
 });
 
 

@@ -516,9 +516,9 @@
         </div>
         <div class="settings-item">
           <label>
-            <input type="checkbox" id="enableTikTokVoiceCheckbox" /> <span data-i18n="voice.tiktokLabel">🔈 Enable TikTok TTS</span></label>
-          <div class="value-display" data-i18n="voice.tiktokDesc">
-            Primary voice synthesis using TikTok's free TTS API.
+            <input type="checkbox" id="enablePrimaryVoiceCheckbox" /> <span data-i18n="voice.primaryLabel">🔈 Enable Voice Replies</span></label>
+          <div class="value-display" data-i18n="voice.primaryDesc">
+            Primary speech synthesis through WaifuAI Cloud, in the reply's language.
           </div>
         </div>
         <div class="settings-item">
@@ -528,13 +528,6 @@
         <div class="settings-item">
           <label>
             <input type="checkbox" id="enableFallbackVoiceCheckbox" /> <span data-i18n="voice.fallbackEnableLabel">🔄 Enable Fallback Voice (Browser)</span></label>
-        </div>
-        <div class="settings-item">
-          <label>
-            <input type="checkbox" id="enableAutoTtsLangCheckbox" /> <span data-i18n="voice.autoLangLabel">🌐 Auto TTS Language</span></label>
-          <div class="value-display" data-i18n="voice.autoLangDesc">
-            Matches the TikTok voice to the language of each reply. Turn this off to always use your selected voice.
-          </div>
         </div>
         <div class="settings-item" id="voiceControls">
           <label for="voiceSelector" data-i18n="voice.selectLabel">🎙️ Voice</label>
@@ -552,7 +545,7 @@
             <label for="ttsFallbackVoiceSelector" data-i18n="voice.fallbackLabel">🔄 Fallback Voice</label>
             <select id="ttsFallbackVoiceSelector" class="settings-select"></select>
             <div class="value-display" data-i18n="voice.fallbackDesc">
-              Spoken when the TikTok voice is turned off.
+              Spoken when voice replies are turned off.
             </div>
           </div>
           

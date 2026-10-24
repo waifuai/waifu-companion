@@ -136,7 +136,7 @@ function ttsRoutingFingerprint() {
 function prepareTTSRouting(text, force = false) {
   if (!ttsLanguageState) return null;
   const speech = typeof stripForTTS === 'function' ? stripForTTS(text) : text;
-  return ttsLanguageState.prepare(speech, { key: ttsConversationKey(), voiceId: window.selectedVoiceId || 'en_us_001', voices,
+  return ttsLanguageState.prepare(speech, { key: ttsConversationKey(), voiceId: window.selectedVoiceId || 'cloud', voices,
     auto: window.enableAutoTtsLang !== false, enabled: force || !!window.enableVoice, fingerprint: ttsRoutingFingerprint() });
 }
 function finishTTSRouting(plan, request, valid = () => true) {
@@ -144,7 +144,7 @@ function finishTTSRouting(plan, request, valid = () => true) {
 }
 async function getTTSRouting(text, provided = null, valid = () => true) {
   let plan = provided ? await provided : prepareTTSRouting(text);
-  const voiceId = window.selectedVoiceId || 'en_us_001';
+  const voiceId = window.selectedVoiceId || 'cloud';
   const signature = JSON.stringify([ttsConversationKey(), voiceId, window.enableAutoTtsLang !== false, ttsRoutingFingerprint()]);
   if (plan && plan.signature !== signature) plan = prepareTTSRouting(text);
   if (plan && plan.needsDecision && !plan.finished && !plan.pending && valid()) {
@@ -290,70 +290,69 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
   debugLog(`TTS: Input voiceId: "${voiceId}"`, 'info');
 
   const voiceConfig = voices.find(v => v.id === voiceId);
-  let routed = window.TTSLanguageRouter
-    ? window.TTSLanguageRouter.selectVoice(voices, voiceId, routingPlan ? routingPlan.lang : window.TTSLanguageRouter.analyze(textChunk).lang, window.enableAutoTtsLang !== false)
-    : { voiceId, lang: null, provider: voiceConfig ? voiceConfig.provider : 'tiktok' };
-  // Unsupported primary languages must not switch to browser speech.
-  if (routed.unsupportedPrimary) return null;
-  const provider = routed.provider;
-  if (routed.lang) debugLog(`TTS: Language routing: ${routed.lang} -> voice ${routed.voiceId} (user setting: ${voiceId})`, 'info');
+  // Selections from the removed on-client voice catalog fall back to the
+  // cloud voice, which is keyed by the reply's language alone.
+  const provider = voiceConfig ? voiceConfig.provider : 'cloud';
+  const routingLang = routingPlan ? routingPlan.lang
+    : (window.TTSLanguageRouter ? window.TTSLanguageRouter.analyze(textChunk).lang : null);
+  // Browser and Kokoro selections keep gender/provider routing; the cloud
+  // voice needs only the language.
+  let routed = null;
+  if (provider !== 'cloud' && window.TTSLanguageRouter) {
+    routed = window.TTSLanguageRouter.selectVoice(voices, voiceId, routingLang, window.enableAutoTtsLang !== false);
+    // Unsupported primary languages must not switch to browser speech.
+    if (routed.unsupportedPrimary) return null;
+  }
 
   const audioContext = getTTSAudioContext();
   let primaryError = null;
   // True once the primary provider was tried and failed, so analytics/logging
   // can tell "user chose browser TTS" apart from "primary is down".
   let fellBack = false;
-  // Set when the TikTok provider is disabled but the fallback voice is on:
+  // Set when the primary voice is disabled but the fallback voice is on:
   // the browser voice is then the chosen speaker, after Kokoro below.
   let manualFallbackVoice = null;
 
-  // 1. TikTok TTS (primary provider by default). Called directly — the API
-  // sends Access-Control-Allow-Origin: * on its own, no proxy needed.
-  if (provider === 'tiktok' && window.enablePrimaryVoice !== false) {
-    const apiUrl = "https://ottsy.weilbyte.dev/api/generation";
-    debugLog(`TTS: === TikTok TTS Flow START ===`, 'info');
+  // 1. WaifuAI Cloud speech (primary by default): the endpoint picks the
+  // voice and provider from the reply's language; the client sends nothing else.
+  if (provider === 'cloud' && window.enablePrimaryVoice !== false) {
+    const lang = routingLang || 'en-US';
+    debugLog(`TTS: === Cloud speech flow START (lang: ${lang}) ===`, 'info');
     try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: textChunk, voice: routed.voiceId })
-      });
+      const params = new URLSearchParams({ text: textChunk });
+      if (routingLang) params.set('lang', routingLang);
+      const response = await fetch(`${window.WaifuProxyAPI.TTS_URL}?${params}`, { signal: AbortSignal.timeout(10000) });
       debugLog(`TTS: Response status: ${response.status}`, 'info');
 
+      if (response.status === 204) {
+        const err = new Error('Cloud speech is unavailable right now');
+        err.status = 503;
+        throw err;
+      }
       if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        const err = new Error(`TikTok TTS HTTP ${response.status}: ${errorText.slice(0, 200)}`);
+        const err = new Error(`Cloud speech HTTP ${response.status}`);
         err.status = response.status;
         throw err;
       }
-
-      const json = await response.json();
-      if (json.success === false) {
-        throw new Error(`TikTok TTS API error: ${json.error || 'Unknown error'}`);
-      }
-      const audioData = json.data || json.audio || json;
-      if (!audioData) throw new Error('TikTok TTS returned no audio data');
-
-      const binaryString = atob(audioData);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-      const buffer = await audioContext.decodeAudioData(bytes.buffer);
-      debugLog(`TTS: TikTok TTS audio decoded successfully, duration: ${buffer.duration.toFixed(2)}s`, 'info');
-      return { kind: 'buffer', buffer, voiceId: routed.voiceId, lang: routed.lang || (voiceConfig && voiceConfig.language), provider: 'tiktok', fellBack: false, unsupported: !!routed.unsupported, routingSignature: routingPlan && routingPlan.signature };
+      const bytes = await response.arrayBuffer();
+      if (!bytes.byteLength) throw new Error('Cloud speech returned no audio');
+      const buffer = await audioContext.decodeAudioData(bytes);
+      debugLog(`TTS: Cloud speech decoded successfully, duration: ${buffer.duration.toFixed(2)}s`, 'info');
+      return { kind: 'buffer', buffer, voiceId: 'cloud', lang, provider: response.headers.get('X-Tts-Provider') || 'cloud', fellBack: false, unsupported: false, routingSignature: routingPlan && routingPlan.signature };
     } catch (err) {
-      debugError('TTS: TikTok TTS failed', err, { voiceId, textLen: textChunk.length });
+      debugError('TTS: Cloud speech failed', err, { voiceId, textLen: textChunk.length });
       primaryError = err;
       fellBack = true;
     }
   } else if (provider === 'browser') {
     // A browser voice selection keeps its gender/provider when auto routing
-    // supplies a language, rather than inheriting a routed TikTok voice. It
-    // speaks regardless of the TikTok checkbox: that checkbox disables the
-    // TikTok provider, not browser speech.
-    return { kind: 'browser', text: textChunk, voiceId, lang: routed.lang, provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
+    // supplies a language, rather than inheriting a routed cloud voice. It
+    // speaks regardless of the primary checkbox: that checkbox disables the
+    // cloud voice, not browser speech.
+    return { kind: 'browser', text: textChunk, voiceId, lang: routed ? routed.lang : routingLang, provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
   } else if (window.enablePrimaryVoice === false) {
     debugLog('TTS: Primary voice disabled.', 'info');
-    // The user turned the TikTok provider off and enabled the fallback voice,
+    // The user turned the primary voice off and enabled the fallback voice,
     // so the fallback browser voice is the chosen speaker — not an automatic
     // fallback on failure (failures stay silent so the queue can retry).
     // Kokoro below still wins when it is enabled and ready.
@@ -365,7 +364,7 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
   }
 
   // 2. Local Kokoro.
-  if ((!routed.lang || routed.lang.split('-')[0] === 'en') && window.enableKokoro && window.isKokoroReady && typeof window.generateKokoroAudioBuffer === 'function') {
+  if ((!routingLang || routingLang.split('-')[0] === 'en') && window.enableKokoro && window.isKokoroReady && typeof window.generateKokoroAudioBuffer === 'function') {
     try {
       const kokoroVoice = provider === 'kokoro' ? voiceId : window.selectedKokoroVoiceId || 'af_heart';
       const kokoroBuffer = await window.generateKokoroAudioBuffer(textChunk, kokoroVoice);
@@ -380,7 +379,7 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
 
   // 3. The manually enabled fallback voice, for the disabled-primary case.
   if (manualFallbackVoice) {
-    return { kind: 'browser', text: textChunk, voiceId: manualFallbackVoice, lang: routed.lang, provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
+    return { kind: 'browser', text: textChunk, voiceId: manualFallbackVoice, lang: routingLang, provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
   }
 
   // Automatic browser fallback is disabled, including for saved preferences.

@@ -117,8 +117,8 @@ function handleEnableVoiceChange(event) {
     S.setBoolean(K.ENABLE_KOKORO, enableVoice);
     debugLog(`Enable voice changed to: ${enableVoice}`, 'info');
 
-    const tiktokCheckbox = document.getElementById('enableTikTokVoiceCheckbox');
-    if (tiktokCheckbox) tiktokCheckbox.checked = enableVoice;
+    const primaryCheckbox = document.getElementById('enablePrimaryVoiceCheckbox');
+    if (primaryCheckbox) primaryCheckbox.checked = enableVoice;
     const fallbackCheckbox = document.getElementById('enableFallbackVoiceCheckbox');
     if (fallbackCheckbox) fallbackCheckbox.checked = enableVoice;
     const kokoroCheckbox = document.getElementById('enableKokoroVoiceCheckbox');
@@ -671,7 +671,7 @@ async function handleResetLanguages() {
 
   // Reset voice back to English default
   const enCfg = languages.find(l=>l.code==='en-US');
-  selectedVoiceId = (enCfg?.defaultVoiceId) || 'en_us_001';
+  selectedVoiceId = 'cloud';
   S.setString(K.SELECTED_VOICE_ID, selectedVoiceId);
   populateVoiceSelector?.(); 
   if (voiceSelector) voiceSelector.value = selectedVoiceId;
@@ -1486,7 +1486,7 @@ async function preloadAmbientTTS(text) {
       // resolution matches. Passing a Kokoro id here (this codebase's
       // fetchTTSBuffer resolves provider by looking up a voiceId in the
       // `voices` list) sent it down the wrong provider path entirely.
-      const voiceId = (typeof window.selectedVoiceId === 'string' && window.selectedVoiceId) || 'en_us_001';
+      const voiceId = (typeof window.selectedVoiceId === 'string' && window.selectedVoiceId) || 'cloud';
       const plan = typeof window.getTTSRouting === 'function' ? await window.getTTSRouting(cleanText, null, options.valid) : null;
       checkBackground(options);
       const resolved = await window.fetchTTSBuffer(firstChunkText, voiceId, plan);

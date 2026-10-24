@@ -528,46 +528,17 @@ function populateVoiceSelector() {
   availableVoices.forEach(voice => {
     const option = document.createElement('option');
     option.value = voice.id;
-    const providerLabel = voice.provider === 'tiktok' ? 'TikTok' : voice.provider === 'streamelements' ? 'StreamElements' : voice.provider === 'kokoro' ? 'Kokoro' : voice.provider === 'browser' ? 'Browser' : 'Unknown';
-    option.textContent = voice.provider === 'tiktok' ? voice.name : `${voice.name} (${providerLabel})`;
+    const providerLabel = voice.provider === 'cloud' ? 'Waifu' : voice.provider === 'kokoro' ? 'Kokoro' : voice.provider === 'browser' ? 'Browser' : 'Unknown';
+    option.textContent = voice.provider === 'cloud' ? voice.name : `${voice.name} (${providerLabel})`;
     voiceSelector.appendChild(option);
   });
 
   // Determine the best voice for the current language
-  // Uses voiceLanguageOverrides to find a fallback voice for languages without native TTS
+  // The cloud voice matches the reply's language on its own, so it is the
+  // default for every locale.
   function getDefaultVoiceForLanguage(langCode) {
-    const baseLangCode = langCode.split('-')[0];
-
-    // Check if this language has an override mapping
-    const overrides = window.voiceLanguageOverrides || {};
-    const overrideLang = overrides[langCode] || overrides[baseLangCode];
-
-    // Determine which base language to look for
-    const targetBaseLang = overrideLang || baseLangCode;
-
-    // Find female voice for the target language (prefer TikTok)
-    const femaleVoice = availableVoices.find(v =>
-      v.language.split('-')[0] === targetBaseLang &&
-      v.gender === 'female' &&
-      v.provider === 'tiktok'
-    );
-
-    if (femaleVoice) {
-      return femaleVoice.id;
-    }
-
-    // Fallback: check langConfig's defaultVoiceId
-    const langConfig = languages.find(l => l.code === langCode);
-    if (langConfig && langConfig.defaultVoiceId) {
-      // Check if that defaultVoiceId is a valid voice
-      if (availableVoices.some(v => v.id === langConfig.defaultVoiceId && v.gender === 'female')) {
-        return langConfig.defaultVoiceId;
-      }
-    }
-
-    // Final fallback: English female or another explicitly female voice
-    const enFemale = availableVoices.find(v => v.id === 'en_us_001');
-    return enFemale ? 'en_us_001' : (availableVoices.find(v => v.gender === 'female')?.id || 'none');
+    if (availableVoices.some(v => v.id === 'cloud')) return 'cloud';
+    return availableVoices.find(v => v.gender === 'female')?.id || 'none';
   }
 
   // Get the default voice for current language
@@ -581,11 +552,9 @@ function populateVoiceSelector() {
     // Rebuilding the card's language menu must not overwrite its saved voice.
     selectedVoiceId = savedVoiceId;
   } else if (window.WaifuEmbed) {
-    // This menu is built before initVoice runs. Use the card's browser default
-    // here too, so it doesn't save an app-language default as a manual choice.
-    const browserLang = (navigator.language || 'en').split('-')[0].toLowerCase();
-    selectedVoiceId = availableVoices.find(v => v.provider === 'tiktok' && v.gender === 'female' &&
-      (v.language || '').split('-')[0].toLowerCase() === browserLang)?.id || 'en_us_001';
+    // This menu is built before initVoice runs. Use the cloud default here
+    // too, so it doesn't save an app-language default as a manual choice.
+    selectedVoiceId = getDefaultVoiceForLanguage(selectedLanguageCode);
     AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID, selectedVoiceId);
   } else {
     // Always use the appropriate default voice for the current language

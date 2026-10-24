@@ -64,7 +64,7 @@ function getClientSettings() {
     const S = AppStorage, K = AppStorage.KEYS;
     return {
       model: window.currentModelName || '',
-      voice_tiktok: Boolean(window.enablePrimaryVoice),
+      voice_primary: Boolean(window.enablePrimaryVoice),
       voice_kokoro: Boolean(window.enableKokoro),
       voice_browser: Boolean(window.enableFallbackVoice),
       stt_engine: window.sttEngine || '',
@@ -90,6 +90,7 @@ const WaifuProxyAPI = {
   API_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/chat/completions',
   IMAGE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/image',
   TRANSCRIBE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/transcribe',
+  TTS_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/tts',
   DECISIONS_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/decisions',
   DEFAULT_MODEL: 'waifuai-v1',
 

@@ -188,8 +188,8 @@
 
     // ── Voice pane ──
     'voice.title': '🔊 Voice',
-    'voice.tiktokLabel': '🔈 Enable TikTok TTS',
-    'voice.tiktokDesc': "Primary voice synthesis using TikTok's free TTS API.",
+    'voice.primaryLabel': '🔈 Enable Voice Replies',
+    'voice.primaryDesc': "Primary speech synthesis through WaifuAI Cloud, in the reply's language.",
     'voice.kokoroEnableLabel': '🚀 Enable Local Voice (Kokoro)',
     'voice.fallbackEnableLabel': '🔄 Enable Fallback Voice (Browser)',
     'voice.autoLangLabel': '🌐 Auto TTS Language',
@@ -198,7 +198,7 @@
     'voice.kokoroLabel': '🚀 Kokoro Voice',
     'voice.kokoroDesc': 'High-quality local TTS. Preloaded in background for silent handoff.',
     'voice.fallbackLabel': '🔄 Fallback Voice',
-    'voice.fallbackDesc': 'Spoken when the TikTok voice is turned off.',
+    'voice.fallbackDesc': 'Spoken when voice replies are turned off.',
     'voice.chunkLimitLabel': '📏 TTS Chunk Character Limit',
     'voice.chunkLimitCurrent': 'Max Characters:',
     'voice.volumeLabel': '🔉 TTS Voice Volume',

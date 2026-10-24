@@ -114,7 +114,7 @@ AppState.currentTime = new Date();
 
 // Voice state
 AppState.enableVoice = true;
-AppState.selectedVoiceId = 'en_us_001';
+AppState.selectedVoiceId = 'cloud';
 AppState.ttsChunkLimit = 300;
 AppState.ttsVolume = 1.0;
 
