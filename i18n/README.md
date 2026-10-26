@@ -16,6 +16,25 @@ translators. `i18n/i18n.js` is byte-identical to
 | `i18n/bootstrap.js` | Runs in `<head>`: picks the language, sets `<html lang dir>` before paint, and loads the matched dictionary during parse. |
 | `i18n/locales/en.js` | English, the source of truth. Every other dictionary must match its keys. |
 | `i18n/locales/<code>.js` | One dictionary per locale. |
+| `i18n/chat_prompts.js` | Built-in chat instructions, separate from interface dictionaries and custom text. |
+
+Companion's built-in chat prompt has authored translations for these 13 locales
+plus Bengali. An explicit reply-language selection chooses the prompt locale;
+the default automatic reply setting uses the interface locale for instructions
+while still asking for the language of the latest user message. Neither choice
+changes the other setting. Unsupported prompt languages use English instructions
+that still name the requested reply language. Simplified Chinese instructions
+are not substituted for a Traditional Chinese choice. The bundle makes no
+translation request or model call; English instructions keep chat usable if it
+fails to load.
+
+Only an exact built-in persona is replaced in outgoing context. Saved custom
+personas, additional instructions, summaries, user background and avatar
+descriptions remain verbatim; saved text is never rewritten. Existing persona,
+summary and persistent-context field markers, settings keys and image-operation
+markers retain their English contract spelling. Image-description and other internal task
+prompts keep their own output contracts. Sprites has not adopted this prompt
+bundle; the interface runtime and dictionaries remain shared as before.
 
 ## Companion notes (differences from the Sprites copy)
 
@@ -99,9 +118,11 @@ does not already reduce to a supported base.
 - A key whose text depends on a number maps to a plural object
   (`{ one, few, many, two, zero, other }`); include the forms your language uses
   plus `other`. `WaifuI18n` picks the form with `Intl.PluralRules`.
-- Keep model input, brand names and identifiers in English: the persona/system
-  prompts, `WaifuAI Cloud`, `OpenRouter`, `Groq`, `Kokoro`, `Live2D`, `TikTok`,
+- Keep brand names and identifiers unchanged: `WaifuAI Cloud`, `OpenRouter`, `Groq`, `Kokoro`, `Live2D`, `TikTok`,
   `/image`, model ids, URLs, and the response-language list (`languages_full_data.js`
   keeps `englishName (nativeName)` and its English values).
+- Translate authored chat instructions in `chat_prompts.js`, preserving every
+  placeholder and the original meaning. Never translate user-authored text or
+  machine-readable keys as part of interface localization.
 - Numbers stay Latin digits with no grouping, so size reports like
   `32 KiB` and `N / 32768 bytes` are identical in every language.

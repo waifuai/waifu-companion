@@ -39,7 +39,9 @@ The interface is localized by `i18n/` at the repository root (see
 browser's own language order, then English, with Arabic and Persian set to
 `dir="rtl"` before the first paint. The Interface language picker offers native
 names and is independent of the English-valued response-language dropdown, so
-switching the interface never changes reply language or model input.
+switching the interface never changes the reply-language setting. Built-in chat
+instructions use an explicit reply locale, or the interface locale when replies
+follow the user automatically; saved custom prompt and memory text stay intact.
 
 Unit checks run from the repository root with `node --test "app/tests/*.cjs"`;
 `test_i18n.cjs` pins dictionary parity, placeholder and brand-name rules,
@@ -51,6 +53,14 @@ configured CDNs, and all inference and analytics are intercepted. They cover
 Send, Enter, IME input, blocked forms/storage, narrow layouts, resizing,
 settings, voice toggling, browser-driven interface language, saved-language
 persistence and reload, right-to-left mirroring, and full-app storage isolation.
+
+`test_chat_prompts.cjs` checks prompt/placeholder parity for the 13 interface
+locales and Bengali, reply/interface independence, automatic language following,
+custom prompt preservation, context localization and English fallback.
+`python app/tests/test_chat_prompts_browser.py` checks actual Send requests in
+the mobile-width full app and embedded app with inference mocked, including a
+failed prompt-bundle download. These checks establish request construction,
+not output-language accuracy or translation quality with real conversations.
 
 Lifecycle regressions run with `python -m unittest discover -s app/tests -p
 'test_*.py' -v` (including the Player Card checks above). `test_turn_ownership.cjs`

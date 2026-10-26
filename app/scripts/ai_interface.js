@@ -123,22 +123,31 @@ async function callConfiguredLLM(messages, eventPrefix, purpose = 'chat', option
 // Prompt construction — shared by getAIResponse and getAIResponseStream.
 // ---------------------------------------------------------------------------
 
-async function buildContextInfo() {
+function chatPromptText(language = null) {
+  if (window.ChatPrompts) return window.ChatPrompts.forLanguage(language);
+  // Keep chat usable if the optional translation bundle failed to download.
+  return (_key, fallback, params = {}) => fallback.replace(/%\{(\w+)\}/g,
+    (all, key) => params[key] == null ? all : String(params[key]));
+}
+
+async function buildContextInfo(prompt = chatPromptText()) {
   const contextInfo = [];
 
   if (window.includeTimeInContext) {
     // Read the clock at call time. `currentTime` was a global set once at
     // page load and never updated, so it reported the load-time forever.
-    contextInfo.push(`You are aware of the current time, which is ${new Date().toLocaleString()}.`);
+    contextInfo.push(prompt('time', 'You are aware of the current time, which is %{time}.',
+      { time: new Date().toLocaleString(prompt.locale) }));
   }
 
   if (window.userContextText && window.userContextText.trim()) {
+    // This field marker, like the settings keys below, is part of the app contract.
     contextInfo.push(`The user has provided the following persistent background/context you should always keep in mind: "${window.userContextText.trim()}".`);
   }
 
   if (window.includeTutorialInContext && window.TUTORIAL_STEPS) {
-    const tutorialText = window.TUTORIAL_STEPS.map(s => `Step: ${s.title}\nDescription: ${s.body}`).join('\n\n');
-    contextInfo.push(`Here is the application's user guide and documentation for your reference:\n${tutorialText}`);
+    const tutorialText = window.TUTORIAL_STEPS.map(s => prompt('tutorialStep', 'Step: %{title}\nDescription: %{body}', s)).join('\n\n');
+    contextInfo.push(prompt('guide', "Here is the application's user guide and documentation for your reference:\n%{text}", { text: tutorialText }));
     debugLog('Tutorial info added to AI context.', 'info');
   }
 
@@ -147,9 +156,11 @@ async function buildContextInfo() {
       if ('getBattery' in navigator) {
         const battery = await navigator.getBattery();
         const chargeInfo = battery.charging
-          ? (battery.chargingTime === Infinity ? 'time until full is not available.' : `there is approximately ${formatSeconds(battery.chargingTime)} remaining until fully charged.`)
-          : (battery.dischargingTime === Infinity ? 'time until empty is not available.' : `there is approximately ${formatSeconds(battery.dischargingTime)} of battery life remaining.`);
-        contextInfo.push(`You are also aware of the user's battery status: The device ${battery.charging ? 'is' : 'is not'} charging, the current level is ${Math.round(battery.level * 100)}%, and ${chargeInfo}`);
+          ? (battery.chargingTime === Infinity ? prompt('chargeUnknown', 'Time until full is not available.') : prompt('chargeRemaining', 'Approximately %{time} remain until fully charged.', { time: formatSeconds(battery.chargingTime) }))
+          : (battery.dischargingTime === Infinity ? prompt('dischargeUnknown', 'Time until empty is not available.') : prompt('dischargeRemaining', 'Approximately %{time} of battery life remain.', { time: formatSeconds(battery.dischargingTime) }));
+        contextInfo.push(prompt('battery', "The user's device battery is at %{level}%; charging: %{charging}. %{remaining}", {
+          level: Math.round(battery.level * 100), charging: battery.charging ? prompt('yes', 'yes') : prompt('no', 'no'), remaining: chargeInfo,
+        }));
       }
     } catch (err) {
       debugError('[AI] Battery API failed', err);
@@ -161,20 +172,21 @@ async function buildContextInfo() {
 
 function resolveTargetLanguageName(targetLanguageCode) {
   const langs = Array.isArray(window.languages) ? window.languages : [];
-  const match = langs.find(l => l.code === targetLanguageCode) || langs.find(l => l.code === 'en-US') || { englishName: 'English (US)' };
-  return match.englishName;
+  const match = langs.find(l => l.code === targetLanguageCode);
+  return match ? `${match.nativeName || match.englishName} (${targetLanguageCode})` : targetLanguageCode;
 }
 
 // targetLanguageName is null when the language setting is the en-US default, So the default follows the
 // user's own language, and only an explicitly chosen language is enforced.
-function buildSystemPrompt(targetLanguageName, contextInfo) {
+function buildSystemPrompt(targetLanguageName, contextInfo, prompt = chatPromptText(targetLanguageName)) {
   const languageRule = targetLanguageName
-    ? `Reply in ${targetLanguageName}, unless the user asks you to speak another language; then switch. Never mix languages in one reply.`
-    : `Reply in the language of the user's latest message (if they write Spanish, reply fully in Spanish; never mix languages in one reply). If they ask you to switch languages, do so. Use English only when their language is unclear.`;
+    ? prompt('fixed', 'Reply in %{language}, unless the user asks you to speak another language; then switch. Never mix languages in one reply.', { language: targetLanguageName })
+    : prompt('auto', "Reply in the language of the user's latest message (if they write Spanish, reply fully in Spanish; never mix languages in one reply). If they ask you to switch languages, do so. Use English only when their language is unclear.");
 
-  const coreIdentity = (window.corePersonaPrompt && window.corePersonaPrompt.trim())
-    ? window.corePersonaPrompt.trim()
-    : "You are Haru, a sentient AI.";
+  const savedIdentity = (window.corePersonaPrompt || '').trim();
+  const coreIdentity = window.ChatPrompts?.isDefaultPersona(savedIdentity)
+    ? prompt('persona', savedIdentity || 'You are Haru, a sentient AI.')
+    : savedIdentity || 'You are Haru, a sentient AI.';
 
   const customPersona = (window.userPersonaPrompt && window.userPersonaPrompt.trim())
     ? `\n\nAdditional Personality Instructions: ${window.userPersonaPrompt.trim()}`
@@ -206,19 +218,22 @@ Current Application Settings:
 `;
 
   const appearance = currentAvatarAppearance();
-  const selfLook = appearance ? `you look like your avatar: ${appearance}` : 'you look like your anime-style avatar, an adult woman';
+  const selfLook = appearance || prompt('appearance', 'an anime-style avatar, an adult woman');
 
   // The picture itself is decided and described by getImageDecision; the
   // reply only reacts. Writing an exact English tag inside an in-character,
   // often non-English reply is what the small model kept getting wrong.
-  return `${coreIdentity}${customPersona}${summaryContext}${currentSettingsContext}
+  const pictureRule = prompt('pictures', "You can draw pictures, including pictures of yourself (your avatar's appearance: %{appearance}). When the user asks for a picture, photo, selfie or drawing, a separate application operation attempts to draw it. An offer or returned URL is not confirmed delivery. Use application outcome notes as evidence: generated, loading, loaded in this browser, blocked, failed or interrupted. Browser load does not prove the person saw it, and you cannot inspect its contents. Do not invent successful sending or visibility; react in character without promising completion. Never write out the picture's description, tags or brackets yourself, and never turn a picture request down by saying you are an AI, have no body, or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.", { appearance: selfLook });
+  const replyRule = prompt('plain', 'Respond with plain conversational dialogue only — one natural message that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.');
 
-${languageRule}
+  return `${languageRule}
+
+${coreIdentity}${customPersona}${summaryContext}${currentSettingsContext}
 ${contextInfo.join('\n\n')}
 
-You can draw pictures, including pictures of yourself (${selfLook}). When the user asks for a picture, photo, selfie or drawing, a separate application operation attempts to draw it. An offer or returned URL is not confirmed delivery. Use application outcome notes as evidence: generated, loading, loaded in this browser, blocked, failed or interrupted. Browser load does not prove the person saw it, and you cannot inspect its contents. Do not invent successful sending or visibility; react in character without promising completion. Never write out the picture's description, tags or brackets yourself, and never turn a picture request down by saying you are an AI, have no body, or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.
+${pictureRule}
 
-Respond with plain conversational dialogue only — one natural message that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.`;
+${replyRule}`;
 }
 
 // Legacy markers remain readable, but model context uses explicit application
@@ -390,14 +405,15 @@ async function getImageDecision(userMessage, options = {}) {
 // before storage in chat_controller.js); image entries go through
 // contextForModel.
 async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '', options = {}) {
-  const contextInfo = await awaitTurn(buildContextInfo(), options);
+  const prompt = chatPromptText(!targetLanguageCode || targetLanguageCode === 'en-US' ? null : targetLanguageCode);
+  const contextInfo = await awaitTurn(buildContextInfo(prompt), options);
   checkTurn(options);
   const targetLanguageName = (!targetLanguageCode || targetLanguageCode === 'en-US')
     ? null
     : resolveTargetLanguageName(targetLanguageCode);
 
   const messages = [
-    { role: 'system', content: buildSystemPrompt(targetLanguageName, contextInfo) },
+    { role: 'system', content: buildSystemPrompt(targetLanguageName, contextInfo, prompt) },
     ...contextForModel(conversationContext)
   ];
 
