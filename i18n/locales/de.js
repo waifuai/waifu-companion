@@ -58,6 +58,7 @@
     'settings.resetLanguages': 'Sprachen zurücksetzen',
     'settings.interfaceLanguage': 'Oberflächensprache',
     'settings.deviceLanguage': 'Gerätesprache verwenden',
+    'settings.yourLanguage': 'Deine Sprache',
     'provider.title': '🤖 KI-Anbieter',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud (Standard)',

@@ -426,11 +426,16 @@ function populateLanguageSelector() {
     return; // No languages to add
   }
 
-  // Show all languages now - AI will translate any language
+  // Every reply language is enforced, but only the locales in i18n/chat_prompts.js
+  // get authored instruction prose; the rest use English instructions naming the
+  // requested language. en-US is the automatic default (follow the latest
+  // message), so it must not be labelled as the English variant.
   languages.forEach(lang => {
     const option = document.createElement('option');
     option.value = lang.code;
-    option.textContent = `${lang.englishName} (${lang.nativeName})`;
+    option.textContent = lang.code === 'en-US'
+      ? tr('settings.yourLanguage', 'Your language')
+      : `${lang.englishName} (${lang.nativeName})`;
     languageSelector.appendChild(option);
   });
 
@@ -475,6 +480,10 @@ function populateInterfaceLanguageSelector() {
       select.value = api.choice || 'auto';
       const first = select.options[0];
       if (first) first.textContent = tr('settings.deviceLanguage', 'Use device language');
+      // The reply list is built once in English/endonym form; only the
+      // automatic en-US entry is localized prose and must follow a UI switch.
+      const reply = document.getElementById('languageSelector');
+      if (reply && reply.options[0]) reply.options[0].textContent = tr('settings.yourLanguage', 'Your language');
       updateProviderModelExamples();
     });
   }

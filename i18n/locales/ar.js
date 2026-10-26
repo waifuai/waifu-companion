@@ -59,6 +59,7 @@
     'settings.resetLanguages': 'إعادة ضبط اللغات',
     'settings.interfaceLanguage': 'لغة الواجهة',
     'settings.deviceLanguage': 'استخدام لغة الجهاز',
+    'settings.yourLanguage': 'لغتك',
     'provider.title': '🤖 مزوّد الذكاء الاصطناعي',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud (افتراضي)',

@@ -58,6 +58,7 @@
     'settings.resetLanguages': 'Zresetuj języki',
     'settings.interfaceLanguage': 'Język interfejsu',
     'settings.deviceLanguage': 'Użyj języka urządzenia',
+    'settings.yourLanguage': 'Twój język',
     'provider.title': '🤖 Dostawca AI',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud (domyślnie)',

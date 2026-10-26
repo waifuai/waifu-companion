@@ -58,6 +58,7 @@
     'settings.resetLanguages': 'Set semula bahasa',
     'settings.interfaceLanguage': 'Bahasa antara muka',
     'settings.deviceLanguage': 'Guna bahasa peranti',
+    'settings.yourLanguage': 'Bahasa anda',
     'provider.title': '🤖 Penyedia AI',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud (lalai)',

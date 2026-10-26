@@ -58,6 +58,7 @@
     'settings.resetLanguages': '重置语言',
     'settings.interfaceLanguage': '界面语言',
     'settings.deviceLanguage': '使用设备语言',
+    'settings.yourLanguage': '你的语言',
     'provider.title': '🤖 AI 提供方',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud（默认）',

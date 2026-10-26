@@ -58,6 +58,7 @@
     'settings.resetLanguages': 'Setel ulang bahasa',
     'settings.interfaceLanguage': 'Bahasa antarmuka',
     'settings.deviceLanguage': 'Gunakan bahasa perangkat',
+    'settings.yourLanguage': 'Bahasa kamu',
     'provider.title': '🤖 Penyedia AI',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud (bawaan)',

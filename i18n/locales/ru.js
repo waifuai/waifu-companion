@@ -58,6 +58,7 @@
     'settings.resetLanguages': 'Сбросить языки',
     'settings.interfaceLanguage': 'Язык интерфейса',
     'settings.deviceLanguage': 'Использовать язык устройства',
+    'settings.yourLanguage': 'Ваш язык',
     'provider.title': '🤖 Провайдер ИИ',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud (по умолчанию)',

@@ -62,6 +62,7 @@
     'settings.resetLanguages': 'Restablecer idiomas',
     'settings.interfaceLanguage': 'Idioma de la interfaz',
     'settings.deviceLanguage': 'Usar el idioma del dispositivo',
+    'settings.yourLanguage': 'Tu idioma',
 
     // ── AI provider pane ──
     'provider.title': '🤖 Proveedor de IA',

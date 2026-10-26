@@ -43,8 +43,11 @@
     { code: 'pl', tag: 'pl', name: 'Polski', englishName: 'Polish', dir: 'ltr' },
   ];
 
-  // Tags seen in the wild that do not reduce to a supported base language.
-  var ALIASES = { in: 'id', iw: 'he', ji: 'yi', nb: 'no', tl: 'id', fil: 'id' };
+  // Legacy tags that do not reduce to a supported base language. Filipino and
+  // Tagalog have reply-language support but no interface dictionary, so they
+  // deliberately fall through to the next browser language (usually English);
+  // mapping tl/fil to Indonesian would show the wrong interface.
+  var ALIASES = { in: 'id' };
 
   // Endonyms for the reply-language list. The English name is the value the
   // app sends in the system prompt; the label the visitor sees is the language's

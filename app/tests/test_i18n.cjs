@@ -95,6 +95,12 @@ test('regional and legacy tags reduce to the supported base locale', () => {
   for (const [tag, code] of Object.entries(table)) {
     assert.equal(I18n.resolve(tag), code, tag);
   }
+  // Filipino and Tagalog have no interface dictionary. They must fall through
+  // to the visitor's next language, never to Indonesian (the old alias).
+  assert.equal(I18n.resolve('tl-PH'), null);
+  assert.equal(I18n.resolve('fil'), null);
+  assert.equal(I18n.detect(['fil-PH', 'en-US']), 'en');
+  assert.equal(I18n.detect(['tl']), 'en');
   // An unknown stored value (the card test seeds 'zz-test') must never throw.
   assert.equal(I18n.resolve('xx-YY'), null);
   assert.equal(I18n.resolve('zz-test'), null);

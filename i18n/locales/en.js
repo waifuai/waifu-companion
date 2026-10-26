@@ -73,6 +73,7 @@
     'settings.resetLanguages': 'Reset Languages',
     'settings.interfaceLanguage': 'Interface language',
     'settings.deviceLanguage': 'Use device language',
+    'settings.yourLanguage': 'Your language',
 
     // ── AI provider pane ──
     'provider.title': '🤖 AI Provider',

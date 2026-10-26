@@ -18,20 +18,29 @@ translators. `i18n/i18n.js` is byte-identical to
 | `i18n/locales/<code>.js` | One dictionary per locale. |
 | `i18n/chat_prompts.js` | Built-in chat instructions, separate from interface dictionaries and custom text. |
 
-Companion's built-in chat prompt has authored translations for these 13 locales
-plus Bengali. An explicit reply-language selection chooses the prompt locale;
-the default automatic reply setting uses the interface locale for instructions
-while still asking for the language of the latest user message. Neither choice
-changes the other setting. Each prompt ends with a short reminder in the same
-locale: an explicit choice repeats the requested language even when the user
-writes in another language or sends only a few words, and automatic mode repeats
-the latest-message rule. The settings block labels automatic mode as `auto`
-instead of naming English, so it cannot be read as an English instruction.
-Unsupported prompt languages use English instructions
-that still name the requested reply language. Simplified Chinese instructions
-are not substituted for a Traditional Chinese choice. The bundle makes no
-translation request or model call; English instructions keep chat usable if it
-fails to load.
+Companion's built-in chat prompt has authored translations for all 13 interface
+locales plus reply-only Bengali. The contract is one-directional: every locale
+that `i18n.js` offers in the interface picker must have a prompt dictionary, but
+a prompt dictionary may exist without a UI dictionary (Bengali today). A
+reply-only locale can be chosen as a response language; the interface picker
+still lists only catalog locales. Adding an interface locale therefore requires
+prompt coverage, while adding a prompt dictionary does not require translating
+the UI; `test_chat_prompts.cjs` enforces the direction and the explicit
+reply-only allowlist.
+
+An explicit reply-language selection chooses the prompt locale. The default
+automatic reply setting is the `en-US` entry, labelled "Your language" in the
+reply picker: it uses the interface locale for instructions while still asking
+for the language of the latest user message. Neither choice changes the other
+setting. Each prompt ends with a short reminder in the same locale: an explicit
+choice repeats the requested language even when the user writes in another
+language or sends only a few words, and automatic mode repeats the
+latest-message rule. The settings block labels automatic mode as `auto` instead
+of naming English, so it cannot be read as an English instruction. Unsupported
+prompt languages use English instructions that still name the requested reply
+language. Simplified Chinese instructions are not substituted for a Traditional
+Chinese choice. The bundle makes no translation request or model call; English
+instructions keep chat usable if it fails to load.
 
 Only an exact built-in persona is replaced in outgoing context. Saved custom
 personas, additional instructions, summaries, user background and avatar
@@ -98,12 +107,18 @@ interface runtime and dictionaries remain shared as before.
 First match wins: a saved choice (`localStorage`, per app) → `navigator.languages`
 in the visitor's own order → `navigator.language` → English. Regional and legacy
 tags reduce to the base locale (`es-MX`→`es`, `pt-PT`→`pt`, `zh-TW`→`zh`,
-`in`→`id`, …).
+`in`→`id`, …). Filipino and Tagalog (`tl`, `fil`) are deliberately absent from
+that table: the response picker supports them, but without a Filipino interface
+dictionary they fall through to the next browser language instead of showing
+Indonesian.
 
 ## Adding a language
 
 One `locales/<code>.js` file, and a catalog entry in `i18n.js` only when the tag
-does not already reduce to a supported base.
+does not already reduce to a supported base. An interface locale also needs a
+dictionary in `i18n/chat_prompts.js`: `test_chat_prompts.cjs` fails when a
+catalog locale has no instructions. A reply-only locale needs only the prompt
+dictionary and must be listed in that test's `REPLY_ONLY_PROMPTS`.
 
 ### Dictionary contract
 

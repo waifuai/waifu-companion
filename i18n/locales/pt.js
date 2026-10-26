@@ -58,6 +58,7 @@
     'settings.resetLanguages': 'Redefinir idiomas',
     'settings.interfaceLanguage': 'Idioma da interface',
     'settings.deviceLanguage': 'Usar o idioma do dispositivo',
+    'settings.yourLanguage': 'Seu idioma',
     'provider.title': '🤖 Provedor de IA',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud (padrão)',

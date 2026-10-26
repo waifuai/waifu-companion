@@ -58,6 +58,7 @@
     'settings.resetLanguages': '言語をリセット',
     'settings.interfaceLanguage': '表示言語',
     'settings.deviceLanguage': 'デバイスの言語を使う',
+    'settings.yourLanguage': 'あなたの言語',
     'provider.title': '🤖 AIプロバイダー',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud（既定）',

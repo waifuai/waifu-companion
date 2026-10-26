@@ -59,6 +59,7 @@
     'settings.resetLanguages': 'بازنشانی زبان‌ها',
     'settings.interfaceLanguage': 'زبان رابط',
     'settings.deviceLanguage': 'استفاده از زبان دستگاه',
+    'settings.yourLanguage': 'زبان تو',
     'provider.title': '🤖 ارائه‌دهنده هوش مصنوعی',
 
     'provider.cloudTitle': '✨ WaifuAI Cloud (پیش‌فرض)',
