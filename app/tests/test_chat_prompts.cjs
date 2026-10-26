@@ -27,7 +27,7 @@ const placeholders = s => [...s.matchAll(/%\{(\w+)\}/g)].map(m => m[1]).sort();
 // locales: they can be selected as a reply language, but the UI picker does not
 // list them. Keep this explicit so a new interface locale cannot ship without
 // prompt coverage, and a new reply-only prompt cannot appear by accident.
-const REPLY_ONLY_PROMPTS = ['bn'];
+const REPLY_ONLY_PROMPTS = ['bn', 'cs', 'el', 'fi', 'hi', 'hu', 'it', 'ko', 'my', 'nl', 'ro', 'si', 'th', 'tr', 'uk', 'vi'];
 
 test('every interface locale has complete prompt and placeholder parity', () => {
   const c = client(), dicts = c.ChatPrompts.dictionaries;
@@ -74,7 +74,7 @@ test('auto localizes instructions to UI but continues to follow the latest messa
 
 test('every supported reply locale reaches the complete localized request', async () => {
   const c = client();
-  for (const code of ['ar', 'bn', 'de-DE', 'es-ES', 'fr-FR', 'id-ID', 'ja-JP', 'ms', 'fa', 'pl', 'pt-BR', 'ru', 'zh-CN']) {
+  for (const code of ['ar', 'bn', 'cs', 'de-DE', 'el', 'es-ES', 'fi', 'fr-FR', 'hi', 'hu', 'id-ID', 'it', 'ja-JP', 'ko-KR', 'ms', 'my', 'nl', 'fa', 'pl', 'pt-BR', 'ro', 'ru', 'si', 'th', 'tr', 'uk', 'vi', 'zh-CN']) {
     const t = c.ChatPrompts.forLanguage(code);
     const sys = (await c.buildChatMessages('Synthetic greeting', code))[0].content;
     assert.ok(sys.startsWith(t('fixed', '', { language: c.resolveTargetLanguageName(code) })), code);
@@ -134,7 +134,7 @@ test('time, tutorial wrappers and battery context use the same reply locale', as
 
 test('unsupported languages retain the requested language with safe English instructions', async () => {
   const c = client('ar');
-  for (const code of ['ko-KR', 'zh-TW', 'zz-test', 'constructor', '__proto__']) {
+  for (const code of ['sv-SE', 'zh-TW', 'zz-test', 'constructor', '__proto__']) {
     const sys = (await c.buildChatMessages('Synthetic greeting', code))[0].content;
     assert.ok(sys.startsWith('Reply in '));
     assert.ok(sys.includes(code));

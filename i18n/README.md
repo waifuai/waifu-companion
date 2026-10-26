@@ -19,11 +19,12 @@ translators. `i18n/i18n.js` is byte-identical to
 | `i18n/chat_prompts.js` | Built-in chat instructions, separate from interface dictionaries and custom text. |
 
 Companion's built-in chat prompt has authored translations for all 13 interface
-locales plus reply-only Bengali. The contract is one-directional: every locale
-that `i18n.js` offers in the interface picker must have a prompt dictionary, but
-a prompt dictionary may exist without a UI dictionary (Bengali today). A
-reply-only locale can be chosen as a response language; the interface picker
-still lists only catalog locales. Adding an interface locale therefore requires
+locales plus reply-only Bengali, Burmese, Czech, Dutch, Finnish, Greek, Hindi,
+Hungarian, Italian, Korean, Romanian, Sinhala, Thai, Turkish, Ukrainian and
+Vietnamese. The contract is one-directional: every locale that `i18n.js` offers
+in the interface picker must have a prompt dictionary, but a prompt dictionary
+may exist without a UI dictionary (those sixteen today). A reply-only locale can be chosen as a response
+language; the interface picker still lists only catalog locales. Adding an interface locale therefore requires
 prompt coverage, while adding a prompt dictionary does not require translating
 the UI; `test_chat_prompts.cjs` enforces the direction and the explicit
 reply-only allowlist.
