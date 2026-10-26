@@ -199,9 +199,12 @@ function buildSystemPrompt(targetLanguageName, contextInfo, prompt = chatPromptT
     ? `\n\nExisting Conversation Summary: ${activeSummary.trim()}`
     : "";
 
+  const languageSetting = targetLanguageName
+    ? window.selectedLanguageCode
+    : "auto (match the language of the user's latest message)";
   const currentSettingsContext = `
 Current Application Settings:
-- Language: ${window.selectedLanguageCode}
+- Language: ${languageSetting}
 - Voice Enabled: ${window.enableVoice}
 - Current Voice: ${window.selectedVoiceId}
 - Auto TTS Language: ${window.enableAutoTtsLang}
@@ -225,6 +228,9 @@ Current Application Settings:
   // often non-English reply is what the small model kept getting wrong.
   const pictureRule = prompt('pictures', "You can draw pictures, including pictures of yourself (your avatar's appearance: %{appearance}). When the user asks for a picture, photo, selfie or drawing, a separate application operation attempts to draw it. An offer or returned URL is not confirmed delivery. Use application outcome notes as evidence: generated, loading, loaded in this browser, blocked, failed or interrupted. Browser load does not prove the person saw it, and you cannot inspect its contents. Do not invent successful sending or visibility; react in character without promising completion. Never write out the picture's description, tags or brackets yourself, and never turn a picture request down by saying you are an AI, have no body, or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.", { appearance: selfLook });
   const replyRule = prompt('plain', 'Respond with plain conversational dialogue only — one natural message that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.');
+  const languageReminder = targetLanguageName
+    ? prompt('reminder', 'Important: even if the user writes in another language or sends only a short message, reply only in %{language} — unless they explicitly ask you to switch.', { language: targetLanguageName })
+    : prompt('reminderAuto', "Important: reply only in the language of the user's latest message, even if it is short; never mix languages. Use English only if their language is unclear.");
 
   return `${languageRule}
 
@@ -233,7 +239,9 @@ ${contextInfo.join('\n\n')}
 
 ${pictureRule}
 
-${replyRule}`;
+${replyRule}
+
+${languageReminder}`;
 }
 
 // Legacy markers remain readable, but model context uses explicit application

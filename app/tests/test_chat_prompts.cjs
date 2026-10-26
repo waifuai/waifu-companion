@@ -56,8 +56,12 @@ test('reply-language selection overrides UI without changing it or requiring its
 test('auto localizes instructions to UI but continues to follow the latest message', async () => {
   const c = client('pt');
   const sys = (await c.buildChatMessages('Hola', 'en-US'))[0].content;
+  const t = c.ChatPrompts.forLanguage(null);
   assert.ok(sys.startsWith('Responda no idioma da mensagem mais recente'));
   assert.doesNotMatch(sys, /^Responda em /);
+  assert.match(sys, /- Language: auto \(match the language of the user's latest message\)/);
+  assert.doesNotMatch(sys, /- Language: en-US/);
+  assert.ok(sys.endsWith(t('reminderAuto')));
   assert.equal(c.WaifuI18n.locale, 'pt');
 });
 
@@ -68,7 +72,7 @@ test('every supported reply locale reaches the complete localized request', asyn
     const sys = (await c.buildChatMessages('Synthetic greeting', code))[0].content;
     assert.ok(sys.startsWith(t('fixed', '', { language: c.resolveTargetLanguageName(code) })), code);
     assert.ok(sys.includes(t('persona')), code);
-    assert.ok(sys.endsWith(t('plain')), code);
+    assert.ok(sys.endsWith(t('reminder', '', { language: c.resolveTargetLanguageName(code) })), code);
     assert.doesNotMatch(sys, /%\{\w+\}/, code);
   }
 });

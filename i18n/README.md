@@ -22,7 +22,12 @@ Companion's built-in chat prompt has authored translations for these 13 locales
 plus Bengali. An explicit reply-language selection chooses the prompt locale;
 the default automatic reply setting uses the interface locale for instructions
 while still asking for the language of the latest user message. Neither choice
-changes the other setting. Unsupported prompt languages use English instructions
+changes the other setting. Each prompt ends with a short reminder in the same
+locale: an explicit choice repeats the requested language even when the user
+writes in another language or sends only a few words, and automatic mode repeats
+the latest-message rule. The settings block labels automatic mode as `auto`
+instead of naming English, so it cannot be read as an English instruction.
+Unsupported prompt languages use English instructions
 that still name the requested reply language. Simplified Chinese instructions
 are not substituted for a Traditional Chinese choice. The bundle makes no
 translation request or model call; English instructions keep chat usable if it
