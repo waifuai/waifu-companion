@@ -33,8 +33,10 @@ personas, additional instructions, summaries, user background and avatar
 descriptions remain verbatim; saved text is never rewritten. Existing persona,
 summary and persistent-context field markers, settings keys and image-operation
 markers retain their English contract spelling. Image-description and other internal task
-prompts keep their own output contracts. Sprites has not adopted this prompt
-bundle; the interface runtime and dictionaries remain shared as before.
+prompts keep their own output contracts. Sprites vendors the same base prompt
+bundle and adds its own personas, emotion instructions and ambient translations
+in `waifu-sprites/prompt_translations.js`; its adoption is also local. The
+interface runtime and dictionaries remain shared as before.
 
 ## Companion notes (differences from the Sprites copy)
 
