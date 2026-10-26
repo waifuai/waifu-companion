@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 const { webcrypto } = require('node:crypto');
 
-function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocked = false, stallSpeech = null } = {}) {
+function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocked = false, stallSpeech = null, i18n = null } = {}) {
   const calls = [];
   const timers = new Set();
   const stalled = signal => new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(new Error('Aborted')), { once: true }));
@@ -19,7 +19,7 @@ function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocke
       ...storage(visitorStorage), KEYS: {}, getString: (_key, value) => value,
       getJSON: (_key, value) => value, getBoolean: (_key, value) => value
     },
-    URLSearchParams, FormData, Blob, AbortController, window: {},
+    URLSearchParams, FormData, Blob, AbortController, window: { WaifuI18n: i18n },
     setTimeout(fn, ms) { const timer = { fn, ms }; timers.add(timer); return timer; },
     clearTimeout(timer) { timers.delete(timer); },
     debugNet() {}, debugError() {},
@@ -148,3 +148,13 @@ test('decision transport preserves a long completed reply and bounds oversized e
     if(n===2600)assert.equal(state.reply,reply);
   }
 });
+
+ test('chat settings carry the interface snapshot; reply prompts and internal requests stay independent',async()=>{
+ const snapshot={interface_locale:'ja',interface_locale_preference:'auto',interface_locale_status:'ready',interface_locale_version:1};
+ const {api,calls}=client({i18n:{snapshot:()=>snapshot}});
+ await api.createCompletion({messages:[{role:'system',content:'- Language: English'},{role:'user',content:'Invented'}]});
+ const settings=JSON.parse(calls[0].body).client_settings;
+ for(const [key,value] of Object.entries(snapshot))assert.equal(settings[key],value);
+ await api.createCompletion({messages:[],purpose:'title'});
+ assert.equal(JSON.parse(calls[1].body).client_settings,undefined);
+ });

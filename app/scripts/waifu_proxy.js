@@ -63,6 +63,7 @@ function getClientSettings() {
   try {
     const S = AppStorage, K = AppStorage.KEYS;
     return {
+      ...(typeof window.WaifuI18n?.snapshot === 'function' ? window.WaifuI18n.snapshot() : {}),
       model: window.currentModelName || '',
       voice_primary: Boolean(window.enablePrimaryVoice),
       voice_kokoro: Boolean(window.enableKokoro),

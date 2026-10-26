@@ -370,6 +370,19 @@
     return activate(code);
   }
 
+  // Per-chat interface context. The reply-language setting is independent.
+  // A selected locale without its dictionary is unknown, even if html.lang
+  // already changed during bootstrap. Never guess it from conversation text.
+  function snapshot() {
+    var ready = !!(metas[current] && dicts[current]);
+    return {
+      interface_locale: ready ? current : 'unknown',
+      interface_locale_preference: !choice || choice === 'auto' ? 'auto' : (metas[choice] ? choice : 'unknown'),
+      interface_locale_status: ready ? 'ready' : 'dictionary_unavailable',
+      interface_locale_version: 1,
+    };
+  }
+
   function onChange(fn) {
     listeners.push(fn);
     return function () { listeners = listeners.filter(function (f) { return f !== fn; }); };
@@ -385,6 +398,7 @@
     locales: locales,
     localeInfo: localeInfo,
     dictionary: dictionary,
+    snapshot: snapshot,
     keys: keys,
     resolve: resolve,
     languageName: languageName,
