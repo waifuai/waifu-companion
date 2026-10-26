@@ -35,7 +35,7 @@ When the host blocks storage, chats and pictures remain usable in memory for
 that frame, but cannot survive a reload.
 
 The interface is localized by `i18n/` at the repository root (see
-`i18n/README.md`): 13 dictionaries selected from a saved choice, then the
+`i18n/README.md`): 29 dictionaries selected from a saved choice, then the
 browser's own language order, then English, with Arabic and Persian set to
 `dir="rtl"` before the first paint. The Interface language picker offers native
 names and is independent of the English-valued response-language dropdown, so
@@ -54,13 +54,19 @@ Send, Enter, IME input, blocked forms/storage, narrow layouts, resizing,
 settings, voice toggling, browser-driven interface language, saved-language
 persistence and reload, right-to-left mirroring, and full-app storage isolation.
 
-`test_chat_prompts.cjs` checks prompt/placeholder parity for the 13 interface
-locales and Bengali, reply/interface independence, automatic language following,
+`test_chat_prompts.cjs` checks prompt/placeholder parity for all 29 interface
+locales, reply/interface independence, automatic language following,
 custom prompt preservation, context localization and English fallback.
 `python app/tests/test_chat_prompts_browser.py` checks actual Send requests in
 the mobile-width full app and embedded app with inference mocked, including a
 failed prompt-bundle download. These checks establish request construction,
 not output-language accuracy or translation quality with real conversations.
+
+`python app/tests/test_locale_expansion_browser.py` checks all fifteen new
+locales plus Italian through the real interface picker in narrow full-app and
+embedded layouts, persistence across reload, first-visit detection and the
+device-language path after a saved choice. `test_locale_loading.cjs` covers
+unloaded and failed device-language downloads.
 
 Lifecycle regressions run with `python -m unittest discover -s app/tests -p
 'test_*.py' -v` (including the Player Card checks above). `test_turn_ownership.cjs`

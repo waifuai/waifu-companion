@@ -42,6 +42,21 @@
     { code: 'ms', tag: 'ms', name: 'Bahasa Melayu', englishName: 'Malay', dir: 'ltr' },
     { code: 'pl', tag: 'pl', name: 'Polski', englishName: 'Polish', dir: 'ltr' },
     { code: 'it', tag: 'it', name: 'Italiano', englishName: 'Italian', dir: 'ltr' },
+    { code: 'bn', tag: 'bn', name: 'বাংলা', englishName: 'Bengali', dir: 'ltr' },
+    { code: 'ko', tag: 'ko', name: '한국어', englishName: 'Korean', dir: 'ltr' },
+    { code: 'hi', tag: 'hi', name: 'हिन्दी', englishName: 'Hindi', dir: 'ltr' },
+    { code: 'tr', tag: 'tr', name: 'Türkçe', englishName: 'Turkish', dir: 'ltr' },
+    { code: 'vi', tag: 'vi', name: 'Tiếng Việt', englishName: 'Vietnamese', dir: 'ltr' },
+    { code: 'uk', tag: 'uk', name: 'Українська', englishName: 'Ukrainian', dir: 'ltr' },
+    { code: 'cs', tag: 'cs', name: 'Čeština', englishName: 'Czech', dir: 'ltr' },
+    { code: 'th', tag: 'th', name: 'ไทย', englishName: 'Thai', dir: 'ltr' },
+    { code: 'nl', tag: 'nl', name: 'Nederlands', englishName: 'Dutch', dir: 'ltr' },
+    { code: 'el', tag: 'el', name: 'Ελληνικά', englishName: 'Greek', dir: 'ltr' },
+    { code: 'ro', tag: 'ro', name: 'Română', englishName: 'Romanian', dir: 'ltr' },
+    { code: 'hu', tag: 'hu', name: 'Magyar', englishName: 'Hungarian', dir: 'ltr' },
+    { code: 'fi', tag: 'fi', name: 'Suomi', englishName: 'Finnish', dir: 'ltr' },
+    { code: 'my', tag: 'my', name: 'မြန်မာဘာသာ', englishName: 'Myanmar (Burmese)', dir: 'ltr' },
+    { code: 'si', tag: 'si', name: 'සිංහල', englishName: 'Sinhala (Sinhalese)', dir: 'ltr' },
   ];
 
   // Legacy tags that do not reduce to a supported base language. Filipino and
@@ -53,7 +68,7 @@
   // Endonyms for the reply-language list. The English name is the value the
   // app sends in the system prompt; the label the visitor sees is the language's
   // own name, the same in every interface language, so it lives here as
-  // metadata instead of in all thirteen dictionaries.
+  // metadata instead of in every interface dictionary.
   var ENDONYMS = {
     'Arabic': 'العربية', 'Bengali': 'বাংলা', 'Chinese (Simplified)': '简体中文',
     'Chinese (Traditional)': '繁體中文', 'Czech': 'Čeština', 'Dutch': 'Nederlands',
@@ -336,8 +351,7 @@
     var auto = !code || code === 'auto';
     choice = auto ? 'auto' : code;
     if (opts.persist !== false) writeSaved(auto ? 'auto' : code);
-    if (auto) return Promise.resolve(activate(detect()));
-    var target = resolve(code) || code;
+    var target = auto ? detect() : (resolve(code) || code);
     return ensure(target).then(function (ready) {
       if (ready === target || dicts[target]) return activate(target);
       return current;

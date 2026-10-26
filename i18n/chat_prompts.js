@@ -1,11 +1,5 @@
 /* Built-in chat instructions. Reply language and interface language remain independent.
- * Locale contract: every interface locale (i18n.js CATALOG) must have a dictionary
- * here, but a dictionary may be reply-only. Bengali, Burmese, Czech, Dutch, Finnish,
- * Greek, Hindi, Hungarian, Korean, Romanian, Sinhala, Thai, Turkish, Ukrainian
- * and Vietnamese are reply-only today: they can be chosen as a reply language
- * and have authored
- * instructions, while the interface picker offers only the catalog locales.
- * Tests enforce that direction.
+ * All 29 interface locales in i18n.js CATALOG have a dictionary here.
  * User-authored personas, memories and avatar descriptions are never translated here.
  * This bundle is local data: selecting a language makes no network or model request.
  */

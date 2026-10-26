@@ -42,7 +42,7 @@ test('catalog and dictionary files line up', () => {
   const files = readdirSync(LOCALES_DIR).filter(f => f.endsWith('.js')).map(f => f.slice(0, -3)).sort();
   const codes = I18n.locales().map(m => m.code).sort();
   assert.deepEqual(files, codes);
-  assert.equal(codes.length, 14);
+  assert.equal(codes.length, 29);
   for (const code of codes) assert.ok(I18n.dictionary(code), 'dictionary for ' + code);
 });
 
@@ -174,8 +174,8 @@ test('every markup key resolves and none needs interpolated parameters', () => {
 });
 
 test('every key the app scripts request resolves in the English dictionary', () => {
-  // A tr()/t() key that is not in en.js would silently stay English in all 12
-  // translated locales, because the runtime falls back to the inline literal.
+  // A tr()/t() key that is not in en.js would silently stay English in translated
+  // locales, because the runtime falls back to the inline literal.
   const dir = path.join(APP_DIR, 'scripts');
   const en = I18n.dictionary('en');
   const orphans = new Map();
@@ -247,4 +247,64 @@ test('brand names in the source strings survive translation', () => {
       }
     }
   }
+});
+
+const EXPANDED_LOCALES = ['bn', 'ko', 'hi', 'tr', 'vi', 'uk', 'cs', 'th', 'nl', 'el', 'ro', 'hu', 'fi', 'my', 'si'];
+
+test('new interface locales detect regional browser preferences and keep native names', () => {
+  const regions = { bn: 'BD', ko: 'KR', hi: 'IN', tr: 'TR', vi: 'VN', uk: 'UA',
+    cs: 'CZ', th: 'TH', nl: 'NL', el: 'GR', ro: 'RO', hu: 'HU', fi: 'FI', my: 'MM', si: 'LK' };
+  for (const code of [...EXPANDED_LOCALES, 'it']) {
+    const tag = code + '-' + (regions[code] || 'IT');
+    assert.equal(I18n.resolve(tag), code, tag);
+    assert.equal(I18n.detect(['xx-YY', tag, 'en-US']), code, tag);
+    const meta = I18n.localeInfo(code);
+    assert.equal(meta.dir, 'ltr', code);
+    assert.equal(I18n.languageName(meta.englishName), meta.name, code);
+  }
+});
+
+test('new dictionaries preserve entry types, each plural placeholder, HTML and brand tokens', () => {
+  const en = I18n.dictionary('en');
+  const tokens = value => String(value).match(/%\{\w+\}/g)?.sort() || [];
+  const tags = value => String(value).match(/<\/?[a-zA-Z][^>]*>/g) || [];
+  const brands = ['WaifuAI Cloud', 'WaifuAI', 'OpenRouter', 'Groq', 'Kokoro', 'Live2D', 'TikTok', 'Player Card', 'LISTEN.moe', '/image'];
+  for (const code of EXPANDED_LOCALES) {
+    const dict = I18n.dictionary(code);
+    const categories = new Intl.PluralRules(I18n.localeInfo(code).tag).resolvedOptions().pluralCategories;
+    for (const [key, source] of Object.entries(en)) {
+      const entry = dict[key];
+      assert.equal(typeof entry, typeof source, code + ':' + key);
+      if (typeof source === 'object') {
+        for (const category of categories) assert.equal(typeof entry[category], 'string', code + ':' + key + ':' + category);
+      }
+      const reference = typeof source === 'string' ? source : source.other;
+      for (const translated of typeof entry === 'string' ? [entry] : Object.values(entry)) {
+        assert.ok(typeof translated === 'string' && translated.trim(), code + ':' + key);
+        assert.ok(!translated.includes('\uFFFD'), code + ':' + key + ' has a replacement character');
+        assert.deepEqual(tokens(translated), tokens(reference), code + ':' + key + ' placeholders');
+        assert.deepEqual(tags(translated), tags(reference), code + ':' + key + ' HTML');
+        for (const brand of brands.filter(brand => reference.includes(brand))) {
+          assert.ok(translated.includes(brand), code + ':' + key + ' must keep ' + brand);
+        }
+      }
+    }
+  }
+});
+
+test('new locale plural forms render counts without unresolved placeholders', async () => {
+  const en = I18n.dictionary('en');
+  const pluralKeys = Object.keys(en).filter(key => typeof en[key] === 'object');
+  for (const code of EXPANDED_LOCALES) {
+    await I18n.setLocale(code);
+    const rules = new Intl.PluralRules(I18n.localeInfo(code).tag);
+    for (const key of pluralKeys) {
+      const entry = I18n.dictionary(code)[key];
+      for (const count of [0, 1, 2, 3, 5, 11, 21, 22, 25, 101, 1.5, 1000000]) {
+        const expected = entry[rules.select(count)].replace(/%\{count\}/g, String(count));
+        assert.equal(I18n.t(key, { count }), expected, code + ':' + key + ':' + count);
+      }
+    }
+  }
+  await I18n.setLocale('en');
 });

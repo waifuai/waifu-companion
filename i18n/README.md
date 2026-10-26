@@ -6,8 +6,9 @@ plain `<script>` tags and hand-written dictionaries: no build step, no webfont,
 no CDN.
 
 Waifu Sprites wrote it; **Waifu Companion is the second consumer and vendors the
-same files here** so the two dictionaries stay line-for-line comparable for
-translators. `i18n/i18n.js` is byte-identical to
+same runtime and catalog here**. Each app has complete dictionaries matching
+its own English key set, with consistent translations for shared text.
+`i18n/i18n.js` is byte-identical to
 `waifuai.github.io/i18n/i18n.js`.
 
 | File | Role |
@@ -18,16 +19,15 @@ translators. `i18n/i18n.js` is byte-identical to
 | `i18n/locales/<code>.js` | One dictionary per locale. |
 | `i18n/chat_prompts.js` | Built-in chat instructions, separate from interface dictionaries and custom text. |
 
-Companion's built-in chat prompt has authored translations for all 14 interface
-locales plus reply-only Bengali, Burmese, Czech, Dutch, Finnish, Greek, Hindi,
-Hungarian, Korean, Romanian, Sinhala, Thai, Turkish, Ukrainian and Vietnamese.
-The contract is one-directional: every locale that `i18n.js` offers in the
-interface picker must have a prompt dictionary, but a prompt dictionary may
-exist without a UI dictionary (those fifteen today). A reply-only locale can be chosen as a response
-language; the interface picker still lists only catalog locales. Adding an interface locale therefore requires
-prompt coverage, while adding a prompt dictionary does not require translating
-the UI; `test_chat_prompts.cjs` enforces the direction and the explicit
-reply-only allowlist.
+Companion's built-in chat prompt and full interface have authored translations
+for all 29 catalog locales: English, Arabic, Spanish, Brazilian Portuguese,
+French, Russian, Japanese, Simplified Chinese, Persian, German, Indonesian,
+Malay, Polish, Italian, Bengali, Korean, Hindi, Turkish, Vietnamese, Ukrainian,
+Czech, Thai, Dutch, Greek, Romanian, Hungarian, Finnish, Burmese and Sinhala.
+Every interface locale must have a UI dictionary and prompt instructions. All
+current prompt languages are full interface locales. A future reply-only prompt
+must be explicitly listed in `test_chat_prompts.cjs`'s `REPLY_ONLY_PROMPTS`; the
+test enforces coverage.
 
 An explicit reply-language selection chooses the prompt locale. The default
 automatic reply setting is the `en-US` entry, labelled "Your language" in the
@@ -112,6 +112,13 @@ tags reduce to the base locale (`es-MX`→`es`, `pt-PT`→`pt`, `zh-TW`→`zh`,
 that table: the response picker supports them, but without a Filipino interface
 dictionary they fall through to the next browser language instead of showing
 Indonesian.
+
+The picker lists all 29 catalog locales plus the device-language option.
+`python app/tests/test_locale_expansion_browser.py` checks every new locale
+and Italian in narrow full-app and embedded layouts, saved-choice reloads,
+new-language startup, and device-language loading after a saved choice. Inference
+is mocked. `test_locale_loading.cjs` also covers a failed dictionary download;
+the working interface remains active.
 
 ## Adding a language
 
