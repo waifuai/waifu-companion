@@ -42,7 +42,7 @@ test('catalog and dictionary files line up', () => {
   const files = readdirSync(LOCALES_DIR).filter(f => f.endsWith('.js')).map(f => f.slice(0, -3)).sort();
   const codes = I18n.locales().map(m => m.code).sort();
   assert.deepEqual(files, codes);
-  assert.equal(codes.length, 13);
+  assert.equal(codes.length, 14);
   for (const code of codes) assert.ok(I18n.dictionary(code), 'dictionary for ' + code);
 });
 

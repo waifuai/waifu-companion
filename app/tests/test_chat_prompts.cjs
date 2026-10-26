@@ -27,7 +27,7 @@ const placeholders = s => [...s.matchAll(/%\{(\w+)\}/g)].map(m => m[1]).sort();
 // locales: they can be selected as a reply language, but the UI picker does not
 // list them. Keep this explicit so a new interface locale cannot ship without
 // prompt coverage, and a new reply-only prompt cannot appear by accident.
-const REPLY_ONLY_PROMPTS = ['bn', 'cs', 'el', 'fi', 'hi', 'hu', 'it', 'ko', 'my', 'nl', 'ro', 'si', 'th', 'tr', 'uk', 'vi'];
+const REPLY_ONLY_PROMPTS = ['bn', 'cs', 'el', 'fi', 'hi', 'hu', 'ko', 'my', 'nl', 'ro', 'si', 'th', 'tr', 'uk', 'vi'];
 
 test('every interface locale has complete prompt and placeholder parity', () => {
   const c = client(), dicts = c.ChatPrompts.dictionaries;

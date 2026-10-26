@@ -41,6 +41,7 @@
     { code: 'id', tag: 'id', name: 'Bahasa Indonesia', englishName: 'Indonesian', dir: 'ltr' },
     { code: 'ms', tag: 'ms', name: 'Bahasa Melayu', englishName: 'Malay', dir: 'ltr' },
     { code: 'pl', tag: 'pl', name: 'Polski', englishName: 'Polish', dir: 'ltr' },
+    { code: 'it', tag: 'it', name: 'Italiano', englishName: 'Italian', dir: 'ltr' },
   ];
 
   // Legacy tags that do not reduce to a supported base language. Filipino and

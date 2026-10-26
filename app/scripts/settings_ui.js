@@ -458,7 +458,7 @@ function populateLanguageSelector() {
 }
 
 // The Interface language picker is a separate list from the response-language
-// dropdown above: 13 hand-written dictionaries plus "Use device language".
+// dropdown above: the catalog's hand-written dictionaries plus "Use device language".
 function populateInterfaceLanguageSelector() {
   const api = window.WaifuI18n;
   const select = document.getElementById('interfaceLanguageSelector');
