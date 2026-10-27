@@ -2,7 +2,7 @@
 
 A tiny, dependency-free runtime that shows every visitor their own language on
 the first paint, with no flash of English and no per-visit model call. It is
-plain `<script>` tags and hand-written dictionaries: no build step, no webfont,
+plain `<script>` tags and local dictionaries: no build step, no webfont,
 no CDN.
 
 Waifu Sprites wrote it; **Waifu Companion is the second consumer and vendors the
@@ -20,10 +20,10 @@ its own English key set, with consistent translations for shared text.
 | `i18n/chat_prompts.js` | Built-in chat instructions, separate from interface dictionaries and custom text. |
 
 Companion's built-in chat prompt and full interface have authored translations
-for all 29 catalog locales: English, Arabic, Spanish, Brazilian Portuguese,
+for all 33 catalog locales: English, Arabic, Spanish, Brazilian Portuguese,
 French, Russian, Japanese, Simplified Chinese, Persian, German, Indonesian,
 Malay, Polish, Italian, Bengali, Korean, Hindi, Turkish, Vietnamese, Ukrainian,
-Czech, Thai, Dutch, Greek, Romanian, Hungarian, Finnish, Burmese and Sinhala.
+Czech, Thai, Dutch, Greek, Romanian, Hungarian, Finnish, Burmese, Sinhala, Urdu, Filipino, Tamil and Uzbek.
 Every interface locale must have a UI dictionary and prompt instructions. All
 current prompt languages are full interface locales. A future reply-only prompt
 must be explicitly listed in `test_chat_prompts.cjs`'s `REPLY_ONLY_PROMPTS`; the
@@ -108,12 +108,9 @@ interface runtime and dictionaries remain shared as before.
 First match wins: a saved choice (`localStorage`, per app) → `navigator.languages`
 in the visitor's own order → `navigator.language` → English. Regional and legacy
 tags reduce to the base locale (`es-MX`→`es`, `pt-PT`→`pt`, `zh-TW`→`zh`,
-`in`→`id`, …). Filipino and Tagalog (`tl`, `fil`) are deliberately absent from
-that table: the response picker supports them, but without a Filipino interface
-dictionary they fall through to the next browser language instead of showing
-Indonesian.
+`in`→`id`, …). Tagalog (`tl`) resolves to the Filipino (`fil`) dictionary.
 
-The picker lists all 29 catalog locales plus the device-language option.
+The picker lists all 33 catalog locales plus the device-language option.
 `python app/tests/test_locale_expansion_browser.py` checks every new locale
 and Italian in narrow full-app and embedded layouts, saved-choice reloads,
 new-language startup, and device-language loading after a saved choice. Inference
@@ -156,3 +153,5 @@ dictionary and must be listed in that test's `REPLY_ONLY_PROMPTS`.
   machine-readable keys as part of interface localization.
 - Numbers stay Latin digits with no grouping, so size reports like
   `32 KiB` and `N / 32768 bytes` are identical in every language.
+
+The Urdu, Filipino, Tamil and Uzbek interface dictionaries and some prompt translations use machine translation; native-speaker review remains pending.

@@ -57,13 +57,14 @@
     { code: 'fi', tag: 'fi', name: 'Suomi', englishName: 'Finnish', dir: 'ltr' },
     { code: 'my', tag: 'my', name: 'မြန်မာဘာသာ', englishName: 'Myanmar (Burmese)', dir: 'ltr' },
     { code: 'si', tag: 'si', name: 'සිංහල', englishName: 'Sinhala (Sinhalese)', dir: 'ltr' },
+    { code: 'ur', tag: 'ur', name: 'اردو', englishName: 'Urdu', dir: 'rtl' },
+    { code: 'fil', tag: 'fil', name: 'Filipino', englishName: 'Filipino', dir: 'ltr' },
+    { code: 'ta', tag: 'ta', name: 'தமிழ்', englishName: 'Tamil', dir: 'ltr' },
+    { code: 'uz', tag: 'uz', name: 'Oʻzbek tili', englishName: 'Uzbek', dir: 'ltr' },
   ];
 
-  // Legacy tags that do not reduce to a supported base language. Filipino and
-  // Tagalog have reply-language support but no interface dictionary, so they
-  // deliberately fall through to the next browser language (usually English);
-  // mapping tl/fil to Indonesian would show the wrong interface.
-  var ALIASES = { in: 'id' };
+  // Legacy Indonesian and Tagalog tags resolve to their matching interface.
+  var ALIASES = { in: 'id', tl: 'fil' };
 
   // Endonyms for the reply-language list. The English name is the value the
   // app sends in the system prompt; the label the visitor sees is the language's
@@ -72,7 +73,7 @@
   var ENDONYMS = {
     'Arabic': 'العربية', 'Bengali': 'বাংলা', 'Chinese (Simplified)': '简体中文',
     'Chinese (Traditional)': '繁體中文', 'Czech': 'Čeština', 'Dutch': 'Nederlands',
-    'English': 'English', 'Filipino': 'Filipino', 'Finnish': 'Suomi', 'French': 'Français',
+    'English': 'English', 'Filipino': 'Filipino', 'Filipino (Tagalog)': 'Filipino', 'Finnish': 'Suomi', 'French': 'Français',
     'German': 'Deutsch', 'Greek': 'Ελληνικά', 'Hebrew': 'עברית', 'Hindi': 'हिन्दी',
     'Hungarian': 'Magyar', 'Indonesian': 'Bahasa Indonesia', 'Italian': 'Italiano',
     'Japanese': '日本語', 'Korean': '한국어', 'Malay': 'Bahasa Melayu',
@@ -81,7 +82,7 @@
     'Romanian': 'Română', 'Russian': 'Русский', 'Sinhala (Sinhalese)': 'සිංහල',
     'Spanish': 'Español', 'Swedish': 'Svenska',
     'Tamil': 'தமிழ்', 'Thai': 'ไทย', 'Turkish': 'Türkçe', 'Ukrainian': 'Українська',
-    'Urdu': 'اردو', 'Vietnamese': 'Tiếng Việt',
+    'Urdu': 'اردو', 'Uzbek': 'Oʻzbek tili', 'Vietnamese': 'Tiếng Việt',
   };
 
   /** The native name of a reply language, or the given name when unknown. */
@@ -152,8 +153,9 @@
     if (resolved[norm]) return resolved[norm];
     if (ALIASES[norm]) norm = ALIASES[norm];
     var found = byTag(norm);
-    if (!found) found = byTag(norm.split('-')[0]);
-    if (!found) found = byBase(norm.split('-')[0]);
+    var base = norm.split('-')[0];
+    if (!found) found = byTag(ALIASES[base] || base);
+    if (!found) found = byBase(ALIASES[base] || base);
     if (found) resolved[normalize(tag)] = found;
     return found;
   }

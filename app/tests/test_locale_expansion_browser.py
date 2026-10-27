@@ -2,7 +2,7 @@
 import unittest
 import test_player_card as fixtures
 
-EXPANDED = ['bn', 'ko', 'hi', 'tr', 'vi', 'uk', 'cs', 'th', 'nl', 'el', 'ro', 'hu', 'fi', 'my', 'si']
+EXPANDED = ['bn', 'ko', 'hi', 'tr', 'vi', 'uk', 'cs', 'th', 'nl', 'el', 'ro', 'hu', 'fi', 'my', 'ur', 'fil', 'ta', 'uz', 'si']
 
 
 class LocaleExpansionTests(unittest.TestCase):
@@ -42,7 +42,7 @@ class LocaleExpansionTests(unittest.TestCase):
                 frame.locator('[data-submenu="group-language"]').click()
                 frame.locator('#languageSelector').select_option('es-ES')
                 values = frame.locator('#interfaceLanguageSelector option').evaluate_all('els => els.map(el => el.value)')
-                self.assertEqual(len(values), 30)
+                self.assertEqual(len(values), 34)
                 for code in ['it', *EXPANDED]:
                     with self.subTest(locale=code):
                         self.assertIn(code, values)
@@ -52,7 +52,7 @@ class LocaleExpansionTests(unittest.TestCase):
                                          frame.evaluate("code => WaifuI18n.dictionary(code)['chat.inputPlaceholder']", code))
                         self.assertEqual(frame.locator('#languageSelector').input_value(), 'es-ES')
                         self.assertEqual(frame.evaluate('window.selectedLanguageCode'), 'es-ES')
-                        self.assertEqual(frame.evaluate('document.documentElement.dir'), 'ltr')
+                        self.assertEqual(frame.evaluate('document.documentElement.dir'), 'rtl' if code == 'ur' else 'ltr')
                         self.assertTrue(frame.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'))
                 key = 'waifu_x_interfaceLanguage' if embed else 'interfaceLanguage'
                 self.assertEqual(frame.evaluate('key => localStorage.getItem(key)', key), 'si')
@@ -61,6 +61,18 @@ class LocaleExpansionTests(unittest.TestCase):
                 self.assertEqual(frame.evaluate('WaifuI18n.locale'), 'si')
                 self.assertEqual(frame.get_attribute('#messageInput', 'placeholder'),
                                  frame.evaluate("WaifuI18n.dictionary('si')['chat.inputPlaceholder']"))
+        self.assertFalse(self.calls)
+        self.assertFalse(self.errors, self.errors)
+
+    def test_tagalog_browser_locale_starts_as_filipino(self):
+        self.set_browser_languages('tl-PH')
+        self.context.add_init_script("document.addEventListener('DOMContentLoaded', () => window.__langAtReady = document.documentElement.lang, {once:true})")
+        frame = self.open_app(width=390, height=760, embed=False)
+        self.assertEqual(frame.evaluate('window.__langAtReady'), 'fil')
+        self.assertEqual(frame.evaluate('WaifuI18n.locale'), 'fil')
+        self.assertEqual(frame.evaluate('document.documentElement.dir'), 'ltr')
+        self.assertEqual(frame.get_attribute('#messageInput', 'placeholder'),
+                         frame.evaluate("WaifuI18n.dictionary('fil')['chat.inputPlaceholder']"))
         self.assertFalse(self.calls)
         self.assertFalse(self.errors, self.errors)
 

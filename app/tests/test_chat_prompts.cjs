@@ -152,3 +152,10 @@ test('chat prompt bundle loads before prompt construction in the shipped page', 
   const html = fs.readFileSync(path.join(root, 'app/index.html'), 'utf8');
   assert.ok(html.indexOf('../i18n/chat_prompts.js') < html.indexOf('scripts/ai_interface.js'));
 });
+
+test('new reply languages and Tagalog tags select their prompt locale', () => {
+  const c = client();
+  for (const [language, code] of [['Urdu','ur'], ['Filipino','fil'], ['Filipino (Tagalog)','fil'], ['tl-PH','fil'], ['Tamil','ta'], ['Uzbek','uz']]) {
+    assert.equal(c.ChatPrompts.forLanguage(language).locale, code, language);
+  }
+});

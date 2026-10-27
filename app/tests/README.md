@@ -35,8 +35,8 @@ When the host blocks storage, chats and pictures remain usable in memory for
 that frame, but cannot survive a reload.
 
 The interface is localized by `i18n/` at the repository root (see
-`i18n/README.md`): 29 dictionaries selected from a saved choice, then the
-browser's own language order, then English, with Arabic and Persian set to
+`i18n/README.md`): 33 dictionaries selected from a saved choice, then the
+browser's own language order, then English, with Arabic, Persian and Urdu set to
 `dir="rtl"` before the first paint. The Interface language picker offers native
 names and is independent of the English-valued response-language dropdown, so
 switching the interface never changes the reply-language setting. Built-in chat
@@ -54,7 +54,7 @@ Send, Enter, IME input, blocked forms/storage, narrow layouts, resizing,
 settings, voice toggling, browser-driven interface language, saved-language
 persistence and reload, right-to-left mirroring, and full-app storage isolation.
 
-`test_chat_prompts.cjs` checks prompt/placeholder parity for all 29 interface
+`test_chat_prompts.cjs` checks prompt/placeholder parity for all 33 interface
 locales, reply/interface independence, automatic language following,
 custom prompt preservation, context localization and English fallback.
 `python app/tests/test_chat_prompts_browser.py` checks actual Send requests in

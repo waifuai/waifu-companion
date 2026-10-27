@@ -42,7 +42,7 @@ test('catalog and dictionary files line up', () => {
   const files = readdirSync(LOCALES_DIR).filter(f => f.endsWith('.js')).map(f => f.slice(0, -3)).sort();
   const codes = I18n.locales().map(m => m.code).sort();
   assert.deepEqual(files, codes);
-  assert.equal(codes.length, 29);
+  assert.equal(codes.length, 33);
   for (const code of codes) assert.ok(I18n.dictionary(code), 'dictionary for ' + code);
 });
 
@@ -95,12 +95,10 @@ test('regional and legacy tags reduce to the supported base locale', () => {
   for (const [tag, code] of Object.entries(table)) {
     assert.equal(I18n.resolve(tag), code, tag);
   }
-  // Filipino and Tagalog have no interface dictionary. They must fall through
-  // to the visitor's next language, never to Indonesian (the old alias).
-  assert.equal(I18n.resolve('tl-PH'), null);
-  assert.equal(I18n.resolve('fil'), null);
-  assert.equal(I18n.detect(['fil-PH', 'en-US']), 'en');
-  assert.equal(I18n.detect(['tl']), 'en');
+  assert.equal(I18n.resolve('tl-PH'), 'fil');
+  assert.equal(I18n.resolve('fil'), 'fil');
+  assert.equal(I18n.detect(['fil-PH', 'en-US']), 'fil');
+  assert.equal(I18n.detect(['tl']), 'fil');
   // An unknown stored value (the card test seeds 'zz-test') must never throw.
   assert.equal(I18n.resolve('xx-YY'), null);
   assert.equal(I18n.resolve('zz-test'), null);
@@ -249,17 +247,17 @@ test('brand names in the source strings survive translation', () => {
   }
 });
 
-const EXPANDED_LOCALES = ['bn', 'ko', 'hi', 'tr', 'vi', 'uk', 'cs', 'th', 'nl', 'el', 'ro', 'hu', 'fi', 'my', 'si'];
+const EXPANDED_LOCALES = ['bn', 'ko', 'hi', 'tr', 'vi', 'uk', 'cs', 'th', 'nl', 'el', 'ro', 'hu', 'fi', 'my', 'ur', 'fil', 'ta', 'uz', 'si'];
 
 test('new interface locales detect regional browser preferences and keep native names', () => {
   const regions = { bn: 'BD', ko: 'KR', hi: 'IN', tr: 'TR', vi: 'VN', uk: 'UA',
-    cs: 'CZ', th: 'TH', nl: 'NL', el: 'GR', ro: 'RO', hu: 'HU', fi: 'FI', my: 'MM', si: 'LK' };
+    cs: 'CZ', th: 'TH', nl: 'NL', el: 'GR', ro: 'RO', hu: 'HU', fi: 'FI', my: 'MM', ur: 'PK', fil: 'PH', ta: 'IN', uz: 'UZ', si: 'LK' };
   for (const code of [...EXPANDED_LOCALES, 'it']) {
     const tag = code + '-' + (regions[code] || 'IT');
     assert.equal(I18n.resolve(tag), code, tag);
     assert.equal(I18n.detect(['xx-YY', tag, 'en-US']), code, tag);
     const meta = I18n.localeInfo(code);
-    assert.equal(meta.dir, 'ltr', code);
+    assert.equal(meta.dir, code === 'ur' ? 'rtl' : 'ltr', code);
     assert.equal(I18n.languageName(meta.englishName), meta.name, code);
   }
 });
