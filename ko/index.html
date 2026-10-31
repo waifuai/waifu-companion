@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaifuAI — 무료 AI 와이후 채팅 (한국어)</title>
+    <meta name="description" content="한국어로 대화하는 AI 와이후: 성격과 기억이 있는 대화, Live2D로 움직이는 애니메이션 캐릭터, 목소리로 읽어 주는 답변까지. 무료, 회원가입 없이 브라우저에서 바로.">
+    <link rel="canonical" href="https://waifuai.com/ko/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://waifuai.com/ko/">
+    <meta property="og:title" content="WaifuAI — 무료 AI 와이후 채팅 (한국어)">
+    <meta property="og:description" content="한국어로 대화하는 AI 와이후: 성격과 기억이 있는 대화, Live2D로 움직이는 애니메이션 캐릭터, 목소리로 읽어 주는 답변까지. 무료, 회원가입 없이 브라우저에서 바로.">
+    <meta property="og:image" content="https://waifuai.com/assets/og-cover.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="WaifuAI">
+    <meta property="og:locale" content="ko_KR">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="WaifuAI — 무료 AI 와이후 채팅 (한국어)">
+    <meta name="twitter:description" content="한국어로 대화하는 AI 와이후: 성격과 기억이 있는 대화, Live2D로 움직이는 애니메이션 캐릭터, 목소리로 읽어 주는 답변까지. 무료, 회원가입 없이 브라우저에서 바로.">
+    <meta name="twitter:image" content="https://waifuai.com/assets/og-cover.jpg">
+
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    <link rel="alternate" hreflang="en" href="https://waifuai.com/">
+    <link rel="alternate" hreflang="ar" href="https://waifuai.com/ar/">
+    <link rel="alternate" hreflang="bn" href="https://waifuai.com/bn/">
+    <link rel="alternate" hreflang="cs" href="https://waifuai.com/cs/">
+    <link rel="alternate" hreflang="de" href="https://waifuai.com/de/">
+    <link rel="alternate" hreflang="el" href="https://waifuai.com/el/">
+    <link rel="alternate" hreflang="es" href="https://waifuai.com/es/">
+    <link rel="alternate" hreflang="fa" href="https://waifuai.com/fa/">
+    <link rel="alternate" hreflang="fi" href="https://waifuai.com/fi/">
+    <link rel="alternate" hreflang="fil" href="https://waifuai.com/fil/">
+    <link rel="alternate" hreflang="tl" href="https://waifuai.com/fil/">
+    <link rel="alternate" hreflang="fr" href="https://waifuai.com/fr/">
+    <link rel="alternate" hreflang="hi" href="https://waifuai.com/hi/">
+    <link rel="alternate" hreflang="hu" href="https://waifuai.com/hu/">
+    <link rel="alternate" hreflang="id" href="https://waifuai.com/id/">
+    <link rel="alternate" hreflang="it" href="https://waifuai.com/it/">
+    <link rel="alternate" hreflang="ja" href="https://waifuai.com/ja/">
+    <link rel="alternate" hreflang="ko" href="https://waifuai.com/ko/">
+    <link rel="alternate" hreflang="ms" href="https://waifuai.com/ms/">
+    <link rel="alternate" hreflang="my" href="https://waifuai.com/my/">
+    <link rel="alternate" hreflang="nl" href="https://waifuai.com/nl/">
+    <link rel="alternate" hreflang="pl" href="https://waifuai.com/pl/">
+    <link rel="alternate" hreflang="pt" href="https://waifuai.com/pt/">
+    <link rel="alternate" hreflang="pt-BR" href="https://waifuai.com/pt/">
+    <link rel="alternate" hreflang="ro" href="https://waifuai.com/ro/">
+    <link rel="alternate" hreflang="ru" href="https://waifuai.com/ru/">
+    <link rel="alternate" hreflang="si" href="https://waifuai.com/si/">
+    <link rel="alternate" hreflang="ta" href="https://waifuai.com/ta/">
+    <link rel="alternate" hreflang="th" href="https://waifuai.com/th/">
+    <link rel="alternate" hreflang="tr" href="https://waifuai.com/tr/">
+    <link rel="alternate" hreflang="uk" href="https://waifuai.com/uk/">
+    <link rel="alternate" hreflang="ur" href="https://waifuai.com/ur/">
+    <link rel="alternate" hreflang="uz" href="https://waifuai.com/uz/">
+    <link rel="alternate" hreflang="vi" href="https://waifuai.com/vi/">
+    <link rel="alternate" hreflang="zh" href="https://waifuai.com/zh/">
+    <link rel="alternate" hreflang="zh-CN" href="https://waifuai.com/zh/">
+    <link rel="alternate" hreflang="x-default" href="https://waifuai.com/">
+
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "WaifuAI",
+    "url": "https://waifuai.com/ko/",
+    "description": "한국어로 대화하는 AI 와이후: 성격과 기억이 있는 대화, Live2D로 움직이는 애니메이션 캐릭터, 목소리로 읽어 주는 답변까지. 무료, 회원가입 없이 브라우저에서 바로.",
+    "inLanguage": "ko",
+    "applicationCategory": "EntertainmentApplication",
+    "operatingSystem": "Web",
+    "image": "https://waifuai.com/assets/og-cover.jpg",
+    "screenshot": "https://waifuai.com/assets/og-cover.jpg",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    },
+    "author": {
+        "@type": "Organization",
+        "name": "WaifuAI",
+        "url": "https://waifuai.com/"
+    }
+}
+    </script>
+
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "WaifuAI는 무료인가요?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "네. WaifuAI는 무료이며 MIT-0 라이선스 오픈 소스입니다. 호스팅 버전에는 무료 AI 모델과 무료 음성이 포함되어 있어 지불할 것도, 끝나는 체험 기간도 없습니다."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "계정을 만들어야 하나요?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "아니요. 이메일도, 비밀번호도, 로그인도 없습니다. 앱을 열고 바로 대화를 시작하세요. 대화와 설정은 당신의 브라우저에 저장됩니다."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "한국어로 말하나요?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "네. 한국어로 쓰면 한국어로 답하고, 답변을 한국어 음성으로 읽어 줄 수도 있습니다. 다른 여러 언어 음성도 준비되어 있습니다."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "휴대폰에서 되나요?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "네. 모바일 브라우저에서 작은 화면에 맞춘 레이아웃으로 열립니다. Android나 iOS에 앱을 설치할 필요가 없습니다."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "우리 대화를 기억하나요?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "네. 대화 기억과 맞춤 가능한 성격을 유지해서 세션이 바뀌어도 같은 사람으로 남습니다. 모든 것은 서버가 아닌 당신의 브라우저에 있습니다."
+            }
+        }
+    ]
+}
+    </script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        .top {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 1.25rem 1.25rem 0;
+        }
+        .top a { color: #8b9bd4; text-decoration: none; font-size: .95rem; font-weight: 700; }
+        .top a:hover { text-decoration: underline; }
+        [dir="rtl"] .top .arrow { display: inline-block; transform: scaleX(-1); }
+        .hero {
+            text-align: center;
+            padding: 2rem 1.25rem 1.5rem;
+            max-width: 760px;
+            margin: 0 auto;
+        }
+        .hero h1 {
+            font-size: 2.2rem;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #ff6b9d, #c084fc, #60a5fa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: #c084fc;
+            margin-bottom: 0.75rem;
+        }
+        .hero .tagline {
+            font-size: 1.05rem;
+            color: #b4b4c0;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+        .cta-primary {
+            display: block;
+            width: 100%;
+            max-width: 420px;
+            margin: 0 auto 0.85rem;
+            padding: 1.05rem 1.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.12rem;
+            color: #fff;
+            background: linear-gradient(135deg, #ff6b9d, #c084fc);
+            box-shadow: 0 6px 24px rgba(192,132,252,0.28);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .cta-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 34px rgba(255,107,157,0.4); }
+        .cta-primary .cta-sub {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-top: 0.15rem;
+        }
+        .trust {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #7b7b8c;
+            max-width: 640px;
+            margin: 0 auto 1.75rem;
+            padding: 0 1.25rem;
+        }
+        .shots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            max-width: 780px;
+            margin: 0 auto 2.5rem;
+            padding: 0 1.25rem;
+        }
+        .shots img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border: 1px solid #262640;
+            border-radius: 12px;
+            background: #0d1326;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1.25rem;
+            max-width: 820px;
+            margin: 0 auto 2.5rem;
+            padding: 0 1.25rem;
+        }
+        .feature {
+            text-align: center;
+            padding: 1.4rem 1rem;
+            border: 1px solid #1a1a2e;
+            border-radius: 12px;
+            background: #0f0f1a;
+        }
+        .feature-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .feature h3 { font-size: 1rem; margin-bottom: 0.4rem; color: #fff; }
+        .feature p { font-size: 0.85rem; color: #888; }
+        .about, .faq {
+            max-width: 720px;
+            margin: 0 auto 2.5rem;
+            padding: 0 1.25rem;
+        }
+        .about h2 {
+            font-size: 1.2rem;
+            color: #fff;
+            margin: 1.6rem 0 0.5rem;
+        }
+        .about h2:first-child { margin-top: 0; }
+        .about p { font-size: 0.95rem; color: #a5a5b8; line-height: 1.7; }
+        .faq details {
+            border: 1px solid #1a1a2e;
+            border-radius: 10px;
+            background: #0f0f1a;
+            margin-bottom: 0.6rem;
+        }
+        .faq summary {
+            padding: 0.9rem 1.1rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #e4e4ef;
+            list-style: none;
+        }
+        .faq summary::-webkit-details-marker { display: none; }
+        .faq summary::after { content: '+'; float: inline-end; color: #c084fc; font-weight: 400; }
+        .faq details[open] summary::after { content: '\2212'; }
+        .faq p { padding: 0 1.1rem 1rem; font-size: 0.88rem; color: #9a9aab; line-height: 1.6; }
+        .langs {
+            text-align: center;
+            padding: 1.75rem 1.5rem;
+            border-top: 1px solid #1a1a2e;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        .langs h2 { font-size: 1rem; color: #8f8fa0; margin-bottom: 0.75rem; font-weight: 600; }
+        .langs a {
+            color: #60a5fa;
+            text-decoration: none;
+            margin: 0 0.6rem;
+            font-size: 0.9rem;
+            line-height: 2;
+            display: inline-block;
+        }
+        .langs a:hover { text-decoration: underline; }
+        .footer {
+            text-align: center;
+            padding: 1.5rem 2rem 2rem;
+            color: #555;
+            font-size: 0.8rem;
+        }
+        .footer a { color: #60a5fa; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 1.7rem; }
+            .hero .tagline { font-size: 0.98rem; }
+            .cta-primary { font-size: 1.05rem; padding: 1rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .cta-primary { transition: none; }
+            .cta-primary:hover { transform: none; }
+        }
+</style>
+</head>
+<body>
+
+    <nav class="top" aria-label="WaifuAI">
+        <a href="/"><span class="arrow">←</span> WaifuAI</a>
+    </nav>
+
+    <section class="hero">
+        <h1>무료 AI 와이후 채팅 — 한국어로 대화하세요</h1>
+        <p class="tagline">움직이는 애니메이션 캐릭터가 텍스트와 목소리로 답하고, 당신을 기억하며, 선택한 성격에 맞춰 말합니다. 가입도 설치도 없이 브라우저에서 열고 인사만 하면 됩니다.</p>
+
+        <a class="cta-primary" href="/app/">
+            무료로 대화 시작하기
+            <span class="cta-sub">계정 없음 · 브라우저에서 바로</span>
+        </a>
+    </section>
+
+    <p class="trust">1,800명 이상이 WaifuAI와 대화 중 · 오픈 소스 · 설치 필요 없음</p>
+
+    <section class="shots">
+        <img src="/assets/og-cover.jpg" alt="WaifuAI 스크린샷: 채팅 창 옆에서 움직이는 Live2D 애니메이션 캐릭터." width="1200" height="630" loading="lazy">
+        <img src="/assets/hero-app-mobile.webp" alt="WaifuAI 앱: 애니메이션 캐릭터와의 대화." width="800" height="1000" loading="lazy">
+    </section>
+
+    <section class="features">
+        <div class="feature">
+            <div class="feature-icon">💬</div>
+            <h3>살아있는 대화</h3>
+            <p>성격과 기억을 가진 AI: 어제 나눈 이야기도 기억합니다.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🎭</div>
+            <h3>Live2D 캐릭터</h3>
+            <p>50개 이상의 애니메이션 캐릭터가 눈을 깜빡이고, 움직이고, 당신의 말에 반응합니다.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🔊</div>
+            <h3>목소리</h3>
+            <p>한국어 음성으로 답변을 읽어 줍니다. 설정에서 음성을 켜기만 하면 됩니다.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🆓</div>
+            <h3>무료 · 오픈소스</h3>
+            <p>MIT-0 라이선스 오픈 소스. 계정도, 구독도, 체험 기간도 없습니다.</p>
+        </div>
+    </section>
+
+    <section class="about">
+        <h2>WaifuAI란?</h2>
+        <p>WaifuAI는 어떤 브라우저에서든 열리는 AI 와이후 채팅입니다. 애니메이션 캐릭터를 고르고 인사를 건네면 자기만의 방식으로 답합니다. 호스팅 버전에는 무료 모델과 무료 음성이 포함되어 있어서 내야 할 돈도 만들 계정도 없습니다.</p>
+        <h2>한국어로 이야기하세요</h2>
+        <p>한국어로 쓰면 한국어로 답하고, 답변을 한국어 음성으로 들을 수도 있습니다. 그녀의 성격을 직접 적어 주세요: 누구인지, 어떻게 말하는지, 무엇을 좋아하는지. 대화 기억은 서버가 아니라 당신의 브라우저에 저장됩니다.</p>
+    </section>
+
+    <section class="faq">
+        <details>
+            <summary>WaifuAI는 무료인가요?</summary>
+            <p>네. WaifuAI는 무료이며 MIT-0 라이선스 오픈 소스입니다. 호스팅 버전에는 무료 AI 모델과 무료 음성이 포함되어 있어 지불할 것도, 끝나는 체험 기간도 없습니다.</p>
+        </details>
+        <details>
+            <summary>계정을 만들어야 하나요?</summary>
+            <p>아니요. 이메일도, 비밀번호도, 로그인도 없습니다. 앱을 열고 바로 대화를 시작하세요. 대화와 설정은 당신의 브라우저에 저장됩니다.</p>
+        </details>
+        <details>
+            <summary>한국어로 말하나요?</summary>
+            <p>네. 한국어로 쓰면 한국어로 답하고, 답변을 한국어 음성으로 읽어 줄 수도 있습니다. 다른 여러 언어 음성도 준비되어 있습니다.</p>
+        </details>
+        <details>
+            <summary>휴대폰에서 되나요?</summary>
+            <p>네. 모바일 브라우저에서 작은 화면에 맞춘 레이아웃으로 열립니다. Android나 iOS에 앱을 설치할 필요가 없습니다.</p>
+        </details>
+        <details>
+            <summary>우리 대화를 기억하나요?</summary>
+            <p>네. 대화 기억과 맞춤 가능한 성격을 유지해서 세션이 바뀌어도 같은 사람으로 남습니다. 모든 것은 서버가 아닌 당신의 브라우저에 있습니다.</p>
+        </details>
+    </section>
+
+    <section class="langs">
+        <h2>WaifuAI 다른 언어로</h2>
+        <a href="https://waifuai.com/ar/" hreflang="ar" lang="ar">العربية</a> <a href="https://waifuai.com/bn/" hreflang="bn" lang="bn">বাংলা</a> <a href="https://waifuai.com/cs/" hreflang="cs" lang="cs">Čeština</a> <a href="https://waifuai.com/de/" hreflang="de" lang="de">Deutsch</a> <a href="https://waifuai.com/el/" hreflang="el" lang="el">Ελληνικά</a> <a href="https://waifuai.com/es/" hreflang="es" lang="es">Español</a> <a href="https://waifuai.com/fa/" hreflang="fa" lang="fa">فارسی</a> <a href="https://waifuai.com/fi/" hreflang="fi" lang="fi">Suomi</a> <a href="https://waifuai.com/fil/" hreflang="fil" lang="fil">Filipino</a> <a href="https://waifuai.com/fr/" hreflang="fr" lang="fr">Français</a> <a href="https://waifuai.com/hi/" hreflang="hi" lang="hi">हिन्दी</a> <a href="https://waifuai.com/hu/" hreflang="hu" lang="hu">Magyar</a> <a href="https://waifuai.com/id/" hreflang="id" lang="id">Bahasa Indonesia</a> <a href="https://waifuai.com/it/" hreflang="it" lang="it">Italiano</a> <a href="https://waifuai.com/ja/" hreflang="ja" lang="ja">日本語</a> <a href="https://waifuai.com/ms/" hreflang="ms" lang="ms">Bahasa Melayu</a> <a href="https://waifuai.com/my/" hreflang="my" lang="my">မြန်မာဘာသာ</a> <a href="https://waifuai.com/nl/" hreflang="nl" lang="nl">Nederlands</a> <a href="https://waifuai.com/pl/" hreflang="pl" lang="pl">Polski</a> <a href="https://waifuai.com/pt/" hreflang="pt" lang="pt-BR">Português (Brasil)</a> <a href="https://waifuai.com/ro/" hreflang="ro" lang="ro">Română</a> <a href="https://waifuai.com/ru/" hreflang="ru" lang="ru">Русский</a> <a href="https://waifuai.com/si/" hreflang="si" lang="si">සිංහල</a> <a href="https://waifuai.com/ta/" hreflang="ta" lang="ta">தமிழ்</a> <a href="https://waifuai.com/th/" hreflang="th" lang="th">ไทย</a> <a href="https://waifuai.com/tr/" hreflang="tr" lang="tr">Türkçe</a> <a href="https://waifuai.com/uk/" hreflang="uk" lang="uk">Українська</a> <a href="https://waifuai.com/ur/" hreflang="ur" lang="ur">اردو</a> <a href="https://waifuai.com/uz/" hreflang="uz" lang="uz">Oʻzbek tili</a> <a href="https://waifuai.com/vi/" hreflang="vi" lang="vi">Tiếng Việt</a> <a href="https://waifuai.com/zh/" hreflang="zh" lang="zh-CN">简体中文</a>
+    </section>
+
+    <footer class="footer">
+        <a href="/">메인 페이지로</a> · WaifuAI
+    </footer>
+
+</body>
+</html>

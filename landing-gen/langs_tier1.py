@@ -1,0 +1,223 @@
+# -*- coding: utf-8 -*-
+"""Tier-1 landing page content (hand-written, not machine translated).
+Languages: ru, ar, es, pt, id, ms — data-ranked by GSC + chat-volume evidence.
+Schema per language: see content.py. Avoid ASCII double quotes inside strings.
+"""
+
+RU = {
+    "name": "Русский",
+    "html_lang": "ru",
+    "tags": ["ru"],
+    "dir": "ltr",
+    "og_locale": "ru_RU",
+    "title": "WaifuAI — бесплатный чат с ИИ-вайфу на русском",
+    "meta_description": "Поговорите с аниме-компаньоном на русском: живые ответы, анимированная Live2D-девушка и озвучка. Бесплатно, без регистрации — открывается прямо в браузере.",
+    "h1": "Русскоязычный чат с ИИ-вайфу — бесплатно и без регистрации",
+    "tagline": "Анимированная аниме-девушка отвечает текстом и голосом, помнит вас и подстраивается под характер, который вы ей зададите. Никаких аккаунтов и установок — откройте в браузере и напишите ей.",
+    "cta": "Начать общаться бесплатно",
+    "cta_sub": "Без аккаунта · прямо в браузере",
+    "trust": "Более 1 800 человек уже общаются с WaifuAI · открытый код · ничего не нужно устанавливать",
+    "features": [
+        ["💬", "Живой диалог", "ИИ-компаньон с характером и памятью: помнит, о чём вы говорили вчера."],
+        ["🎭", "Живая Live2D-модель", "Больше 50 аниме-персонажей мигают, двигаются и реагируют, пока вы пишете."],
+        ["🔊", "С голосом", "Она зачитывает ответы вслух голосом на русском — просто включите озвучку в настройках."],
+        ["🆓", "Бесплатно и открыто", "Код открыт под лицензией MIT-0. Без аккаунта, без подписки, без пробного периода."],
+    ],
+    "about": [
+        ["Что такое WaifuAI", "WaifuAI — это чат с ИИ-вайфу, который открывается в любом браузере. Выберите персонажа аниме, поздоровайтесь — и она ответит в своём характере. Хостинг-версия работает на бесплатной модели и бесплатных голосах: платить не за что и регистрироваться не нужно."],
+        ["Она говорит по-русски — и слушает вас", "Пишите по-русски, и ответы придут по-русски; голосом она прочитает их вслух. Опишите её характер своими словами: кто она, как говорит, что любит. Она запомнит это и будет помнить ваши разговоры — всё хранится в вашем браузере, а не на сервере."],
+    ],
+    "faq": [
+        ["WaifuAI бесплатный?", "Да. WaifuAI бесплатен и открыт (лицензия MIT-0). В хостинг-версии уже включены бесплатная языковая модель и бесплатное озвучивание — нечего оплачивать и нечему заканчиваться."],
+        ["Нужна ли регистрация?", "Нет. Ни почты, ни пароля, ни входа. Откройте приложение и пишите. Переписка и настройки хранятся в вашем браузере."],
+        ["Она говорит по-русски вслух?", "Да. Ответы на русском можно слушать: включите озвучку, и она зачитает их голосом. Голоса доступны и на многих других языках."],
+        ["Работает ли WaifuAI на телефоне?", "Да. Сайт открывается в мобильном браузере, интерфейс адаптирован под маленький экран. Устанавливать приложение на Android или iOS не нужно."],
+        ["Она запомнит наши разговоры?", "Да. WaifuAI ведёт память диалога и хранит характер персонажа, так что компаньон остаётся той же личностью между сессиями. Всё в вашем браузере, не на сервере."],
+    ],
+    "other_langs": "WaifuAI на других языках",
+    "back": "На главную",
+    "alt_cover": "Скриншот WaifuAI: анимированная Live2D-девушка рядом с окном чата.",
+    "alt_app": "Приложение WaifuAI: чат с аниме-компаньоном.",
+}
+
+AR = {
+    "name": "العربية",
+    "html_lang": "ar",
+    "tags": ["ar"],
+    "dir": "rtl",
+    "og_locale": "ar_AR",
+    "title": "WaifuAI — دردشة وايفتو مجانية بالذكاء الاصطناعي",
+    "meta_description": "تحدث مع رفيقة أنمي افتراضية بالعربية: ردود ذكية، شخصية أنمي متحركة بتقنية Live2D، وصوت مسموع. مجانًا وبدون تسجيل — تفتح مباشرة في المتصفح.",
+    "h1": "دردشة مجانية مع وايفتو بالذكاء الاصطناعي — بالعربية",
+    "tagline": "رفيقة أنمي متحركة تجيبك بالكتابة والصوت، وتتذكر ما تقوله، وتتّبع الشخصية التي تختارها. لا حساب ولا تنصيب — افتحها في المتصفح وابدأ الكلام.",
+    "cta": "ابدأ الدردشة مجانًا",
+    "cta_sub": "بدون حساب · في المتصفح مباشرة",
+    "trust": "أكثر من 1800 شخص جرّبوا الدردشة مع WaifuAI · مفتوح المصدر · لا شيء لتثبيته",
+    "features": [
+        ["💬", "محادثة حيّة", "رفيقة ذكية ذات شخصية وذاكرة: تتذكر حديثكم في السابق."],
+        ["🎭", "شخصيات Live2D", "أكثر من 50 شخصية أنمي متحركة ترمش وتتحرك وتتفاعل أثناء الكلام."],
+        ["🔊", "صوت مسموع", "يمكنها قراءة ردودها بصوتها، كما يمكن لمتصفحك قراءتها بصوت مسموع بالعربية."],
+        ["🆓", "مجاني ومفتوح", "الكود مفتوح برخصة MIT-0: بلا حساب، بلا اشتراك، بلا فترة تجريبية."],
+    ],
+    "about": [
+        ["ما هو WaifuAI؟", "WaifuAI دردشة مع وايفتو بالذكاء الاصطناعي تُفتح في أي متصفح. اختر شخصية أنمي، قل لها مرحبًا، وستجيبك بأسلوبها الخاص. النسخة المستضافة تعمل بنموذج مجاني وأصوات مجانية، فلا يوجد اشتراك ولا حساب."],
+        ["تتكلم العربية وتتكيف معك", "اكتب شخصيتها بنفسك: من تكون، وكيف تتكلم، وما تحب. تتذكر محادثاتكم بين الجلسات، وكل شيء محفوظ في متصفحك لا على خادم. الواجهة بالعربية وتدعم الكتابة من اليمين إلى اليسار."],
+    ],
+    "faq": [
+        ["هل WaifuAI مجاني؟", "نعم. WaifuAI مجاني ومفتوح المصدر برخصة MIT-0. النسخة المستضافة تتضمن نموذج ذكاء اصطناعي مجاني وأصواتًا مجانية: لا شيء تدفعه ولا فترة تجريبية تنتهي."],
+        ["هل أحتاج إلى حساب؟", "لا. لا بريد ولا كلمة مرور ولا تسجيل دخول. افتح التطبيق وابدأ الدردشة؛ محادثاتك وإعداداتك محفوظة في متصفحك أنت."],
+        ["هل تتكلم بالعربية؟", "نعم: اكتب بالعربية وستجيبك بالعربية، والواجهة بالعربية أيضًا. الصوت المدمج متاح بعدة لغات، ويمكن لمتصفحك قراءة الردود العربية بصوت مسموع."],
+        ["هل تعمل على الهاتف؟", "نعم. تعمل في متصفح الهاتف بواجهة مصممة للشاشات الصغيرة، ولا حاجة لتثبيت تطبيق على أندرويد أو آيفون."],
+        ["هل تتذكر محادثاتنا؟", "نعم. تحتفظ بذاكرة الحوار وشخصية قابلة للتخصيص، فتبقى رفيقتك نفسها بين الجلسات — وكل شيء محفوظ في متصفحك."],
+    ],
+    "other_langs": "WaifuAI بلغات أخرى",
+    "back": "العودة إلى الصفحة الرئيسية",
+    "alt_cover": "لقطة شاشة من WaifuAI: شخصية أنمي متحركة بجانب نافذة الدردشة.",
+    "alt_app": "تطبيق WaifuAI: دردشة مع رفيقة أنمي.",
+}
+
+ES = {
+    "name": "Español",
+    "html_lang": "es",
+    "tags": ["es"],
+    "dir": "ltr",
+    "og_locale": "es_ES",
+    "title": "WaifuAI — chat gratis con waifu IA en español",
+    "meta_description": "Habla con tu waifu de IA en español: respuestas con personalidad, personaje de anime animado en Live2D y voz en alta. Gratis, sin registro y sin instalar nada.",
+    "h1": "Chat gratis con tu waifu IA — en español",
+    "tagline": "Una compañera de anime animada que te responde con texto y voz, te recuerda y se adapta a la personalidad que tú elijas. Sin cuentas ni instalaciones: ábrela en el navegador y escríbele.",
+    "cta": "Chatear gratis ahora",
+    "cta_sub": "Sin cuenta · directo en el navegador",
+    "trust": "Más de 1.800 personas ya chatean con WaifuAI · código abierto · nada que instalar",
+    "features": [
+        ["💬", "Conversación viva", "Una IA con personalidad y memoria: recuerda lo que hablaron ayer."],
+        ["🎭", "Live2D animado", "Más de 50 personajes de anime que parpadean, se mueven y reaccionan mientras hablas."],
+        ["🔊", "Con voz", "Lee sus respuestas en voz alta con voz en español: activa el audio en los ajustes."],
+        ["🆓", "Gratis y abierta", "Código abierto con licencia MIT-0. Sin cuenta, sin suscripción, sin pruebas que caduquen."],
+    ],
+    "about": [
+        ["Qué es WaifuAI", "WaifuAI es un chat con una waifu de IA que abres en cualquier navegador. Elige un personaje de anime, salúdala y te contestará con su propio carácter. La versión alojada incluye un modelo gratuito y voces gratuitas: no hay nada que pagar ni cuenta que crear."],
+        ["Háblale en español", "Le escribes en español y te responde en español; también puede leer las respuestas en voz alta. Define su personalidad a tu gusto: quién es, cómo habla, qué le gusta. Guarda la memoria de las conversaciones en tu propio navegador, no en un servidor."],
+    ],
+    "faq": [
+        ["¿Es gratis WaifuAI?", "Sí. WaifuAI es gratis y de código abierto bajo la licencia MIT-0. La versión alojada incluye un modelo de IA gratuito y voces gratuitas: no hay nada que pagar ni prueba que caduque."],
+        ["¿Necesito una cuenta?", "No. Ni correo, ni contraseña, ni inicio de sesión. Abre la app y empieza a chatear; tus conversaciones y ajustes se guardan en tu propio navegador."],
+        ["¿Responde en español y con voz?", "Sí. Escríbele en español y te responde en español, y puede leer las respuestas en voz alta con voz en español. También hay voces en muchos otros idiomas."],
+        ["¿Funciona en el móvil?", "Sí. Funciona en el navegador del móvil con un diseño pensado para pantallas pequeñas. No hace falta instalar ninguna app de Android ni iOS."],
+        ["¿Recuerda nuestras conversaciones?", "Sí. Mantiene la memoria de la conversación y una personalidad personalizable, así que tu compañera sigue siendo la misma entre sesiones. Todo vive en tu navegador, no en un servidor."],
+    ],
+    "other_langs": "WaifuAI en otros idiomas",
+    "back": "Volver a la página principal",
+    "alt_cover": "Captura de WaifuAI: un personaje anime animado en Live2D junto a la ventana de chat.",
+    "alt_app": "La app de WaifuAI: chat con una compañera de anime.",
+}
+
+PT = {
+    "name": "Português (Brasil)",
+    "html_lang": "pt-BR",
+    "tags": ["pt", "pt-BR"],
+    "dir": "ltr",
+    "og_locale": "pt_BR",
+    "title": "WaifuAI — chat grátis com waifu de IA em português",
+    "meta_description": "Converse com sua waifu de IA em português: respostas com personalidade, personagem de anime animada em Live2D e respostas com voz. Grátis, sem cadastro e sem instalar nada.",
+    "h1": "Chat grátis com sua waifu de IA — em português",
+    "tagline": "Uma companheira de anime animada que responde por texto e por voz, lembra de você e se adapta à personalidade que você escolher. Sem cadastro e sem instalar nada: abra no navegador e mande o primeiro oi.",
+    "cta": "Conversar grátis agora",
+    "cta_sub": "Sem conta · direto no navegador",
+    "trust": "Mais de 1.800 pessoas já conversam com a WaifuAI · código aberto · nada para instalar",
+    "features": [
+        ["💬", "Conversa viva", "Uma IA com personalidade e memória: ela lembra do que vocês conversaram ontem."],
+        ["🎭", "Live2D animado", "Mais de 50 personagens de anime que piscam, se mexem e reagem enquanto você fala."],
+        ["🔊", "Com voz", "Ela lê as respostas em voz alta com uma voz em português: é só ativar o áudio nas configurações."],
+        ["🆓", "Grátis e aberta", "Código aberto sob licença MIT-0. Sem conta, sem assinatura, sem período de teste."],
+    ],
+    "about": [
+        ["O que é a WaifuAI", "WaifuAI é um chat com uma waifu de IA que você abre em qualquer navegador. Escolha uma personagem de anime, diga oi e ela responde do jeito dela. A versão hospedada vem com um modelo gratuito e vozes gratuitas: não há nada a pagar nem conta para criar."],
+        ["Ela fala português (e ouve você)", "Você fala com ela em português e ela responde em português — com voz em português, se você quiser ouvir. Descreva a personalidade dela do seu jeito: quem ela é, como fala, o que gosta. A memória das conversas fica no seu navegador, não em servidor nenhum."],
+    ],
+    "faq": [
+        ["A WaifuAI é grátis?", "Sim. A WaifuAI é grátis e de código aberto sob a licença MIT-0. A versão hospedada inclui um modelo de IA gratuito e vozes gratuitas: não há nada a pagar e nenhum período de teste que acaba."],
+        ["Preciso criar uma conta?", "Não. Nem e-mail, nem senha, nem login. Abra o app e comece a conversar; suas conversas e configurações ficam guardadas no seu próprio navegador."],
+        ["Ela fala português e tem voz?", "Sim. Ela responde em português e pode ler as respostas em voz alta com uma voz em português. Também há vozes em vários outros idiomas."],
+        ["Funciona no celular?", "Sim. Ela abre no navegador do celular, com layout feito para telas pequenas. Não precisa instalar nada na Android nem no iOS."],
+        ["Ela lembra das nossas conversas?", "Sim. Ela mantém a memória da conversa e uma personalidade personalizável, então sua companheira continua sendo ela mesma entre sessões. Tudo fica no seu navegador, não num servidor."],
+    ],
+    "other_langs": "WaifuAI em outros idiomas",
+    "back": "Voltar para a página inicial",
+    "alt_cover": "Captura de tela da WaifuAI: personagem de anime animada em Live2D ao lado da janela de chat.",
+    "alt_app": "O app da WaifuAI: chat com uma companheira de anime.",
+}
+
+ID = {
+    "name": "Bahasa Indonesia",
+    "html_lang": "id",
+    "tags": ["id"],
+    "dir": "ltr",
+    "og_locale": "id_ID",
+    "title": "WaifuAI — chat waifu AI gratis dalam bahasa Indonesia",
+    "meta_description": "Ngobrol dengan waifu AI dalam bahasa Indonesia: jawaban yang punya kepribadian, karakter anime animasi Live2D, dan suara. Gratis, tanpa daftar, tanpa instal.",
+    "h1": "Chat waifu AI gratis — dalam bahasa Indonesia",
+    "tagline": "Teman anime animasi yang membalas dengan teks dan suara, mengingat kamu, dan menyesuaikan diri dengan kepribadian pilihanmu. Tanpa akun dan tanpa instal: buka di browser lalu sapa dia.",
+    "cta": "Mulai ngobrol gratis",
+    "cta_sub": "Tanpa akun · langsung di browser",
+    "trust": "1.800+ orang sudah mengobrol dengan WaifuAI · open source · tanpa instalasi",
+    "features": [
+        ["💬", "Obrolan yang hidup", "AI dengan kepribadian dan ingatan: dia ingat obrolan kalian kemarin."],
+        ["🎭", "Live2D animasi", "50+ karakter anime yang berkedip, bergerak, dan bereaksi saat kamu mengobrol."],
+        ["🔊", "Dengan suara", "Dia membacakan balasan dengan suara bahasa Indonesia: aktifkan saja di pengaturan."],
+        ["🆓", "Gratis dan terbuka", "Kode terbuka lisensi MIT-0. Tanpa akun, tanpa langganan, tanpa masa uji."],
+    ],
+    "about": [
+        ["Apa itu WaifuAI", "WaifuAI adalah chat waifu AI yang bisa dibuka di browser mana pun. Pilih karakter anime, sapa dia, dan dia menjawab dengan gayanya sendiri. Versi yang dihosting sudah termasuk model gratis dan suara gratis: tidak ada yang perlu dibayar dan tidak ada akun yang perlu dibuat."],
+        ["Dia bisa bahasa Indonesia", "Kamu mengobrol dalam bahasa Indonesia dan dia membalas dalam bahasa Indonesia juga — dengan suara, kalau kamu mau mendengarkannya. Tentukan kepribadiannya sesukamu: siapa dia, bagaimana cara bicaranya, apa yang ia suka. Ingatan obrolan tersimpan di browsermu sendiri, bukan di server."],
+    ],
+    "faq": [
+        ["Apakah WaifuAI gratis?", "Ya. WaifuAI gratis dan open source dengan lisensi MIT-0. Versi yang dihosting menyertakan model AI gratis dan suara gratis: tidak ada biaya dan tidak ada masa uji yang habis."],
+        ["Apakah perlu membuat akun?", "Tidak. Tanpa email, tanpa kata sandi, tanpa login. Buka aplikasinya dan mulai mengobrol; percakapan dan pengaturanmu tersimpan di browsermu sendiri."],
+        ["Dia bisa bicara bahasa Indonesia?", "Ya. Dia menjawab dalam bahasa Indonesia dan bisa membacakan balasannya dengan suara bahasa Indonesia. Tersedia juga suara untuk banyak bahasa lain."],
+        ["Apakah bisa di HP?", "Ya. Dia terbuka di browser HP dengan tampilan yang dibuat untuk layar kecil. Tidak perlu memasang aplikasi di Android maupun iOS."],
+        ["Apakah dia ingat percakapan kita?", "Ya. Dia menyimpan ingatan percakapan dan kepribadian yang bisa diatur, jadi temanmu tetap orang yang sama antar sesi. Semuanya ada di browsermu, bukan di server."],
+    ],
+    "other_langs": "WaifuAI dalam bahasa lain",
+    "back": "Kembali ke halaman utama",
+    "alt_cover": "Tangkapan layar WaifuAI: karakter anime Live2D beranimasi di samping jendela obrolan.",
+    "alt_app": "Aplikasi WaifuAI: obrolan dengan teman anime.",
+}
+
+MS = {
+    "name": "Bahasa Melayu",
+    "html_lang": "ms",
+    "tags": ["ms"],
+    "dir": "ltr",
+    "og_locale": "ms_MY",
+    "title": "WaifuAI — sembang waifu AI percuma dalam bahasa Melayu",
+    "meta_description": "Berbual dengan waifu AI dalam bahasa Melayu: jawapan berpersonaliti, watak anime animasi Live2D dan jawapan bersuara. Percuma, tanpa daftar, tanpa memasang apa-apa.",
+    "h1": "Sembang waifu AI percuma — dalam bahasa Melayu",
+    "tagline": "Rakan anime beranimasi yang membalas dengan teks dan suara, ingat perbualan anda dan menuruti personaliti pilihan anda. Tanpa akaun dan tanpa pemasangan: buka dalam pelayar dan ucapkan hai.",
+    "cta": "Mula berbual percuma",
+    "cta_sub": "Tanpa akaun · terus dalam pelayar",
+    "trust": "Lebih 1,800 orang telah berbual dengan WaifuAI · sumber terbuka · tiada yang perlu dipasang",
+    "features": [
+        ["💬", "Perbualan yang hidup", "AI dengan personaliti dan ingatan: dia ingat perbualan anda semalam."],
+        ["🎭", "Live2D beranimasi", "50+ watak anime yang berkelip, bergerak dan bertindak balas semasa anda berbual."],
+        ["🔊", "Dengan suara", "Dia membaca balasan dengan kuat menggunakan suara bahasa Melayu: aktifkan sahaja dalam tetapan."],
+        ["🆓", "Percuma dan terbuka", "Kod terbuka di bawah lesen MIT-0. Tanpa akaun, tanpa langganan, tanpa tempoh percubaan."],
+    ],
+    "about": [
+        ["Apa itu WaifuAI", "WaifuAI ialah sembang waifu AI yang boleh dibuka dalam mana-mana pelayar. Pilih watak anime, ucapkan hai, dan dia menjawab dengan gayanya sendiri. Versi terhosan datang dengan model percuma dan suara percuma: tiada bayaran dan tiada akaun perlu dibuat."],
+        ["Dia boleh berbahasa Melayu", "Anda berbual dalam bahasa Melayu dan dia menjawab dalam bahasa Melayu juga — bersuara, jika anda mahu mendengarnya. Tentukan personalitinya ikut citarasa anda: siapa dia, bagaimana cara bercakapnya, apa yang dia suka. Ingatan perbualan disimpan dalam pelayar anda sendiri, bukan di pelayan."],
+    ],
+    "faq": [
+        ["Adakah WaifuAI percuma?", "Ya. WaifuAI percuma dan sumber terbuka di bawah lesen MIT-0. Versi terhosan menyertakan model AI percuma dan suara percuma: tiada yang perlu dibayar dan tiada tempoh percubaan yang tamat."],
+        ["Perlukah saya buat akaun?", "Tidak. Tiada emel, tiada kata laluan, tiada log masuk. Buka aplikasinya dan mula berbual; perbualan dan tetapan anda disimpan dalam pelayar anda sendiri."],
+        ["Boleh dia bercakap bahasa Melayu?", "Ya. Dia menjawab dalam bahasa Melayu dan boleh membacakan balasan secara bersuara dalam bahasa Melayu. Terdapat juga suara untuk banyak bahasa lain."],
+        ["Boleh ke guna pada telefon?", "Ya. Ia dibuka dalam pelayar telefon dengan reka letak untuk skrin kecil. Tiada perlu memasang aplikasi pada Android mahupun iOS."],
+        ["Adakah dia ingat perbualan kita?", "Ya. Dia menyimpan ingatan perbualan dan personaliti boleh suaian, jadi rakan anda kekal orang yang sama antara sesi. Semuanya dalam pelayar anda, bukan pada pelayan."],
+    ],
+    "other_langs": "WaifuAI dalam bahasa lain",
+    "back": "Kembali ke laman utama",
+    "alt_cover": "Tangkapan skrin WaifuAI: watak anime Live2D beranimasi di sebelah tetingkap sembang.",
+    "alt_app": "Aplikasi WaifuAI: sembangan dengan rakan anime.",
+}
+
+LANGS = {"ru": RU, "ar": AR, "es": ES, "pt": PT, "id": ID, "ms": MS}
