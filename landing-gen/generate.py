@@ -263,6 +263,9 @@ def render_page(code: str) -> str:
     return f"""<!DOCTYPE html>
 <html lang="{d["html_lang"]}" dir="{d["dir"]}">
 <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MJCT26J1BK"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','G-MJCT26J1BK');</script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
@@ -309,7 +312,7 @@ def render_page(code: str) -> str:
         <h1>{esc(d["h1"])}</h1>
         <p class="tagline">{esc(d["tagline"])}</p>
 
-        <a class="cta-primary" href="/app/">
+        <a class="cta-primary" href="/app/" onclick="gtag('event','cta_click',{{cta_location:'lang_landing',cta_target:'app',lang:'{code}'}})">
             {esc(d["cta"])}
             <span class="cta-sub">{esc(d["cta_sub"])}</span>
         </a>

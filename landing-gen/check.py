@@ -116,6 +116,12 @@ def check_page(code):
         fail(f"{code}: charset missing")
     if 'name="viewport"' not in raw:
         fail(f"{code}: viewport missing")
+    if "googletagmanager.com/gtag/js?id=G-MJCT26J1BK" not in raw:
+        fail(f"{code}: GA gtag.js missing")
+    if "gtag('config','G-MJCT26J1BK')" not in raw:
+        fail(f"{code}: GA config missing")
+    if "cta_click" not in raw:
+        fail(f"{code}: CTA click event missing")
 
     # hreflang: the page must declare the full cluster
     declared = {(rel, hl, href) for rel, hl, href in p.links if rel == "alternate" and hl}
