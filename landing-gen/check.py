@@ -122,6 +122,17 @@ def check_page(code):
         fail(f"{code}: GA config missing")
     if "cta_click" not in raw:
         fail(f"{code}: CTA click event missing")
+    # live Sprites embed, forced to the page's language
+    if 'id="stage"' not in raw:
+        fail(f"{code}: sprites stage missing")
+    if "window.WaifuSpritesEmbed = true" not in raw:
+        fail(f"{code}: sprites embed flag missing")
+    if "window.WaifuSpritesSource = 'landing'" not in raw:
+        fail(f"{code}: landing app_source missing")
+    if "/homepage-sprites/i18n/i18n.js" not in raw:
+        fail(f"{code}: sprites i18n runtime missing")
+    if f"WaifuI18n.setLocale('{code}', {{ persist: false }});" not in raw:
+        fail(f"{code}: forced stage locale missing or wrong")
 
     # hreflang: the page must declare the full cluster
     declared = {(rel, hl, href) for rel, hl, href in p.links if rel == "alternate" and hl}

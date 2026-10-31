@@ -436,7 +436,7 @@ const Chat = (() => {
   // (idb: references) stay behind.
   function exportAll() {
     return {
-      app: 'homepage-sprites',
+      app: window.WaifuSpritesSource || 'homepage-sprites',
       version: 1,
       exportedAt: new Date().toISOString(),
       aboutUser: settings.aboutUser,
@@ -534,7 +534,7 @@ const Chat = (() => {
     try {
       const task = budget.compressionTask(source, memory,
         m => ({ model: modelFor(settings.provider), messages: m, max_tokens: 700, stream: false,
-          ...(settings.provider === 'cloud' ? { client_settings: { app: 'homepage-sprites', persona: settings.persona, ...(window.WaifuI18n?.snapshot?.() || {}) }, context_budget_version: 1 } : {}) }), settings.summaryLength);
+          ...(settings.provider === 'cloud' ? { client_settings: { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona, ...(window.WaifuI18n?.snapshot?.() || {}) }, context_budget_version: 1 } : {}) }), settings.summaryLength);
       if (!task) return false;
       if (!force) lastAutomaticMemoryTurn = turn;
       const summary = await complete(task.messages, 'summary', 700, owner);
@@ -648,7 +648,7 @@ const Chat = (() => {
     const out = [system].concat(history);
     if (settings.provider !== 'cloud') return [system].concat(history.slice(-memorySize()));
     return budget.pack(out, m => ({ model: modelFor(settings.provider), messages: m, max_tokens: 600, stream: true,
-      client_settings: { app: 'homepage-sprites', persona: settings.persona, ...(window.WaifuI18n?.snapshot?.() || {}) }, context_budget_version: 1 }), memorySize()).messages;
+      client_settings: { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona, ...(window.WaifuI18n?.snapshot?.() || {}) }, context_budget_version: 1 }), memorySize()).messages;
   }
 
   function addPicture(id, message, owner = null) {
@@ -682,7 +682,7 @@ const Chat = (() => {
       headers['x-session-id'] = sessionId;
       headers['x-visitor-id'] = visitorId();
       if (purpose !== 'chat') headers['X-Waifu-Purpose'] = purpose;
-      body.client_settings = { app: 'homepage-sprites', persona: settings.persona, ...(window.WaifuI18n?.snapshot?.() || {}) };
+      body.client_settings = { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona, ...(window.WaifuI18n?.snapshot?.() || {}) };
       body.context_budget_version = 1;
       const budget = window.ConversationBudget;
       if (purpose === 'chat' || purpose === 'ambient') body.messages = budget.pack(body.messages, m => ({ ...body, messages: m }), memorySize()).messages;

@@ -46,7 +46,7 @@
   // Analytics events use waifu-companion's names so both apps share GA reports;
   // app_source (and the page path) tells them apart.
   function track(name, params) {
-    if (typeof gtag === 'function') gtag('event', name, Object.assign({ app_source: 'homepage-sprites' }, params));
+    if (typeof gtag === 'function') gtag('event', name, Object.assign({ app_source: window.WaifuSpritesSource || 'homepage-sprites' }, params));
   }
 
   // ── Sprite timing ──

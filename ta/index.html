@@ -210,22 +210,6 @@
             margin: 0 auto 1.75rem;
             padding: 0 1.25rem;
         }
-        .shots {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1rem;
-            max-width: 780px;
-            margin: 0 auto 2.5rem;
-            padding: 0 1.25rem;
-        }
-        .shots img {
-            display: block;
-            width: 100%;
-            height: auto;
-            border: 1px solid #262640;
-            border-radius: 12px;
-            background: #0d1326;
-        }
         .features {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -309,6 +293,27 @@
             .cta-primary:hover { transform: none; }
         }
 </style>
+
+    <script>window.WaifuSpritesEmbed = true; window.WaifuSpritesSource = 'landing';</script>
+    <link rel="stylesheet" href="/homepage-sprites/app.css">
+    <script src="/homepage-sprites/i18n/i18n.js"></script>
+    <script src="/homepage-sprites/i18n/locales/en.js"></script>
+    <script src="/homepage-sprites/i18n/locales/ta.js"></script>
+    <script>
+      WaifuI18n.init({ storageKey: 'ws_locale', localesBase: '/homepage-sprites/i18n/locales/' });
+      WaifuI18n.setLocale('ta', { persist: false });
+    </script>
+    <style>
+      .homepage-stage { max-width: 1040px; margin: 0 auto 1.25rem; text-align: start; }
+      .homepage-stage .stage { --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 610px; min-height: 0; border: 1px solid #39304a; border-radius: 20px; overflow: hidden; }
+      .homepage-stage .sprite-wrap { background: url('/homepage-sprites/videos/poster.jpg') center / contain no-repeat; }
+      .homepage-stage .chat { height: 52%; }
+      body.sprites-expanded { overflow: hidden; }
+      .homepage-stage .stage.is-expanded { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; z-index: 1000; border: 0; border-radius: 0; }
+      @media (max-width: 390px) { .homepage-stage .topbar .icon-btn { width: 32px; height: 32px; } }
+      @media (min-width: 760px) { .homepage-stage .sprite-wrap { right: 43%; } .homepage-stage .chat { left: 56%; right: 16px; top: 64px; bottom: 16px; width: auto; height: auto; padding: 0; background: none; } }
+      @media (max-width: 759px) { .homepage-stage .stage { height: min(680px, 80dvh); min-height: 490px; } }
+</style>
 </head>
 <body>
 
@@ -326,12 +331,151 @@
         </a>
     </section>
 
-    <p class="trust">1,800-க்கும் மேற்பட்டோர் WaifuAI-இல் அரட்டையிடுகிறார்கள் · திற மூல மென்பொருள் · நிறுவ ஒன்றுமில்லை</p>
+    <div class="homepage-stage sprite-embed">
+<div class="stage" id="stage" aria-label="Waifu Sprites app" data-i18n-aria-label="app.label">
 
-    <section class="shots">
-        <img src="/assets/og-cover.jpg" alt="WaifuAI திரைக்காட்சி: அரட்டை சாளரத்தின் அருகில் Live2D இல் அசையும் அனிமே கதாபாத்திரம்." width="1200" height="630" loading="lazy">
-        <img src="/assets/hero-app-mobile.webp" alt="WaifuAI செயலி: அனிமே கதாபாத்திரத்துடன் அரட்டை." width="800" height="1000" loading="lazy">
-    </section>
+  <div class="sprite-wrap">
+    <video class="sprite" muted playsinline preload="auto" poster="/homepage-sprites/videos/poster.jpg" aria-hidden="true"></video>
+    <video class="sprite" muted playsinline preload="auto" aria-hidden="true"></video>
+  </div>
+
+  <div class="topbar">
+    <button class="icon-btn" id="settingsBtn" type="button" title="Settings" aria-label="Settings" aria-controls="settingsPanel" data-i18n-title="app.settings" data-i18n-aria-label="app.settings">&#9881;</button>
+    <div class="status"><span class="dot"></span><span id="spriteLabel" data-i18n="sprite.state.idle">idle</span><span id="clock" class="clock" hidden></span></div>
+    <div class="topbar-right">
+      <button class="icon-btn" id="expandSprites" type="button" title="Expand to fill window" aria-label="Expand to fill window" aria-pressed="false" aria-controls="stage"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+      <button class="icon-btn" id="historyBtn" type="button" title="Chat history" aria-label="Chat history" aria-controls="historyPanel" data-i18n-title="app.chatHistory" data-i18n-aria-label="app.chatHistory">&#9776;</button>
+      <button class="icon-btn" id="newBtn" type="button" title="New chat" aria-label="New chat" data-i18n-title="app.newChat" data-i18n-aria-label="app.newChat">&#43;</button>
+      <button class="icon-btn" id="speakToggle" type="button" title="Mute her voice" aria-label="Read replies aloud" aria-pressed="true" data-i18n-aria-label="app.readAloud">&#128266;</button>
+      <button class="icon-btn" id="chatToggle" type="button" title="Hide chat" aria-label="Hide chat" aria-pressed="false" data-i18n-aria-label="app.hideChat">&#128172;</button>
+      <a class="icon-btn" href="/app/docs/" target="_blank" rel="noopener" title="Docs" aria-label="Documentation" data-i18n-title="app.docs" data-i18n-aria-label="app.documentation">&#128214;</a>
+    </div>
+  </div>
+
+  <section class="chat" id="chat" aria-label="Chat" data-i18n-aria-label="app.chat">
+    <div class="chat-meta" id="chatMeta"></div>
+    <div class="messages" id="messages" aria-live="polite"></div>
+    <form class="composer" id="composer" autocomplete="off">
+      <input id="msgInput" type="text" maxlength="2000" placeholder="Say something..." aria-label="Message" enterkeyhint="send" dir="auto" data-i18n-placeholder="composer.placeholder" data-i18n-aria-label="composer.message">
+      <button id="micBtn" class="mic" type="button" aria-label="Voice input: hold to talk, or tap to start and stop" title="Hold to talk, or tap to start and stop" data-i18n-aria-label="composer.micAria" data-i18n-title="composer.micTitle">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
+      </button>
+      <button id="sendBtn" type="button" aria-label="Send" data-i18n-aria-label="composer.send">&#10148;</button>
+    </form>
+  </section>
+
+  <aside class="panel" id="historyPanel" hidden aria-label="Chat history" data-i18n-aria-label="app.chatHistory">
+    <div class="panel-head"><h2 data-i18n="history.title">Chats</h2><button class="icon-btn" type="button" data-close aria-label="Close" data-i18n-aria-label="app.close">&#10005;</button></div>
+    <div class="panel-body" id="historyList"></div>
+  </aside>
+
+  <aside class="panel" id="settingsPanel" hidden aria-label="Settings" data-i18n-aria-label="app.settings">
+    <div class="panel-head"><h2 data-i18n="app.settings">Settings</h2><button class="icon-btn" type="button" data-close aria-label="Close" data-i18n-aria-label="app.close">&#10005;</button></div>
+    <div class="panel-body">
+      <h3 data-i18n="settings.personality">Personality</h3>
+      <div class="options" id="personaList"></div>
+      <div id="customPromptBox" hidden>
+        <label class="field-label" for="customPrompt" data-i18n="settings.customPersonality">Custom personality</label>
+        <textarea id="customPrompt" rows="5" placeholder="You are... (describe who she is and how she talks)" dir="auto" data-i18n-placeholder="settings.customPlaceholder"></textarea>
+      </div>
+      <label class="field-label" for="extraPrompt" data-i18n="settings.extra">Extra instructions</label>
+      <textarea id="extraPrompt" rows="3" placeholder="Added to any personality, like: call me senpai, use lots of emoji, she loves cats" dir="auto" data-i18n-placeholder="settings.extraPlaceholder"></textarea>
+
+      <h3 data-i18n="memory.heading">Memory</h3>
+      <label class="field-label" for="aboutUser" data-i18n="memory.about">About you</label>
+      <textarea id="aboutUser" rows="3" placeholder="Your name, what you like, what you're working on. She remembers this in every chat." dir="auto" data-i18n-placeholder="memory.aboutPlaceholder"></textarea>
+      <label class="field-label" for="summaryText" data-i18n="memory.remembers">What she remembers from this chat</label>
+      <textarea id="summaryText" rows="4" placeholder="Empty for now. When this chat gets long, she writes a summary of the older messages here so she doesn't forget them. You can edit it." dir="auto" data-i18n-placeholder="memory.remembersPlaceholder"></textarea>
+      <span id="summarySizeStatus" class="note" role="status" data-i18n="memory.limitNote">Memory limit: 32 KiB. Older text is kept until compression succeeds.</span>
+      <div class="btn-row"><button class="btn" id="summarizeNow" type="button" data-i18n="memory.summarizeNow">Summarize now</button><span class="note" id="summaryStatus"></span></div>
+      <label class="row"><span><span data-i18n="memory.keeps">Messages she keeps word for word</span> <b id="memorySizeValue"></b></span><input id="memorySize" type="range" min="10" max="100" step="2"></label>
+      <label class="row"><span data-i18n="memory.summaryLength">Summary length</span><select id="summaryLength">
+        <option value="ultra-concise" data-i18n="summaryLength.ultra-concise">One sentence</option>
+        <option value="concise" data-i18n="summaryLength.concise">Short paragraph</option>
+        <option value="detailed" data-i18n="summaryLength.detailed">One or two paragraphs</option>
+        <option value="comprehensive" data-i18n="summaryLength.comprehensive">In depth</option>
+      </select></label>
+      <label class="row"><span data-i18n="settings.knowsTime">She knows the date and time</span><input id="includeTime" type="checkbox"></label>
+      <label class="row" id="batteryRow"><span data-i18n="settings.knowsBattery">She knows your battery level</span><input id="includeBattery" type="checkbox"></label>
+      <details class="peek" id="contextPeek"><summary data-i18n="memory.peek">See exactly what she's sent</summary><pre id="contextView"></pre></details>
+
+      <h3 data-i18n="settings.language">Language</h3>
+      <label class="row"><span data-i18n="settings.interfaceLanguage">Interface language</span><select id="interfaceLanguage"></select></label>
+      <label class="row"><span data-i18n="settings.repliesIn">She replies in</span><select id="replyLanguage"><option value="" data-i18n="settings.yourLanguage">Your language</option></select></label>
+      <label class="row"><span data-i18n="settings.romaji">Romaji under Japanese and Korean replies</span><input id="romaji" type="checkbox"></label>
+
+      <h3 data-i18n="settings.chat">Chat</h3>
+      <label class="row"><span data-i18n="settings.queue">Keep typing while she replies (queue)</span><input id="queueMessages" type="checkbox"></label>
+      <label class="row"><span data-i18n="settings.autoTitles">Name chats automatically</span><input id="autoTitles" type="checkbox"></label>
+      <label class="row"><span data-i18n="settings.ambient">She talks when you're quiet</span><input id="ambient" type="checkbox"></label>
+      <div id="ambientBox">
+        <label class="row"><span data-i18n="settings.ambientAfter">After</span><select id="ambientDelay">
+          <option value="20" data-i18n="ambient.delay.20">20 seconds</option><option value="30" data-i18n="ambient.delay.30">30 seconds</option><option value="60" data-i18n="ambient.delay.60">1 minute</option>
+          <option value="120" data-i18n="ambient.delay.120">2 minutes</option><option value="300" data-i18n="ambient.delay.300">5 minutes</option>
+        </select></label>
+        <label class="row"><span data-i18n="settings.ambientMax">At most, in a row</span><select id="ambientMax">
+          <option value="1" data-i18n="ambient.max.1">1 message</option><option value="2" data-i18n="ambient.max.2">2 messages</option><option value="3" data-i18n="ambient.max.3">3 messages</option>
+          <option value="5" data-i18n="ambient.max.5">5 messages</option><option value="10" data-i18n="ambient.max.10">10 messages</option><option value="1000" data-i18n="ambient.max.1000">No limit</option>
+        </select></label>
+        <label class="field-label" for="ambientPrompt" data-i18n="settings.ambientPrompt">What she's told to do</label>
+        <textarea id="ambientPrompt" rows="3" dir="auto"></textarea>
+      </div>
+
+      <h3 data-i18n="settings.ai">AI</h3>
+      <div class="options" id="providerList"></div>
+      <div id="providerFields">
+        <div id="baseUrlRow" hidden>
+          <label class="field-label" for="baseUrl" data-i18n="settings.endpoint">Endpoint URL</label>
+          <input id="baseUrl" type="url" placeholder="https://example.com/v1" spellcheck="false" dir="ltr" data-i18n-placeholder="settings.endpointPlaceholder">
+        </div>
+        <div id="keyRow" hidden>
+          <label class="field-label" for="apiKey"><span data-i18n="settings.apiKey">API key</span> <a id="keyLink" href="#" target="_blank" rel="noopener" data-i18n="settings.getOne">get one</a></label>
+          <input id="apiKey" type="password" placeholder="Stays in this browser" spellcheck="false" autocomplete="off" dir="ltr" data-i18n-placeholder="settings.keyPlaceholder">
+        </div>
+        <div id="modelRow" hidden>
+          <label class="field-label" for="modelName" data-i18n="settings.model">Model</label>
+          <input id="modelName" type="text" spellcheck="false" dir="ltr">
+        </div>
+      </div>
+      <p class="note" id="providerNote"></p>
+
+      <h3 data-i18n="settings.pictures">Pictures</h3>
+      <p class="note" data-i18n-html="settings.picturesNote">Ask for a selfie or a drawing, or type <code dir="ltr">/image</code> and a description. Pictures are drawn by WaifuAI Cloud.</p>
+      <div class="options aspects" id="aspectList"></div>
+
+      <h3 data-i18n="settings.voice">Voice</h3>
+      <label class="row"><span data-i18n="settings.readAloud">Read her replies aloud</span><input id="speakEnabled" type="checkbox"></label>
+      <label class="row"><span data-i18n="settings.herVoice">Her voice</span><select id="voiceSelect"><option value="" data-i18n="settings.matchLanguage">Match the reply's language</option></select></label>
+      <label class="row"><span data-i18n="settings.voiceVolume">Voice volume</span><input id="speakVolume" type="range" min="0.1" max="1" step="0.05"></label>
+      <p class="note" data-i18n="settings.voiceNote">Replies are read aloud in the reply's language. You can also pick your browser's own voice instead.</p>
+      <p class="note" data-i18n="settings.micNote">Hold the mic button to talk, or tap it to start and tap again to stop. Speech is transcribed by WaifuAI Cloud.</p>
+      <label class="row"><span data-i18n="settings.voiceAutoSend">Send right after speaking</span><input id="voiceAutoSend" type="checkbox"></label>
+
+      <h3 data-i18n="settings.radio">Radio</h3>
+      <div class="row"><button class="btn" id="radioBtn" type="button">&#9654; <span data-i18n="radio.play">Play anime radio</span></button><input id="radioVolume" type="range" min="0" max="1" step="0.05" aria-label="Radio volume" data-i18n-aria-label="settings.radioVolume"></div>
+      <p class="note" data-i18n-html="settings.radioNote">J-pop and anime songs streamed live from <a href="https://listen.moe/" target="_blank" rel="noopener">LISTEN.moe</a>.</p>
+
+      <h3 data-i18n="settings.display">Display</h3>
+      <label class="row"><span data-i18n="settings.opacity">Bubble opacity</span><input id="opacity" type="range" min="0.15" max="0.95" step="0.05"></label>
+      <label class="row"><span data-i18n="settings.fontSize">Text size</span><input id="fontSize" type="range" min="12" max="20" step="1"></label>
+      <label class="row"><span data-i18n="settings.hideVideo">Hide the video</span><input id="hideVideo" type="checkbox"></label>
+      <label class="row"><span data-i18n="settings.showClock">Show the clock</span><input id="showClock" type="checkbox"></label>
+
+      <h3 data-i18n="settings.data">Data</h3>
+      <p class="note" data-i18n="settings.dataNote">Chats, memories and settings are saved in this browser only.</p>
+      <div class="btn-row"><button class="btn" id="exportChats" type="button" data-i18n="settings.export">Export chats</button><button class="btn-danger" id="clearAll" type="button" data-i18n="settings.deleteAll">Delete all chats</button></div>
+    </div>
+  </aside>
+
+  <div class="lightbox" id="lightbox" hidden role="dialog" aria-label="Picture" data-i18n-aria-label="app.photo">
+    <img id="lightboxImg" alt="">
+    <a id="lightboxOpen" href="#" target="_blank" rel="noopener" data-i18n="app.openOriginal">Open original</a>
+  </div>
+
+</div>
+</div>
+
+    <p class="trust">1,800-க்கும் மேற்பட்டோர் WaifuAI-இல் அரட்டையிடுகிறார்கள் · திற மூல மென்பொருள் · நிறுவ ஒன்றுமில்லை</p>
 
     <section class="features">
         <div class="feature">
@@ -395,5 +539,47 @@
         <a href="/">முகப்புப் பக்கத்திற்கு</a> · WaifuAI
     </footer>
 
+<script>
+(function () {
+    var stage = document.getElementById('stage');
+    var meta = WaifuI18n.localeInfo(WaifuI18n.locale) || {};
+    stage.lang = meta.tag || WaifuI18n.locale;
+    stage.dir = meta.dir === 'rtl' ? 'rtl' : 'ltr';
+    stage.setAttribute('data-locale', WaifuI18n.locale);
+    WaifuI18n.apply(stage);
+})();
+</script>
+<script src="/homepage-sprites/sprites.js"></script>
+<script src="/homepage-sprites/pictures.js"></script>
+<script src="/homepage-sprites/mic_capture.js"></script>
+<script src="/homepage-sprites/voice.js"></script>
+<script src="/homepage-sprites/tts_language_router.js"></script>
+<script src="/homepage-sprites/speech.js"></script>
+<script src="/homepage-sprites/context_budget.js"></script>
+<script src="/homepage-sprites/i18n/chat_prompts.js"></script>
+<script src="/homepage-sprites/prompt_translations.js"></script>
+<script src="/homepage-sprites/chat.js"></script>
+<script src="/homepage-sprites/app.js"></script>
+<script>
+(function () {
+    var stage = document.getElementById('stage');
+    var button = document.getElementById('expandSprites');
+    function setExpanded(expanded) {
+        stage.classList.toggle('is-expanded', expanded);
+        document.body.classList.toggle('sprites-expanded', expanded);
+        button.setAttribute('aria-pressed', String(expanded));
+        var label = expanded ? 'Return to homepage' : 'Expand to fill window';
+        button.setAttribute('aria-label', label);
+        button.title = label;
+        if (typeof gtag === 'function') gtag('event', 'sprites_expand_toggle', { app_source: window.WaifuSpritesSource || 'homepage-sprites', expanded: expanded });
+    }
+    button.addEventListener('click', function () { setExpanded(!stage.classList.contains('is-expanded')); });
+    document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape' || !stage.classList.contains('is-expanded')) return;
+        if (!document.getElementById('settingsPanel').hidden || !document.getElementById('historyPanel').hidden || !document.getElementById('lightbox').hidden) return;
+        event.preventDefault(); setExpanded(false); button.focus();
+    }, true);
+})();
+</script>
 </body>
 </html>

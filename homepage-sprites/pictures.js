@@ -117,7 +117,7 @@ The description is 10 to 40 words describing who is in it, outfit, pose, setting
             { role: 'system', content: writePicture ? WRITER_PROMPT : DECISION_PROMPT },
             { role: 'user', content: "Companion's previous message: " + (previous || '(none)') + "\n\nUser's NEW message: " + clip(userText) },
           ],
-          client_settings: { app: 'homepage-sprites' },
+          client_settings: { app: window.WaifuSpritesSource || 'homepage-sprites' },
         }),
       }), options);
       if (!resp.ok) return null;

@@ -132,7 +132,7 @@ const Sprites = (() => {
   // have an explicit denominator. No chat content or unique identifiers.
   function videoEvent(name, params) {
     if (typeof window.gtag === 'function') window.gtag('event', name, Object.assign({
-      app_source: 'homepage-sprites', video_host: 'jsdelivr'
+      app_source: window.WaifuSpritesSource || 'homepage-sprites', video_host: 'jsdelivr'
     }, params));
   }
   function finishMeasurement(measurement, outcome) {
