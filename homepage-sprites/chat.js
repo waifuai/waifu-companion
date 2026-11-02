@@ -77,6 +77,7 @@ const Chat = (() => {
   const DEFAULT_AMBIENT_PROMPT = '(The user has gone quiet for a while. Continue the conversation naturally, in character: share a thought or a feeling, ' +
     'or ask them something related to what you were talking about. One or two sentences. Speak directly to them.)';
 
+  // Embed adaptation: keep the plain storage prefix.
   const storagePrefix = 'ws_';
   const KEY = {
     settings: storagePrefix + 'settings',
@@ -113,7 +114,7 @@ const Chat = (() => {
     romaji: false,
     includeTime: true,
     includeBattery: false,
-    memorySize: 30,
+    memorySize: 60,
     summaryLength: 'concise',
     autoTitles: !window.WaifuSpritesEmbed,
     queue: true,
@@ -181,6 +182,7 @@ const Chat = (() => {
   // ── Conversations ──
   let convId = null;
   let messages = [];
+  let welcomeBackShown = false; // the opener was seeded in this session
   let memory = { summary: '', through: null }; // through = id of the last summarized message
   let memoryRevision = 0;
   let lastAutomaticMemoryTurn = null;
@@ -404,6 +406,28 @@ const Chat = (() => {
     return messages;
   }
 
+  // A returning visitor whose restored conversation already carries a memory
+  // summary gets one visible opener referencing it, so same-browser
+  // continuity is felt rather than only silently present. Seeded once per
+  // conversation (the marker saves with the conversation), only for English
+  // interface locales, never spoken, and this session's requests carry
+  // welcome_back in client_settings.
+  function seedWelcomeBack() {
+    if (!convId || !messages.length) return false;
+    const last = messages[messages.length - 1];
+    if (last && last.welcomeBack) return false; // this conversation was already greeted
+    if (!String(window.WaifuI18n?.locale || 'en').startsWith('en')) return false;
+    const summary = String(memory.summary || '').replace(/\s+/g, ' ').trim();
+    if (!summary) return false;
+    const text = summary.length > 140 ? summary.slice(0, 140).replace(/\s+\S*$/, '') + '…' : summary;
+    const message = { id: messageId(), role: 'assistant', welcomeBack: true,
+      content: 'Welcome back! Last time we were talking about ' + text + ' — want to pick up where we left off?' };
+    messages.push(message);
+    saveConversation();
+    welcomeBackShown = true;
+    return message;
+  }
+
   function deleteConversation(id) {
     if (id === convId) stop('interrupted', true);
     const data = load(KEY.conv + id, []);
@@ -459,7 +483,7 @@ const Chat = (() => {
   }
 
   function memorySize() {
-    return Math.min(100, Math.max(6, parseInt(settings.memorySize, 10) || 30));
+    return Math.min(100, Math.max(6, parseInt(settings.memorySize, 10) || 60));
   }
 
   function setSummary(text) {
@@ -631,9 +655,10 @@ const Chat = (() => {
   }
 
   // The messages the model gets after the system prompt: what the summary
-  // doesn't cover, capped at the memory size.
+  // doesn't cover, capped at the memory size. Near-duplicate older assistant
+  // replies are pruned here — the packed chat history only.
   function recentForModel() {
-    return contextForModel(messages.slice(unsummarizedStart()));
+    return window.ConversationBudget.pruneRepeatedReplies(contextForModel(messages.slice(unsummarizedStart())));
   }
 
   async function modelMessages(extraUserTurn, owner = null) {
@@ -682,7 +707,8 @@ const Chat = (() => {
       headers['x-session-id'] = sessionId;
       headers['x-visitor-id'] = visitorId();
       if (purpose !== 'chat') headers['X-Waifu-Purpose'] = purpose;
-      body.client_settings = { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona, ...(window.WaifuI18n?.snapshot?.() || {}) };
+      body.client_settings = { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona,
+        ...(welcomeBackShown ? { welcome_back: 1 } : {}), ...(window.WaifuI18n?.snapshot?.() || {}) };
       body.context_budget_version = 1;
       const budget = window.ConversationBudget;
       if (purpose === 'chat' || purpose === 'ambient') body.messages = budget.pack(body.messages, m => ({ ...body, messages: m }), memorySize()).messages;
@@ -910,7 +936,7 @@ const Chat = (() => {
   return {
     PROVIDERS, PERSONAS, LANGUAGES, SUMMARY_LENGTHS, settings, saveSettings, modelFor, ambientPrompt,
     get DEFAULT_AMBIENT_PROMPT() { return promptText()('sprite_ambient', DEFAULT_AMBIENT_PROMPT); },
-    send, stop, ids, askDecisions, addPicture, lastReply, newConversation, openConversation, deleteConversation, deleteMessage,
+    send, stop, ids, askDecisions, addPicture, lastReply, newConversation, openConversation, deleteConversation, deleteMessage, seedWelcomeBack,
     renameConversation, historyIndex, exportAll, summarize, setSummary, generateTitle, needsRomaji, romanize, modelMessages,
     unsummarizedStart, beginTurn, finishTurn, isCurrent, isDuplicate, normalizeText, onTurnChange, canRetry,
     isPicture, createPicture, updatePicture, setPictureDisplay, canRetryImage, messageText, recentContext, effect, abortable,

@@ -75,6 +75,7 @@
   });
 
   // ── Display settings ──
+  // Embed adaptation: keep the plain display key.
   const DISPLAY_KEY = 'ws_display';
   let display = { opacity: 0.55, fontSize: 15, hideVideo: false, hideChat: false, voiceAutoSend: true, clock: false, radioVolume: 0.3 };
   try { display = Object.assign(display, JSON.parse(localStorage.getItem(DISPLAY_KEY) || '{}')); } catch (e) {}
@@ -1133,6 +1134,7 @@
   // ── Start: reopen the most recent chat ──
   const recent = Chat.historyIndex()[0];
   if (!(recent && Chat.openConversation(recent.id))) Chat.newConversation();
+  Chat.seedWelcomeBack?.();
   renderConversation();
   activity();
 })();

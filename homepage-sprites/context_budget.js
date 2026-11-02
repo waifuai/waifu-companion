@@ -54,13 +54,42 @@
     for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
     return text.length + ':' + (hash >>> 0);
   }
+  // Near-duplicate reply pruning: long conversations can repeat assistant
+  // turns, which reads as the character saying the same thing again. Packing
+  // drops the OLDER near-duplicate of a newer assistant message; the newest
+  // assistant turn always survives, and user turns and short replies are
+  // never dropped.
+  function wordSet(text) {
+    return new Set(String(text || '').normalize('NFKC').toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(' ').filter(Boolean));
+  }
+  function jaccard(a, b) {
+    if (!a.size || !b.size) return 0;
+    let shared = 0;
+    for (const w of a) if (b.has(w)) shared++;
+    return shared / (a.size + b.size - shared);
+  }
+  function pruneRepeatedReplies(messages, threshold = 0.8) {
+    const recent = [], kept = [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      const words = m.role === 'assistant' ? wordSet(m.content) : null;
+      if (words && words.size >= 6) {
+        if (recent.some(set => jaccard(set, words) >= threshold)) continue;
+        recent.unshift(words);
+        if (recent.length > 8) recent.pop();
+      }
+      kept.unshift(m);
+    }
+    return kept;
+  }
   function summaryMessages(transcript, previous, preference = 'concise') {
     return [{ role: 'system', content: 'You summarize conversations concisely.' }, { role: 'user', content:
       'You are a memory compression engine.\nThe following is an existing summary of a conversation:\n"' +
       (previous || 'No previous summary exists.') + '"\n\nThe following are the oldest messages that were just pushed out of memory:\n' +
       transcript + '\n\nCombine the previous memory and this transcript into a ' + preference +
-      ' summary. Aim for a compact summary; never exceed 32 KiB of UTF-8 text. Keep names, user preferences, decisions, promises and unresolved events. ' +
-      'Condense repetition and older details. A continuation contains the next part of a long message; do not invent missing parts. Respond ONLY with the new summary text.' }];
+      ' summary. Aim for a compact summary; never exceed 32 KiB of UTF-8 text. Preserve, as short labeled lines where possible: durable user facts (name, age, location, work or studies, likes and dislikes, boundaries); relationship milestones (first meetings, nicknames, agreements, confessions); open storylines and unresolved threads; promises and plans (who said they would do what); established character details (persona traits, backstory, shared references); and emotional beats (what mattered to the user and why). ' +
+      'Condense repetition and older details that no longer matter. A continuation contains the next part of a long message; do not invent missing parts. Respond ONLY with the new summary text.' }];
   }
   function compressionTask(entries, state, makeBody = m => ({ messages: m }), preference = 'concise') {
     const legacy = bytes(state.summary) > limits.summary;
@@ -144,7 +173,7 @@
     }
     return out;
   }
-  const api = { limits, bytes, jsonBytes, validateSummary, checkBody, pack, prefix, signature, summaryMessages, compressionTask, accept, activeSummary, error, decisionReply, decisionState };
+  const api = { limits, bytes, jsonBytes, validateSummary, checkBody, pack, prefix, signature, pruneRepeatedReplies, summaryMessages, compressionTask, accept, activeSummary, error, decisionReply, decisionState };
   root.ConversationBudget = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
