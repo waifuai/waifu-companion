@@ -111,7 +111,7 @@ const Chat = (() => {
     customPrompt: '',
     extraPrompt: '',
     aboutUser: '',
-    crossChatMemory: false,
+    crossChatMemory: true,
     aspect: 'portrait',
     language: '',
     romaji: false,

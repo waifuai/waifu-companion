@@ -8,7 +8,7 @@ function client(memory, trigger, store = new Map()) {
   if (memory !== undefined) store.set('MAX_MEMORY_SIZE', memory);
   if (trigger !== undefined) store.set('SUMMARY_TRIGGER_COUNT', trigger);
   const keys = new Proxy({}, { get: (_, key) => key });
-  const elements = new Map(['memorySize', 'memorySizeValue', 'summaryTriggerCount', 'summaryTriggerCountValue']
+  const elements = new Map(['memorySize', 'memorySizeValue', 'summaryTriggerCount', 'summaryTriggerCountValue', 'crossChatMemoryCheckbox']
     .map(id => [id, { value: 30, textContent: '', addEventListener() {} }]));
   const ctx = vm.createContext({
     document: { getElementById: id => elements.get(id) || null, addEventListener() {},
@@ -52,6 +52,25 @@ test('fresh defaults and smaller saved choices are retained within the limit', (
   assert.equal(ctx.maxMemorySize, 10);
   assert.equal(ctx.summaryTriggerCount, 5);
   assert.equal(store.get('MAX_MEMORY_SIZE'), 10);
+});
+
+test('cross-chat memory is enabled for new browsers and settings without a saved choice', () => {
+  for (const store of [new Map(), new Map([['USER_PERSONA_PROMPT', 'Existing persona']])]) {
+    const { ctx, elements } = client(undefined, undefined, store);
+    assert.equal(ctx.crossChatMemory, true);
+    assert.equal(elements.get('crossChatMemoryCheckbox').checked, true);
+  }
+});
+
+test('turning cross-chat memory off stays off after initialization and reload', () => {
+  const { ctx, store } = client();
+  ctx.handleCrossChatMemoryChange({ target: { checked: false } });
+  assert.equal(store.get('CROSS_CHAT_MEMORY'), 'false');
+  const reloaded = client(undefined, undefined, store);
+  assert.equal(reloaded.ctx.crossChatMemory, false);
+  assert.equal(reloaded.elements.get('crossChatMemoryCheckbox').checked, false);
+  reloaded.ctx.handleCrossChatMemoryChange({ target: { checked: true } });
+  assert.equal(client(undefined, undefined, store).ctx.crossChatMemory, true);
 });
 
 test('programmatic settings and loaded long chats cannot send more than the memory limit', async () => {

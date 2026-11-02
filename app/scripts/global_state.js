@@ -146,7 +146,7 @@ AppState.summaryLengthPreference = 'concise';
 // Cross-chat memory: durable lines about the user that outlive single
 // conversations. Per browser, kept across new chats and persona resets.
 AppState.userMemory = '';
-AppState.crossChatMemory = false;
+AppState.crossChatMemory = true;
 
 // Provider state
 AppState.useOpenRouter = false;
