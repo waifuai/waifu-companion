@@ -391,12 +391,14 @@ function handleSavePersona() {
   const coreTextarea = document.getElementById('corePersonaPrompt');
   const userTextarea = document.getElementById('personaPrompt');
   const summaryTextarea = document.getElementById('conversationSummary');
+  const userMemoryTextarea = document.getElementById('userMemory');
   const triggerSlider = document.getElementById('summaryTriggerCount');
   const lengthSelect = document.getElementById('summaryLengthPreference');
-  
+
   const core = (coreTextarea?.value || "").trim();
   const user = (userTextarea?.value || "").trim();
   const summary = (summaryTextarea?.value || "").trim();
+  const userMemory = (userMemoryTextarea?.value || "").trim();
   const trigger = clampMemorySetting(triggerSlider?.value);
   const length = lengthSelect?.value || "concise";
   
@@ -411,12 +413,14 @@ function handleSavePersona() {
   window.corePersonaPrompt = core;
   window.userPersonaPrompt = user;
   window.conversationSummary = summary;
+  window.userMemory = window.ConversationBudget.packUserMemory(userMemory);
   window.summaryTriggerCount = trigger;
   window.summaryLengthPreference = length;
-  
+
   S.setString(K.CORE_PERSONA_PROMPT, core);
   S.setString(K.USER_PERSONA_PROMPT, user);
   S.setString(K.CONVERSATION_SUMMARY, summary);
+  S.setString(K.USER_MEMORY, window.userMemory);
   S.setJSON(K.SUMMARY_PROGRESS, window.summaryProgress || null);
   window.persistConversationMemory?.();
   window.showMemorySizeStatus?.();
@@ -433,6 +437,22 @@ function handleSavePersona() {
     btn.textContent = saved;
     setTimeout(() => { btn.textContent = originalText; }, 2000);
   }
+}
+
+function handleCrossChatMemoryChange(event) {
+  window.crossChatMemory = event.target.checked;
+  S.setBoolean(K.CROSS_CHAT_MEMORY, window.crossChatMemory);
+  debugLog(`Cross-chat memory ${window.crossChatMemory ? 'enabled' : 'disabled'}.`, 'info');
+}
+
+function handleForgetEverything() {
+  if (!confirm('Forget everything remembered between chats? This cannot be undone.')) return;
+  window.userMemory = '';
+  S.setString(K.USER_MEMORY, '');
+  const textarea = document.getElementById('userMemory');
+  if (textarea) textarea.value = '';
+  if (typeof trackEvent === 'function') trackEvent('user_memory_forgotten');
+  debugLog('Cross-chat memory cleared.', 'info');
 }
 
 async function handleManualSummarize() {
@@ -469,6 +489,8 @@ async function handleManualSummarize() {
 function handleResetPersona() {
   window.stopActiveTurn?.();
   window.invalidateConversationMemory?.();
+  // Cross-chat memory is about the user, not the character: a persona reset
+  // deliberately keeps it.
   window.summaryProgress = null;
   window.summaryBackup = '';
   S.setJSON(K.SUMMARY_PROGRESS, null);

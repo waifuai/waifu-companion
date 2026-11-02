@@ -406,6 +406,12 @@ function persistConversationMemory() {
   if (id) window.ChatManager.saveCurrentChat(id);
 }
 window.persistConversationMemory = persistConversationMemory;
+function persistUserMemory() {
+  AppStorage.setString(AppStorage.KEYS.USER_MEMORY, window.userMemory || '');
+  const el = document.getElementById('userMemory');
+  if (el) el.value = window.userMemory || '';
+}
+window.persistUserMemory = persistUserMemory;
 function showMemorySizeStatus(text) {
   const el = document.getElementById('summarySizeStatus');
   if (el) el.textContent = text || `${window.ConversationBudget.bytes(window.conversationSummary)} / ${window.ConversationBudget.limits.summary} bytes`;
@@ -441,10 +447,18 @@ async function maybeSummarizeConversation(force = false, owner = null) {
   try {
     const text = await requestMemorySummary(task.messages, owner ? turnOptions(owner) : {});
     if (!valid()) return false;
-    const next = budget.accept(task, text);
+    // The compression reply can end with a "Durable across chats:" section
+    // feeding the cross-chat memory store; the conversation summary keeps the
+    // rest, and a reply without the section is entirely the summary.
+    const parts = budget.splitDurable(text);
+    const next = budget.accept(task, parts.summary);
     window.conversationSummary = next.summary;
     window.summaryProgress = next.progress;
     if (next.backup) window.summaryBackup = next.backup;
+    if (parts.durable && window.crossChatMemory) {
+      window.userMemory = budget.mergeDurable(window.userMemory || '', parts.durable);
+      persistUserMemory();
+    }
     if (!task.legacy) {
       const done = new Set(task.completed.map(e => e.original));
       conversationContext = conversationContext.filter(m => !done.has(m));

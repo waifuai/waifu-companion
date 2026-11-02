@@ -192,6 +192,14 @@ function buildSystemPrompt(targetLanguageName, contextInfo, prompt = chatPromptT
     ? `\n\nAdditional Personality Instructions: ${window.userPersonaPrompt.trim()}`
     : "";
 
+  // Durable cross-chat memory rides between the persona and this
+  // conversation's own summary, packed to its byte cap keeps-newest.
+  const durableMemory = (window.crossChatMemory && window.ConversationBudget)
+    ? window.ConversationBudget.packUserMemory(window.userMemory) : '';
+  const userMemoryContext = durableMemory
+    ? `\n\nThings you remember about the user from earlier conversations: ${durableMemory}`
+    : "";
+
   const activeSummary = window.ConversationBudget
     ? window.ConversationBudget.activeSummary({ summary: window.conversationSummary, progress: window.summaryProgress })
     : (window.conversationSummary || '');
@@ -234,7 +242,7 @@ Current Application Settings:
 
   return `${languageRule}
 
-${coreIdentity}${customPersona}${summaryContext}${currentSettingsContext}
+${coreIdentity}${customPersona}${userMemoryContext}${summaryContext}${currentSettingsContext}
 ${contextInfo.join('\n\n')}
 
 ${pictureRule}

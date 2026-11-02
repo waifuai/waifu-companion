@@ -16,7 +16,9 @@
  * messages than the memory size, the oldest are folded into a running summary
  * (ws_mem_<id>: {summary, through}) that goes into the system prompt. The
  * messages stay on screen; only what the model sees changes. "About you" is
- * memory shared by every chat.
+ * memory shared by every chat. The "Remember me between chats" toggle adds a
+ * per-browser store (ws_userMemory) of durable lines about the user, updated
+ * from the summarizer, that also goes into every conversation's system prompt.
  */
 const Chat = (() => {
   const tr = (key, params) => (window.WaifuI18n ? window.WaifuI18n.t(key, params) : key);
@@ -77,7 +79,6 @@ const Chat = (() => {
   const DEFAULT_AMBIENT_PROMPT = '(The user has gone quiet for a while. Continue the conversation naturally, in character: share a thought or a feeling, ' +
     'or ask them something related to what you were talking about. One or two sentences. Speak directly to them.)';
 
-  // Embed adaptation: keep the plain storage prefix.
   const storagePrefix = 'ws_';
   const KEY = {
     settings: storagePrefix + 'settings',
@@ -85,6 +86,7 @@ const Chat = (() => {
     conv: storagePrefix + 'conv_',
     mem: storagePrefix + 'mem_',
     visitor: storagePrefix + 'visitor',
+    userMemory: storagePrefix + 'userMemory',
   };
 
   function load(key, fallback) {
@@ -109,6 +111,7 @@ const Chat = (() => {
     customPrompt: '',
     extraPrompt: '',
     aboutUser: '',
+    crossChatMemory: false,
     aspect: 'portrait',
     language: '',
     romaji: false,
@@ -369,6 +372,28 @@ const Chat = (() => {
     else remove(KEY.mem + convId);
   }
 
+  // Durable lines about the user that outlive single conversations, updated
+  // from the summarizer's "Durable across chats:" section. One per browser,
+  // packed to its byte cap keeps-newest, and carried into every conversation's
+  // system prompt while the "Remember me between chats" toggle is on.
+  let userMemory = typeof load(KEY.userMemory, '') === 'string' ? load(KEY.userMemory, '') : '';
+  function saveUserMemory() {
+    if (userMemory) save(KEY.userMemory, userMemory);
+    else remove(KEY.userMemory);
+  }
+  function getUserMemory() { return userMemory; }
+  function setUserMemory(text) {
+    userMemory = window.ConversationBudget
+      ? window.ConversationBudget.packUserMemory(String(text || ''))
+      : String(text || '').trim();
+    saveUserMemory();
+  }
+  function clearUserMemory() { userMemory = ''; saveUserMemory(); }
+  function durableMemory() {
+    return settings.crossChatMemory && window.ConversationBudget
+      ? window.ConversationBudget.packUserMemory(userMemory) : '';
+  }
+
   function renameConversation(id, title) {
     const list = historyIndex();
     const h = list.find(x => x.id === id);
@@ -386,6 +411,9 @@ const Chat = (() => {
     convId = randomId('c-');
     messages = [];
     memory = { summary: '', through: null };
+    // The cross-chat store is global and survives new conversations on
+    // purpose; a remembered visitor's new chat greets them back.
+    seedUserMemoryGreeting();
     notifyTurn();
     return convId;
   }
@@ -426,6 +454,32 @@ const Chat = (() => {
     saveConversation();
     welcomeBackShown = true;
     return message;
+  }
+
+  // A brand-new chat greets a remembered visitor back with a couple of topics
+  // from the durable cross-chat store. Runs only while the feature's toggle is
+  // on, for English interface locales and a non-empty store, once per new chat
+  // (a fresh conversation starts empty) — restored conversations are greeted
+  // by the restored-summary opener above. Not saved here: the message
+  // persists with the conversation's first turn, so a visitor who never
+  // writes leaves no half-empty chat in the history list.
+  function userMemoryGreetingLine() {
+    const memory = durableMemory();
+    if (!memory) return null;
+    const topics = memory.split('\n').filter(Boolean).slice(-2).map(line => {
+      const text = line.replace(/\s+/g, ' ').trim();
+      return text.length > 80 ? text.slice(0, 80).replace(/\s+\S*$/, '') + '…' : text;
+    });
+    return topics.length ? 'Nice to see you again! I remembered: ' + topics.join('; ') + ' — how have things been?' : null;
+  }
+
+  function seedUserMemoryGreeting() {
+    if (!settings.crossChatMemory || !convId || messages.length) return false;
+    if (!String(window.WaifuI18n?.locale || 'en').startsWith('en')) return false;
+    const line = userMemoryGreetingLine();
+    if (!line) return false;
+    messages.push({ id: messageId(), role: 'assistant', content: line, userMemoryGreeting: true });
+    return true;
   }
 
   function deleteConversation(id) {
@@ -563,9 +617,17 @@ const Chat = (() => {
       if (!force) lastAutomaticMemoryTurn = turn;
       const summary = await complete(task.messages, 'summary', 700, owner);
       if (!valid()) return false;
-      const next = budget.accept(task, summary);
+      // The reply can end with a "Durable across chats:" section feeding the
+      // cross-chat store; the conversation summary keeps the rest, and a
+      // reply without the section is entirely the summary.
+      const parts = budget.splitDurable(summary);
+      const next = budget.accept(task, parts.summary);
       memory = { ...memory, ...next };
       if (!task.legacy && task.completed.length) memory.through = task.completed[task.completed.length - 1].id;
+      if (parts.durable && settings.crossChatMemory) {
+        userMemory = budget.mergeDurable(userMemory, parts.durable);
+        saveUserMemory();
+      }
       saveMemory();
       summaryFailedAt = 0;
       return true;
@@ -625,6 +687,8 @@ const Chat = (() => {
     const parts = [languageRule, personaPrompt(prompt).trim()];
     if (settings.extraPrompt.trim()) parts.push(prompt('sprite_extra', 'Additional personality instructions: %{text}', { text: settings.extraPrompt.trim() }));
     if (settings.aboutUser.trim()) parts.push(prompt('sprite_about', 'What the user has told you about themselves (always keep it in mind): %{text}', { text: settings.aboutUser.trim() }));
+    const durable = durableMemory();
+    if (durable) parts.push('Things you remember about the user from earlier conversations: ' + durable);
     const active = window.ConversationBudget ? window.ConversationBudget.activeSummary(memory) : (memory.summary || '');
     if (active) parts.push(prompt('sprite_summary', 'Summary of your conversation with the user so far: %{text}', { text: active }));
     parts.push(...await contextLines(prompt));
@@ -708,7 +772,11 @@ const Chat = (() => {
       headers['x-visitor-id'] = visitorId();
       if (purpose !== 'chat') headers['X-Waifu-Purpose'] = purpose;
       body.client_settings = { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona,
-        ...(welcomeBackShown ? { welcome_back: 1 } : {}), ...(window.WaifuI18n?.snapshot?.() || {}) };
+        ...(welcomeBackShown ? { welcome_back: 1 } : {}),
+        // Marks requests whose system prompt carried the durable cross-chat
+        // store (its toggle is on and the store has content).
+        ...(durableMemory() ? { cross_chat_memory: 1 } : {}),
+        ...(window.WaifuI18n?.snapshot?.() || {}) };
       body.context_budget_version = 1;
       const budget = window.ConversationBudget;
       if (purpose === 'chat' || purpose === 'ambient') body.messages = budget.pack(body.messages, m => ({ ...body, messages: m }), memorySize()).messages;
@@ -937,7 +1005,8 @@ const Chat = (() => {
     PROVIDERS, PERSONAS, LANGUAGES, SUMMARY_LENGTHS, settings, saveSettings, modelFor, ambientPrompt,
     get DEFAULT_AMBIENT_PROMPT() { return promptText()('sprite_ambient', DEFAULT_AMBIENT_PROMPT); },
     send, stop, ids, askDecisions, addPicture, lastReply, newConversation, openConversation, deleteConversation, deleteMessage, seedWelcomeBack,
-    renameConversation, historyIndex, exportAll, summarize, setSummary, generateTitle, needsRomaji, romanize, modelMessages,
+    getUserMemory, setUserMemory, clearUserMemory,
+    renameConversation, historyIndex, exportAll, summarize, setSummary, generateTitle, needsRomaji, romanize, modelMessages, buildRequest,
     unsummarizedStart, beginTurn, finishTurn, isCurrent, isDuplicate, normalizeText, onTurnChange, canRetry,
     isPicture, createPicture, updatePicture, setPictureDisplay, canRetryImage, messageText, recentContext, effect, abortable,
     get current() { return currentTurn; },

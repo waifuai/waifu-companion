@@ -247,6 +247,10 @@ STAGE_HTML = """<div class="homepage-stage sprite-embed">
       <textarea id="summaryText" rows="4" placeholder="Empty for now. When this chat gets long, she writes a summary of the older messages here so she doesn't forget them. You can edit it." dir="auto" data-i18n-placeholder="memory.remembersPlaceholder"></textarea>
       <span id="summarySizeStatus" class="note" role="status" data-i18n="memory.limitNote">Memory limit: 32 KiB. Older text is kept until compression succeeds.</span>
       <div class="btn-row"><button class="btn" id="summarizeNow" type="button" data-i18n="memory.summarizeNow">Summarize now</button><span class="note" id="summaryStatus"></span></div>
+      <label class="row"><span>Remember me between chats</span><input id="crossChatMemory" type="checkbox"></label>
+      <label class="field-label" for="userMemory">Things to remember about me</label>
+      <textarea id="userMemory" rows="3" placeholder="Short lines about you and how we get along. She updates this while you chat, and reads it in every chat — new ones too. You can edit it here." dir="auto"></textarea>
+      <div class="btn-row"><button class="btn-danger" id="forgetUserMemory" type="button">Forget everything</button><span class="note">Kept in this browser only.</span></div>
       <label class="row"><span><span data-i18n="memory.keeps">Messages she keeps word for word</span> <b id="memorySizeValue"></b></span><input id="memorySize" type="range" min="10" max="100" step="2"></label>
       <label class="row"><span data-i18n="memory.summaryLength">Summary length</span><select id="summaryLength">
         <option value="ultra-concise" data-i18n="summaryLength.ultra-concise">One sentence</option>

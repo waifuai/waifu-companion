@@ -170,3 +170,35 @@ test('older near-duplicate assistant replies are pruned; the newest, users and s
   const d2 = { role: 'assistant', content: 'The weather in the northern mountains turns cold before the harvest ends' };
   assert.deepEqual(b.pruneRepeatedReplies([d1, u, d2]), [d1, u, d2]);
 });
+
+test('the compression prompt asks for a durable cross-chat section', () => {
+  const content = b.summaryMessages('USER: hi', '', 'concise')[1].content;
+  assert.ok(content.includes('Durable across chats:'));
+});
+
+test('a durable section splits off; a reply without one is entirely the summary', () => {
+  const parts = b.splitDurable('She kept the conversation warm.\n\nDurable across chats:\nName: Rei\nUser studies late at night');
+  assert.equal(parts.summary, 'She kept the conversation warm.');
+  assert.equal(parts.durable, 'Name: Rei\nUser studies late at night');
+  assert.deepEqual(b.splitDurable('  Only a summary  '), { summary: 'Only a summary', durable: '' });
+  const indented = b.splitDurable('Summary line\n   Durable across chats:   \nHome: Kyoto');
+  assert.equal(indented.summary, 'Summary line');
+  assert.equal(indented.durable, 'Home: Kyoto');
+});
+
+test('durable lines merge with in-place updates and append new ones newest last', () => {
+  let store = b.mergeDurable('', 'Name: Rei\nLikes: late nights');
+  assert.equal(store, 'Name: Rei\nLikes: late nights');
+  store = b.mergeDurable(store, 'likes: RAIN SOUNDS\nhome: Kyoto');
+  assert.equal(store, 'Name: Rei\nlikes: RAIN SOUNDS\nhome: Kyoto');
+  assert.equal(b.mergeDurable(store, 'Name: Rei'), store);
+  assert.equal(b.mergeDurable(store, ''), store);
+});
+
+test('packed cross-chat memory keeps the newest lines under its byte cap', () => {
+  assert.equal(b.packUserMemory('aaaaaaaaaa\nbbbbbbbbbb\ncccc', 20), 'bbbbbbbbbb\ncccc');
+  assert.equal(b.packUserMemory('x'.repeat(30), b.limits.userMemory), 'x'.repeat(30));
+  assert.equal(b.packUserMemory('  a  \n\n  b  '), 'a\nb');
+  assert.equal(b.packUserMemory('記'.repeat(3) + '\n' + '記'.repeat(3), 9), '記'.repeat(3));
+  assert.equal(b.packUserMemory(''), '');
+});

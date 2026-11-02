@@ -15,7 +15,9 @@ function client(memory, trigger, store = new Map()) {
       documentElement: { style: { getPropertyValue: () => '0.9' } } },
     AppStorage: { KEYS: keys, getNumber: (key, fallback) => store.get(key) ?? fallback,
       getString: (key, fallback) => store.get(key) ?? fallback, getJSON: (key, fallback) => store.get(key) ?? fallback,
+      getBoolean: (key, fallback) => { const v = store.get(key); return v === undefined ? fallback : v === 'true'; },
       setNumber: (key, value) => store.set(key, value), setString: (key, value) => store.set(key, value),
+      setBoolean: (key, value) => store.set(key, value ? 'true' : 'false'),
       setJSON: (key, value) => store.set(key, value) },
     memorySizeInput: elements.get('memorySize'), memorySizeValue: elements.get('memorySizeValue'),
     maxMemorySize: 20, conversationContext: JSON.parse(JSON.stringify(store.get('CONVERSATION_CONTEXT') || [])), addEventListener() {},
@@ -179,4 +181,60 @@ test('oversized legacy summary never blocks chat or prompts the user, using acti
   assert.equal(ctx.conversationSummary, legacySummary);
   const body = { model: 'waifuai-v1', messages, max_tokens: 2500, stream: true };
   assert.ok(Buffer.byteLength(JSON.stringify(body), 'utf8') <= budget.limits.request);
+});
+
+test('a durable section updates the cross-chat store while the summary keeps the rest', async () => {
+  const { ctx, store } = client(); longConversation(ctx);
+  ctx.crossChatMemory = true; ctx.userMemory = 'Name: Rei';
+  ctx.requestMemorySummary = async () => 'Remembered facts.\n\nDurable across chats:\nName: Rei\nLikes: rain sounds';
+  await ctx.maybeSummarizeConversation(true);
+  assert.equal(ctx.conversationSummary, 'Remembered facts.');
+  assert.equal(ctx.userMemory, 'Name: Rei\nLikes: rain sounds');
+  assert.equal(store.get('USER_MEMORY'), 'Name: Rei\nLikes: rain sounds');
+});
+
+test('the durable store is left unchanged while the toggle is off, but the summary stays clean', async () => {
+  const { ctx } = client(); longConversation(ctx);
+  ctx.crossChatMemory = false; ctx.userMemory = '';
+  ctx.requestMemorySummary = async () => 'Remembered facts.\n\nDurable across chats:\nName: Rei';
+  await ctx.maybeSummarizeConversation(true);
+  assert.equal(ctx.conversationSummary, 'Remembered facts.');
+  assert.equal(ctx.userMemory, '');
+});
+
+test('a compression reply without the durable section never touches the store', async () => {
+  const { ctx } = client(); longConversation(ctx);
+  ctx.crossChatMemory = true; ctx.userMemory = 'Kept facts';
+  ctx.requestMemorySummary = async () => 'Remembered facts only';
+  await ctx.maybeSummarizeConversation(true);
+  assert.equal(ctx.conversationSummary, 'Remembered facts only');
+  assert.equal(ctx.userMemory, 'Kept facts');
+});
+
+test('resetting the persona keeps the cross-chat memory', () => {
+  const { ctx, store } = client();
+  ctx.crossChatMemory = true; ctx.userMemory = 'Name: Rei';
+  store.set('USER_MEMORY', 'Name: Rei');
+  ctx.handleResetPersona();
+  assert.equal(ctx.userMemory, 'Name: Rei');
+  assert.equal(store.get('USER_MEMORY'), 'Name: Rei');
+});
+
+test('the system prompt carries cross-chat memory between persona and chat summary', async () => {
+  const { ctx } = client();
+  ctx.crossChatMemory = true; ctx.userMemory = 'Name: Rei\nLikes: rain sounds';
+  ctx.conversationSummary = 'Current chat facts';
+  ctx.buildContextInfo = async () => [];
+  const sys = (await ctx.buildChatMessages('hello', 'en-US'))[0].content;
+  const memoryAt = sys.indexOf('Things you remember about the user from earlier conversations: Name: Rei\nLikes: rain sounds');
+  const summaryAt = sys.indexOf('Existing Conversation Summary: Current chat facts');
+  assert.ok(memoryAt !== -1 && summaryAt !== -1 && memoryAt < summaryAt);
+});
+
+test('the toggle removes cross-chat memory from requests', async () => {
+  const { ctx } = client();
+  ctx.crossChatMemory = false; ctx.userMemory = 'Name: Rei';
+  ctx.buildContextInfo = async () => [];
+  const sys = (await ctx.buildChatMessages('hello', 'en-US'))[0].content;
+  assert.doesNotMatch(sys, /Things you remember about the user/);
 });

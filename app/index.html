@@ -471,6 +471,22 @@
             <button id="manualSummarizeBtn" data-i18n="memory.updateBtn">Update Summary from Chat</button>
           </div>
         </div>
+
+        <div class="settings-item">
+          <label>
+              <input type="checkbox" id="crossChatMemoryCheckbox" /> <span>🧷 Remember me between chats</span></label>
+          <div class="value-display">
+              Keeps a short memory of you across new conversations on this device. New chats open with a greeting about it. You can read or clear it below.
+          </div>
+        </div>
+
+        <div class="settings-item">
+          <label for="userMemory">🧠 Things to remember about me</label>
+          <textarea id="userMemory" class="settings-textarea" dir="auto" placeholder="Short lines about you and how we get along. The AI updates this as you chat; you can edit it here..."></textarea>
+          <div class="button-row">
+            <button id="forgetUserMemoryBtn" class="reset-button">Forget everything</button>
+          </div>
+        </div>
       </div>
 
       <div id="group-context" class="settings-submenu">

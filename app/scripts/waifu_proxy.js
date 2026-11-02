@@ -62,6 +62,14 @@ function getRequestIdentityHeaders() {
 function getClientSettings() {
   try {
     const S = AppStorage, K = AppStorage.KEYS;
+    // Cross-chat memory rides in the system prompt only while its toggle is on
+    // and its store has content; the flag marks requests that carried it.
+    const durableMemory = window.crossChatMemory && window.ConversationBudget
+      ? window.ConversationBudget.packUserMemory(window.userMemory) : '';
+    if (durableMemory && !window.crossChatMemoryTracked) {
+      window.crossChatMemoryTracked = true;
+      if (typeof trackEvent === 'function') trackEvent('cross_chat_memory_used');
+    }
     return {
       ...(typeof window.WaifuI18n?.snapshot === 'function' ? window.WaifuI18n.snapshot() : {}),
       model: window.currentModelName || '',
@@ -81,7 +89,8 @@ function getClientSettings() {
       json_emotion: Boolean(window.useJsonForEmotion),
       radio_playing: typeof radioPlayer !== 'undefined' && Boolean(radioPlayer) && !radioPlayer.paused,
       // Set for the session when the welcome-back opener was seeded at startup.
-      ...(window.welcomeBackShown ? { welcome_back: 1 } : {})
+      ...(window.welcomeBackShown ? { welcome_back: 1 } : {}),
+      ...(durableMemory ? { cross_chat_memory: 1 } : {})
     };
   } catch (e) {
     // A snapshot must never break the chat.

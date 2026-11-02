@@ -75,7 +75,6 @@
   });
 
   // ── Display settings ──
-  // Embed adaptation: keep the plain display key.
   const DISPLAY_KEY = 'ws_display';
   let display = { opacity: 0.55, fontSize: 15, hideVideo: false, hideChat: false, voiceAutoSend: true, clock: false, radioVolume: 0.3 };
   try { display = Object.assign(display, JSON.parse(localStorage.getItem(DISPLAY_KEY) || '{}')); } catch (e) {}
@@ -932,6 +931,8 @@
     $('extraPrompt').value = s.extraPrompt;
 
     $('aboutUser').value = s.aboutUser;
+    $('crossChatMemory').checked = s.crossChatMemory;
+    $('userMemory').value = Chat.getUserMemory();
     $('summaryText').value = Chat.summary;
     showSummarySize();
     $('summaryStatus').textContent = '';
@@ -1067,6 +1068,7 @@
   bindSetting('customPrompt', 'customPrompt', 'text');
   bindSetting('extraPrompt', 'extraPrompt', 'text');
   bindSetting('aboutUser', 'aboutUser', 'text');
+  bindSetting('crossChatMemory', 'crossChatMemory', 'check');
   bindSetting('memorySize', 'memorySize', 'number', v => { $('memorySizeValue').textContent = v; });
   $('memorySize').addEventListener('input', e => { $('memorySizeValue').textContent = e.target.value; });
   bindSetting('summaryLength', 'summaryLength', 'select');
@@ -1092,6 +1094,16 @@
   $('summaryText').addEventListener('change', e => {
     try { Chat.setSummary(e.target.value); placeMemoryMark(); showSummarySize(); }
     catch (error) { e.target.value = Chat.summary; showSummarySize(error.message); }
+  });
+  $('userMemory').addEventListener('change', e => {
+    Chat.setUserMemory(e.target.value);
+    e.target.value = Chat.getUserMemory();
+  });
+  $('forgetUserMemory').addEventListener('click', () => {
+    if (!confirm('Forget everything remembered between chats? This cannot be undone.')) return;
+    Chat.clearUserMemory();
+    $('userMemory').value = '';
+    track('settings_action', { action: 'forget_user_memory' });
   });
   $('summarizeNow').addEventListener('click', async () => {
     const btn = $('summarizeNow');

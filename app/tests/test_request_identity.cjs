@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 const { webcrypto } = require('node:crypto');
 
-function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocked = false, stallSpeech = null, i18n = null } = {}) {
+function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocked = false, stallSpeech = null, i18n = null, crossChatMemory = null, userMemory = '' } = {}) {
   const calls = [];
   const timers = new Set();
   const stalled = signal => new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(new Error('Aborted')), { once: true }));
@@ -19,7 +19,11 @@ function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocke
       ...storage(visitorStorage), KEYS: {}, getString: (_key, value) => value,
       getJSON: (_key, value) => value, getBoolean: (_key, value) => value
     },
-    URLSearchParams, FormData, Blob, AbortController, window: { WaifuI18n: i18n },
+    URLSearchParams, FormData, Blob, AbortController,
+    window: {
+      WaifuI18n: i18n,
+      ...(crossChatMemory !== null ? { crossChatMemory, userMemory } : {})
+    },
     setTimeout(fn, ms) { const timer = { fn, ms }; timers.add(timer); return timer; },
     clearTimeout(timer) { timers.delete(timer); },
     debugNet() {}, debugError() {},
@@ -158,3 +162,18 @@ test('decision transport preserves a long completed reply and bounds oversized e
  await api.createCompletion({messages:[],purpose:'title'});
  assert.equal(JSON.parse(calls[1].body).client_settings,undefined);
  });
+
+test('chat requests flag when they carried cross-chat memory', async () => {
+  const carried = client({ crossChatMemory: true, userMemory: 'Name: Rei' });
+  await carried.api.createCompletion({ messages: [{ role: 'user', content: 'Hi' }] });
+  assert.equal(JSON.parse(carried.calls[0].body).client_settings.cross_chat_memory, 1);
+  const off = client({ crossChatMemory: false, userMemory: 'Name: Rei' });
+  await off.api.createCompletion({ messages: [{ role: 'user', content: 'Hi' }] });
+  assert.equal(JSON.parse(off.calls[0].body).client_settings.cross_chat_memory, undefined);
+  const empty = client({ crossChatMemory: true, userMemory: '   ' });
+  await empty.api.createCompletion({ messages: [{ role: 'user', content: 'Hi' }] });
+  assert.equal(JSON.parse(empty.calls[0].body).client_settings.cross_chat_memory, undefined);
+  const unset = client();
+  await unset.api.createCompletion({ messages: [{ role: 'user', content: 'Hi' }] });
+  assert.equal(JSON.parse(unset.calls[0].body).client_settings.cross_chat_memory, undefined);
+});

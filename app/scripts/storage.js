@@ -54,6 +54,8 @@
     MESSAGE_COUNT_SINCE_LAST_SUMMARY: 'messageCountSinceLastSummary',
     SUMMARY_TRIGGER_COUNT: 'summaryTriggerCount',
     SUMMARY_LENGTH_PREFERENCE: 'summaryLengthPreference',
+    USER_MEMORY: 'userMemory',
+    CROSS_CHAT_MEMORY: 'crossChatMemory',
 
     // Images
     IMAGE_ASPECT: 'imageAspect',

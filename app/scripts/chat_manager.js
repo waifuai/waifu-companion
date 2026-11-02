@@ -242,6 +242,34 @@ function seedWelcomeBackOpener() {
   return true;
 }
 
+// A brand-new chat greets a remembered visitor back with a couple of topics
+// from the durable cross-chat memory. Runs only while the feature's toggle is
+// on, for English interface locales and a non-empty store, once per new chat —
+// restored conversations are greeted by the restored-summary opener above.
+function userMemoryGreetingLine() {
+  const memory = window.ConversationBudget ? window.ConversationBudget.packUserMemory(window.userMemory) : '';
+  if (!memory) return null;
+  const topics = memory.split('\n').filter(Boolean).slice(-2).map(line => {
+    const text = line.replace(/\s+/g, ' ').trim();
+    return text.length > 80 ? text.slice(0, 80).replace(/\s+\S*$/, '') + '…' : text;
+  });
+  return topics.length ? 'Nice to see you again! I remembered: ' + topics.join('; ') + ' — how have things been?' : null;
+}
+
+function seedUserMemoryGreeting() {
+  if (!window.crossChatMemory || window.conversationContext.length) return false;
+  if (!String(window.WaifuI18n?.locale || 'en').startsWith('en')) return false;
+  const line = userMemoryGreetingLine();
+  if (!line) return false;
+  const message = { role: 'assistant', content: line, userMemoryGreeting: true,
+    languageCode: window.selectedLanguageCode || 'en-US' };
+  window.conversationContext.push(message);
+  message.id = addMessage(line, false, null, null, message.languageCode, null);
+  if (typeof trackEvent === 'function') trackEvent('cross_chat_memory_greeting');
+  debugLog('ChatManager: New-chat opener seeded from the cross-chat memory.', 'info');
+  return true;
+}
+
 // Delete a chat
 function deleteChat(chatId) {
   if (getActiveChatId() === chatId) window.resetConversationRuntime?.();
@@ -457,7 +485,8 @@ function handleNewChat() {
 
   const id = createNewChat('New Chat');
 
-  // Reset global state for new chat
+  // Reset global state for new chat. Per-chat memory only: the durable
+  // cross-chat memory is global and survives new chats on purpose.
   window.conversationContext = [];
   window.conversationSummary = '';
   window.summaryProgress = null;
@@ -475,7 +504,9 @@ function handleNewChat() {
   if (summaryEl) summaryEl.value = '';
   window.showMemorySizeStatus?.();
 
-  if (typeof showWelcomeHint === 'function') showWelcomeHint();
+  // A remembered visitor's new chat opens with a cross-chat greeting; other
+  // new chats keep the static welcome hint.
+  if (!seedUserMemoryGreeting() && typeof showWelcomeHint === 'function') showWelcomeHint();
 
   // Update header. This used to reference an undefined `name`, which resolves
   // to window.name (a built-in cross-frame global, normally '""') instead of
@@ -668,6 +699,7 @@ window.ChatManager = {
   handleDeleteChat,
   handleRenameChat,
   seedWelcomeBackOpener,
+  seedUserMemoryGreeting,
   exportAllChats
 };
 

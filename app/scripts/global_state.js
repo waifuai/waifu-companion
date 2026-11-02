@@ -143,6 +143,11 @@ AppState.messageCountSinceLastSummary = 0;
 AppState.summaryTriggerCount = 60;
 AppState.summaryLengthPreference = 'concise';
 
+// Cross-chat memory: durable lines about the user that outlive single
+// conversations. Per browser, kept across new chats and persona resets.
+AppState.userMemory = '';
+AppState.crossChatMemory = false;
+
 // Provider state
 AppState.useOpenRouter = false;
 AppState.openRouterApiKey = '';
@@ -284,6 +289,8 @@ Object.defineProperty(window, 'conversationSummary', { get: () => AppState.conve
 Object.defineProperty(window, 'messageCountSinceLastSummary', { get: () => AppState.messageCountSinceLastSummary, set: v => { AppState.messageCountSinceLastSummary = v; } });
 Object.defineProperty(window, 'summaryTriggerCount', { get: () => AppState.summaryTriggerCount, set: v => { AppState.summaryTriggerCount = v; } });
 Object.defineProperty(window, 'summaryLengthPreference', { get: () => AppState.summaryLengthPreference, set: v => { AppState.summaryLengthPreference = v; } });
+Object.defineProperty(window, 'userMemory', { get: () => AppState.userMemory, set: v => { AppState.userMemory = v; } });
+Object.defineProperty(window, 'crossChatMemory', { get: () => AppState.crossChatMemory, set: v => { AppState.crossChatMemory = v; } });
 Object.defineProperty(window, 'allowAIModSettings', { get: () => AppState.allowAIModSettings, set: v => { AppState.allowAIModSettings = v; } });
 Object.defineProperty(window, 'includeTutorialInContext', { get: () => AppState.includeTutorialInContext, set: v => { AppState.includeTutorialInContext = v; } });
 Object.defineProperty(window, 'useOpenRouter', { get: () => AppState.useOpenRouter, set: v => { AppState.useOpenRouter = v; } });

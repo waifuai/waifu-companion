@@ -2,7 +2,7 @@
   'use strict';
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  const limits = Object.freeze({ messages: 100, history: 128 * 1024, summary: 32 * 1024, transcript: 128 * 1024, request: 256 * 1024 });
+  const limits = Object.freeze({ messages: 100, history: 128 * 1024, summary: 32 * 1024, transcript: 128 * 1024, request: 256 * 1024, userMemory: 8 * 1024 });
   const bytes = text => encoder.encode(String(text || '')).length;
   const jsonBytes = value => bytes(JSON.stringify(value));
   // Localized validation errors, but never dependent on the runtime being
@@ -89,7 +89,43 @@
       (previous || 'No previous summary exists.') + '"\n\nThe following are the oldest messages that were just pushed out of memory:\n' +
       transcript + '\n\nCombine the previous memory and this transcript into a ' + preference +
       ' summary. Aim for a compact summary; never exceed 32 KiB of UTF-8 text. Preserve, as short labeled lines where possible: durable user facts (name, age, location, work or studies, likes and dislikes, boundaries); relationship milestones (first meetings, nicknames, agreements, confessions); open storylines and unresolved threads; promises and plans (who said they would do what); established character details (persona traits, backstory, shared references); and emotional beats (what mattered to the user and why). ' +
-      'Condense repetition and older details that no longer matter. A continuation contains the next part of a long message; do not invent missing parts. Respond ONLY with the new summary text.' }];
+      'Condense repetition and older details that no longer matter. A continuation contains the next part of a long message; do not invent missing parts. Respond ONLY with the new summary text, followed by one extra section that starts on its own line with exactly "Durable across chats:" and lists, one short line each, the facts about the user and the relationship that should carry into future conversations (for example their name and personal details, likes and dislikes, open storylines, promises, and how you treat each other). Leave that section out entirely when there is nothing worth carrying over.' }];
+  }
+
+  // Durable cross-chat memory. The compression reply may end with a
+  // "Durable across chats:" section; the client splits it off, merges its
+  // lines into a per-browser store that survives new conversations, and packs
+  // that store into every conversation's request. A reply without the marker
+  // is entirely the chat summary and leaves the store untouched.
+  function splitDurable(text) {
+    const raw = String(text || '');
+    const match = raw.match(/(^|\n)[ \t]*Durable across chats:[ \t]*/);
+    if (!match) return { summary: raw.trim(), durable: '' };
+    return { summary: raw.slice(0, match.index).trim(), durable: raw.slice(match.index + match[0].length).trim() };
+  }
+  // Newest last. An incoming line replaces the stored line sharing its
+  // short label ("Name: …"), or its full text for label-less lines; anything
+  // else appends.
+  function mergeDurable(current, incoming) {
+    const norm = line => String(line || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const keyOf = line => {
+      const text = norm(line);
+      const label = text.match(/^(.{1,24}):\s/);
+      return label ? label[1] + ':' : text;
+    };
+    const lines = String(current || '').split('\n').map(line => line.trim()).filter(Boolean);
+    for (const line of String(incoming || '').split('\n').map(line => line.trim()).filter(Boolean)) {
+      const key = keyOf(line);
+      const at = lines.findIndex(existing => keyOf(existing) === key);
+      if (at === -1) lines.push(line); else lines[at] = line;
+    }
+    return lines.join('\n');
+  }
+  // Keeps the newest lines; the oldest drop first when the byte cap is hit.
+  function packUserMemory(text, capBytes = limits.userMemory) {
+    let lines = String(text || '').split('\n').map(line => line.trim()).filter(Boolean);
+    while (lines.length && bytes(lines.join('\n')) > capBytes) lines = lines.slice(1);
+    return lines.join('\n');
   }
   function compressionTask(entries, state, makeBody = m => ({ messages: m }), preference = 'concise') {
     const legacy = bytes(state.summary) > limits.summary;
@@ -173,7 +209,7 @@
     }
     return out;
   }
-  const api = { limits, bytes, jsonBytes, validateSummary, checkBody, pack, prefix, signature, pruneRepeatedReplies, summaryMessages, compressionTask, accept, activeSummary, error, decisionReply, decisionState };
+  const api = { limits, bytes, jsonBytes, validateSummary, checkBody, pack, prefix, signature, pruneRepeatedReplies, summaryMessages, compressionTask, accept, activeSummary, splitDurable, mergeDurable, packUserMemory, error, decisionReply, decisionState };
   root.ConversationBudget = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -211,6 +211,8 @@ function initPersona() {
   window.summaryBackup = AppStorage.getString(AppStorage.KEYS.SUMMARY_BACKUP, '');
   window.messageCountSinceLastSummary = AppStorage.getNumber(AppStorage.KEYS.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
   window.summaryTriggerCount = AppStorage.getNumber(AppStorage.KEYS.SUMMARY_TRIGGER_COUNT, 60);
+  window.userMemory = AppStorage.getString(AppStorage.KEYS.USER_MEMORY, '');
+  window.crossChatMemory = AppStorage.getBoolean(AppStorage.KEYS.CROSS_CHAT_MEMORY, false);
 
   const coreTextarea = document.getElementById('corePersonaPrompt');
   if (coreTextarea) coreTextarea.value = window.corePersonaPrompt;
@@ -241,6 +243,15 @@ function initPersona() {
   document.getElementById('savePersonaBtn')?.addEventListener('click', handleSavePersona);
   document.getElementById('resetPersonaBtn')?.addEventListener('click', handleResetPersona);
   document.getElementById('manualSummarizeBtn')?.addEventListener('click', handleManualSummarize);
+
+  const userMemoryTextarea = document.getElementById('userMemory');
+  if (userMemoryTextarea) userMemoryTextarea.value = window.userMemory;
+  const crossChatMemoryCheckbox = document.getElementById('crossChatMemoryCheckbox');
+  if (crossChatMemoryCheckbox) {
+    crossChatMemoryCheckbox.checked = window.crossChatMemory;
+    crossChatMemoryCheckbox.addEventListener('change', handleCrossChatMemoryChange);
+  }
+  document.getElementById('forgetUserMemoryBtn')?.addEventListener('click', handleForgetEverything);
   debugLog('Persona initialized.', 'info');
 }
 
