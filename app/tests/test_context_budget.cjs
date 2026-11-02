@@ -150,3 +150,23 @@ test('shared speech/emotion evidence fits the serialized decision body even with
   assert.equal(JSON.stringify(state),original);
   assert.deepEqual(packed.recent_context,state.recent_context);
 });
+
+test('older near-duplicate assistant replies are pruned; the newest, users and short replies survive', () => {
+  const a1 = { role: 'assistant', content: 'I would love to go to the beach with you tomorrow afternoon my love' };
+  const u = { role: 'user', content: 'okay cool, see you then' };
+  const a2 = { role: 'assistant', content: 'I would love to go to the beach with you tomorrow afternoon my darling' };
+  assert.deepEqual(b.pruneRepeatedReplies([a1, u, a2]), [u, a2]);
+  // The newest assistant turn always survives, even when nothing else does.
+  assert.deepEqual(b.pruneRepeatedReplies([a1, a2]), [a2]);
+  assert.deepEqual(b.pruneRepeatedReplies([a1]), [a1]);
+  // Short replies are never dropped, however similar.
+  const short1 = { role: 'assistant', content: 'Okay!' }, short2 = { role: 'assistant', content: 'Okay, sure!' };
+  assert.deepEqual(b.pruneRepeatedReplies([short1, short2]), [short1, short2]);
+  // Repeated user turns are never dropped.
+  const u1 = { role: 'user', content: 'hello there, how are you today' };
+  assert.deepEqual(b.pruneRepeatedReplies([u1, { role: 'user', content: u1.content }]), [u1, u1]);
+  // Distinct replies survive in full order.
+  const d1 = { role: 'assistant', content: 'Let me tell you about the history of the ancient lighthouse keeper' };
+  const d2 = { role: 'assistant', content: 'The weather in the northern mountains turns cold before the harvest ends' };
+  assert.deepEqual(b.pruneRepeatedReplies([d1, u, d2]), [d1, u, d2]);
+});

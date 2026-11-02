@@ -422,7 +422,9 @@ async function buildChatMessages(userMessage, targetLanguageCode, logLabel = '',
 
   const messages = [
     { role: 'system', content: buildSystemPrompt(targetLanguageName, contextInfo, prompt) },
-    ...contextForModel(conversationContext)
+    // Near-duplicate pruning of the packed chat history only: auxiliary
+    // consumers (image decisions, speech evidence) keep the raw turns.
+    ...window.ConversationBudget.pruneRepeatedReplies(contextForModel(conversationContext))
   ];
 
   const visibleContext = contextForModel(conversationContext);
