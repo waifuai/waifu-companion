@@ -26,7 +26,7 @@
 
 ### Smart AI Persona
 - **Customizable Identity**: Define your companion's core personality and roleplay traits via system prompts.
-- **Contextual Memory**: The AI remembers previous interactions with configurable memory depth.
+- **Contextual Memory**: The AI remembers previous interactions with configurable memory depth. Remember me between chats is enabled by default and carries short saved facts into New Chat in the same client and browser. Settings let you turn it off, edit the saved facts or clear them with Forget everything; your saved off choice is preserved.
 - **Auto-Summarization**: Automatic conversation summarization to preserve context across long sessions.
 - **Context Awareness**: Aware of real-time context like current time, device battery status, and user-provided background context.
 - **AI Settings Control**: Experimental feature allowing the AI to modify application settings.
