@@ -377,11 +377,11 @@ STAGE_SCRIPTS = """<script src="/homepage-sprites/sprites.js"></script>
 <script src="/homepage-sprites/voice.js"></script>
 <script src="/homepage-sprites/tts_language_router.js"></script>
 <script src="/homepage-sprites/speech.js"></script>
-<script src="/homepage-sprites/context_budget.js"></script>
+<script src="/homepage-sprites/context_budget.js?v=20261103-memory"></script>
 <script src="/homepage-sprites/i18n/chat_prompts.js"></script>
 <script src="/homepage-sprites/prompt_translations.js"></script>
-<script src="/homepage-sprites/chat.js"></script>
-<script src="/homepage-sprites/app.js"></script>"""
+<script src="/homepage-sprites/chat.js?v=20261103-memory"></script>
+<script src="/homepage-sprites/app.js?v=20261103-memory"></script>"""
 
 
 def head_embed(code: str) -> str:
