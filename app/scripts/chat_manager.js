@@ -212,6 +212,36 @@ function loadChat(chatId) {
   return true;
 }
 
+// A returning visitor whose restored conversation already carries a memory
+// summary gets one visible opener referencing it, so same-browser continuity
+// is felt rather than only silently present. Seeded once per conversation
+// (the marker saves with the next turn), only for English interface locales,
+// never spoken, and the session's chat requests carry welcome_back in
+// client_settings.
+function welcomeBackLine() {
+  const summary = String(window.conversationSummary || '').replace(/\s+/g, ' ').trim();
+  if (!summary) return null;
+  const text = summary.length > 140 ? summary.slice(0, 140).replace(/\s+\S*$/, '') + '…' : summary;
+  return 'Welcome back! Last time we were talking about ' + text + ' — want to pick up where we left off?';
+}
+
+function seedWelcomeBackOpener() {
+  if (!window.conversationContext.length) return false;
+  const last = window.conversationContext[window.conversationContext.length - 1];
+  if (last && last.welcomeBack) return false; // this conversation was already greeted
+  if (!String(window.WaifuI18n?.locale || 'en').startsWith('en')) return false;
+  const line = welcomeBackLine();
+  if (!line) return false;
+  const message = { role: 'assistant', content: line, welcomeBack: true,
+    languageCode: window.selectedLanguageCode || 'en-US' };
+  window.conversationContext.push(message);
+  message.id = addMessage(line, false, null, null, message.languageCode, null);
+  window.welcomeBackShown = true;
+  if (typeof trackEvent === 'function') trackEvent('welcome_back_shown');
+  debugLog('ChatManager: Welcome back opener seeded from the restored summary.', 'info');
+  return true;
+}
+
 // Delete a chat
 function deleteChat(chatId) {
   if (getActiveChatId() === chatId) window.resetConversationRuntime?.();
@@ -637,6 +667,7 @@ window.ChatManager = {
   handleSwitchChat,
   handleDeleteChat,
   handleRenameChat,
+  seedWelcomeBackOpener,
   exportAllChats
 };
 

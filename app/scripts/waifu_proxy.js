@@ -79,7 +79,9 @@ function getClientSettings() {
       translate_ui: Boolean(window.translateUI),
       allow_ai_settings: Boolean(window.allowAIModSettings),
       json_emotion: Boolean(window.useJsonForEmotion),
-      radio_playing: typeof radioPlayer !== 'undefined' && Boolean(radioPlayer) && !radioPlayer.paused
+      radio_playing: typeof radioPlayer !== 'undefined' && Boolean(radioPlayer) && !radioPlayer.paused,
+      // Set for the session when the welcome-back opener was seeded at startup.
+      ...(window.welcomeBackShown ? { welcome_back: 1 } : {})
     };
   } catch (e) {
     // A snapshot must never break the chat.

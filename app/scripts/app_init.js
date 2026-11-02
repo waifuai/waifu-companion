@@ -21,6 +21,7 @@ async function initChat() {
     const meta = window.ChatManager.getChatMeta(activeId);
     const headerEl = document.getElementById('chatTitle');
     if (headerEl && meta) headerEl.textContent = meta.name;
+    window.ChatManager.seedWelcomeBackOpener?.();
   }
   window.ChatManager.renderChatList();
   const sidebarVisible = AppStorage.getBoolean(AppStorage.KEYS.CHAT_SIDEBAR_VISIBLE, false);
