@@ -59,8 +59,8 @@
       'You are a memory compression engine.\nThe following is an existing summary of a conversation:\n"' +
       (previous || 'No previous summary exists.') + '"\n\nThe following are the oldest messages that were just pushed out of memory:\n' +
       transcript + '\n\nCombine the previous memory and this transcript into a ' + preference +
-      ' summary. Aim for a compact summary; never exceed 32 KiB of UTF-8 text. Keep names, user preferences, decisions, promises and unresolved events. ' +
-      'Condense repetition and older details. A continuation contains the next part of a long message; do not invent missing parts. Respond ONLY with the new summary text.' }];
+      ' summary. Aim for a compact summary; never exceed 32 KiB of UTF-8 text. Preserve, as short labeled lines where possible: durable user facts (name, age, location, work or studies, likes and dislikes, boundaries); relationship milestones (first meetings, nicknames, agreements, confessions); open storylines and unresolved threads; promises and plans (who said they would do what); established character details (persona traits, backstory, shared references); and emotional beats (what mattered to the user and why). ' +
+      'Condense repetition and older details that no longer matter. A continuation contains the next part of a long message; do not invent missing parts. Respond ONLY with the new summary text.' }];
   }
   function compressionTask(entries, state, makeBody = m => ({ messages: m }), preference = 'concise') {
     const legacy = bytes(state.summary) > limits.summary;

@@ -17,7 +17,7 @@ function handleAlwaysShowSettingsChange(event) {
 }
 
 function clampMemorySetting(value) {
-  return Math.min(100, Math.max(5, parseInt(value, 10) || 30));
+  return Math.min(100, Math.max(5, parseInt(value, 10) || 60));
 }
 
 function updateMemorySize(value) {
@@ -479,7 +479,7 @@ function handleResetPersona() {
   window.userPersonaPrompt = "";
   window.conversationSummary = "";
   window.messageCountSinceLastSummary = 0;
-  window.summaryTriggerCount = 30;
+  window.summaryTriggerCount = 60;
   window.summaryLengthPreference = 'concise';
   
   const coreTextarea = document.getElementById('corePersonaPrompt');
@@ -494,15 +494,15 @@ function handleResetPersona() {
   const triggerVal = document.getElementById('summaryTriggerCountValue');
   const lengthSelect = document.getElementById('summaryLengthPreference');
   
-  if (triggerSlider) triggerSlider.value = 30;
-  if (triggerVal) triggerVal.textContent = 30;
+  if (triggerSlider) triggerSlider.value = 60;
+  if (triggerVal) triggerVal.textContent = 60;
   if (lengthSelect) lengthSelect.value = 'concise';
 
   S.setString(K.CORE_PERSONA_PROMPT, defaultCore);
   S.setString(K.USER_PERSONA_PROMPT, "");
   S.setString(K.CONVERSATION_SUMMARY, "");
   S.setNumber(K.MESSAGE_COUNT_SINCE_LAST_SUMMARY, 0);
-  S.setNumber(K.SUMMARY_TRIGGER_COUNT, 30);
+  S.setNumber(K.SUMMARY_TRIGGER_COUNT, 60);
   S.setString(K.SUMMARY_LENGTH_PREFERENCE, "concise");
   window.persistConversationMemory?.();
   window.showMemorySizeStatus?.();

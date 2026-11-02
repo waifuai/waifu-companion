@@ -140,7 +140,7 @@ AppState.conversationSummary = "";
 AppState.summaryProgress = null;
 AppState.summaryBackup = '';
 AppState.messageCountSinceLastSummary = 0;
-AppState.summaryTriggerCount = 30;
+AppState.summaryTriggerCount = 60;
 AppState.summaryLengthPreference = 'concise';
 
 // Provider state
