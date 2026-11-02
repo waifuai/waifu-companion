@@ -413,6 +413,7 @@ function handleSavePersona() {
   window.corePersonaPrompt = core;
   window.userPersonaPrompt = user;
   window.conversationSummary = summary;
+  window.invalidateUserMemory?.();
   window.userMemory = window.ConversationBudget.packUserMemory(userMemory);
   window.summaryTriggerCount = trigger;
   window.summaryLengthPreference = length;
@@ -440,6 +441,7 @@ function handleSavePersona() {
 }
 
 function handleCrossChatMemoryChange(event) {
+  window.invalidateUserMemory?.();
   window.crossChatMemory = event.target.checked;
   S.setBoolean(K.CROSS_CHAT_MEMORY, window.crossChatMemory);
   debugLog(`Cross-chat memory ${window.crossChatMemory ? 'enabled' : 'disabled'}.`, 'info');
@@ -447,6 +449,7 @@ function handleCrossChatMemoryChange(event) {
 
 function handleForgetEverything() {
   if (!confirm('Forget everything remembered between chats? This cannot be undone.')) return;
+  window.invalidateUserMemory?.();
   window.userMemory = '';
   S.setString(K.USER_MEMORY, '');
   const textarea = document.getElementById('userMemory');

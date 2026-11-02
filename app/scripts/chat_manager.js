@@ -37,6 +37,9 @@ function _getChatData(chatId) {
 }
 
 function _saveChatData(chatId, data) {
+  // A greeting stays recorded even after its message is removed or summarized.
+  data = { ...data, welcomeBackGreeted: Boolean(data.welcomeBackGreeted ||
+    _getChatData(chatId)?.welcomeBackGreeted || data.conversationContext?.some(m => m.welcomeBack)) };
   AppStorage.setJSON('chatData_' + chatId, data);
 }
 
@@ -227,8 +230,8 @@ function welcomeBackLine() {
 
 function seedWelcomeBackOpener() {
   if (!window.conversationContext.length) return false;
-  const last = window.conversationContext[window.conversationContext.length - 1];
-  if (last && last.welcomeBack) return false; // this conversation was already greeted
+  const chatId = getActiveChatId();
+  if (_getChatData(chatId)?.welcomeBackGreeted || window.conversationContext.some(m => m.welcomeBack)) return false;
   if (!String(window.WaifuI18n?.locale || 'en').startsWith('en')) return false;
   const line = welcomeBackLine();
   if (!line) return false;
@@ -236,6 +239,7 @@ function seedWelcomeBackOpener() {
     languageCode: window.selectedLanguageCode || 'en-US' };
   window.conversationContext.push(message);
   message.id = addMessage(line, false, null, null, message.languageCode, null);
+  if (chatId) saveCurrentChat(chatId);
   window.welcomeBackShown = true;
   if (typeof trackEvent === 'function') trackEvent('welcome_back_shown');
   debugLog('ChatManager: Welcome back opener seeded from the restored summary.', 'info');

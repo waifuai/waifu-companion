@@ -238,3 +238,41 @@ test('the toggle removes cross-chat memory from requests', async () => {
   const sys = (await ctx.buildChatMessages('hello', 'en-US'))[0].content;
   assert.doesNotMatch(sys, /Things you remember about the user/);
 });
+
+test('clearing or editing user memory rejects a pending durable update and keeps the chat summary', async () => {
+  for (const action of ['forget', 'edit']) {
+    const { ctx, store, elements } = client(); longConversation(ctx);
+    ctx.crossChatMemory = true; ctx.userMemory = 'Name: Rei';
+    ctx.confirm = () => true;
+    let finish;
+    ctx.requestMemorySummary = () => new Promise(resolve => { finish = resolve; });
+    const work = ctx.maybeSummarizeConversation(true);
+    if (action === 'forget') ctx.handleForgetEverything();
+    else {
+      elements.set('userMemory', { value: 'Name: Corrected' });
+      ctx.handleSavePersona();
+    }
+    finish('Fresh chat summary.\nDurable across chats:\nName: Rei\nLikes: rain sounds');
+    assert.equal(await work, true);
+    assert.equal(ctx.conversationSummary, 'Fresh chat summary.');
+    const expected = action === 'forget' ? '' : 'Name: Corrected';
+    assert.equal(ctx.userMemory, expected);
+    assert.equal(store.get('USER_MEMORY'), expected);
+  }
+});
+
+test('enabling or cycling cross-chat memory does not accept an older pending durable update', async () => {
+  for (const enabled of [false, true]) {
+    const { ctx } = client(); longConversation(ctx);
+    ctx.crossChatMemory = enabled; ctx.userMemory = 'Kept facts';
+    let finish;
+    ctx.requestMemorySummary = () => new Promise(resolve => { finish = resolve; });
+    const work = ctx.maybeSummarizeConversation(true);
+    if (enabled) ctx.handleCrossChatMemoryChange({ target: { checked: false } });
+    ctx.handleCrossChatMemoryChange({ target: { checked: true } });
+    finish('Fresh chat summary.\nDurable across chats:\nName: Rei');
+    assert.equal(await work, true);
+    assert.equal(ctx.conversationSummary, 'Fresh chat summary.');
+    assert.equal(ctx.userMemory, 'Kept facts');
+  }
+});

@@ -390,6 +390,9 @@ const SUMMARIZE_FAILURE_COOLDOWN_MS = 120000;
 window.conversationMemoryRevision = 0;
 function invalidateConversationMemory() { window.conversationMemoryRevision++; }
 window.invalidateConversationMemory = invalidateConversationMemory;
+window.userMemoryRevision = 0;
+function invalidateUserMemory() { window.userMemoryRevision++; }
+window.invalidateUserMemory = invalidateUserMemory;
 
 function memoryEntry(message) {
   if (!message.id) message.id = 'memory-' + Date.now().toString(36) + '-' + (++memoryMessageSequence);
@@ -439,6 +442,7 @@ async function maybeSummarizeConversation(force = false, owner = null) {
   if (!task) return false;
   if (!force) lastAutomaticMemoryTurn = turn;
   const revision = window.conversationMemoryRevision;
+  const durableRevision = window.userMemoryRevision, durableEnabled = window.crossChatMemory;
   const valid = () => (!owner || turnIsCurrent(owner)) && window.conversationMemoryRevision === revision &&
     (!window.ChatManager || window.ChatManager.getActiveChatId() === chatId) &&
     window.conversationSummary === state.summary && (window.summaryProgress || null) === state.progress &&
@@ -455,7 +459,7 @@ async function maybeSummarizeConversation(force = false, owner = null) {
     window.conversationSummary = next.summary;
     window.summaryProgress = next.progress;
     if (next.backup) window.summaryBackup = next.backup;
-    if (parts.durable && window.crossChatMemory) {
+    if (parts.durable && durableEnabled && window.crossChatMemory && window.userMemoryRevision === durableRevision) {
       window.userMemory = budget.mergeDurable(window.userMemory || '', parts.durable);
       persistUserMemory();
     }

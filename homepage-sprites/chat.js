@@ -130,11 +130,18 @@ const Chat = (() => {
   if (!PERSONAS[settings.persona]) settings.persona = 'aurora';
   if (!SUMMARY_LENGTHS[settings.summaryLength]) settings.summaryLength = 'concise';
 
+  let userMemoryRevision = 0;
+  let savedCrossChatMemory = Boolean(settings.crossChatMemory);
+
   const savedMemorySize = settings.memorySize;
   settings.memorySize = memorySize();
   if (settings.memorySize !== savedMemorySize) saveSettings();
 
   function saveSettings() {
+    if (Boolean(settings.crossChatMemory) !== savedCrossChatMemory) {
+      userMemoryRevision++;
+      savedCrossChatMemory = Boolean(settings.crossChatMemory);
+    }
     settings.memorySize = memorySize();
     save(KEY.settings, settings);
   }
@@ -368,7 +375,7 @@ const Chat = (() => {
 
   function saveMemory() {
     if (!convId) return;
-    if (memory.summary) save(KEY.mem + convId, memory);
+    if (memory.summary || memory.welcomeBackGreeted) save(KEY.mem + convId, memory);
     else remove(KEY.mem + convId);
   }
 
@@ -383,12 +390,13 @@ const Chat = (() => {
   }
   function getUserMemory() { return userMemory; }
   function setUserMemory(text) {
+    userMemoryRevision++;
     userMemory = window.ConversationBudget
       ? window.ConversationBudget.packUserMemory(String(text || ''))
       : String(text || '').trim();
     saveUserMemory();
   }
-  function clearUserMemory() { userMemory = ''; saveUserMemory(); }
+  function clearUserMemory() { userMemoryRevision++; userMemory = ''; saveUserMemory(); }
   function durableMemory() {
     return settings.crossChatMemory && window.ConversationBudget
       ? window.ConversationBudget.packUserMemory(userMemory) : '';
@@ -442,8 +450,14 @@ const Chat = (() => {
   // welcome_back in client_settings.
   function seedWelcomeBack() {
     if (!convId || !messages.length) return false;
-    const last = messages[messages.length - 1];
-    if (last && last.welcomeBack) return false; // this conversation was already greeted
+    if (memory.welcomeBackGreeted || messages.some(m => m.welcomeBack)) {
+      // Preserve older message markers independently of the visible history.
+      if (!memory.welcomeBackGreeted) {
+        memory = { ...memory, welcomeBackGreeted: true };
+        saveMemory();
+      }
+      return false;
+    }
     if (!String(window.WaifuI18n?.locale || 'en').startsWith('en')) return false;
     const summary = String(memory.summary || '').replace(/\s+/g, ' ').trim();
     if (!summary) return false;
@@ -451,6 +465,8 @@ const Chat = (() => {
     const message = { id: messageId(), role: 'assistant', welcomeBack: true,
       content: 'Welcome back! Last time we were talking about ' + text + ' — want to pick up where we left off?' };
     messages.push(message);
+    memory = { ...memory, welcomeBackGreeted: true };
+    saveMemory();
     saveConversation();
     welcomeBackShown = true;
     return message;
@@ -594,6 +610,7 @@ const Chat = (() => {
     if (summarizing || (!force && Date.now() - summaryFailedAt < 120000)) return false;
     const budget = window.ConversationBudget;
     const id = convId, revision = memoryRevision, snapshot = memory, scope = conversationRevision;
+    const durableRevision = userMemoryRevision, durableEnabled = settings.crossChatMemory;
     const pendingMessages = messages.slice(unsummarizedStart());
     const latestUser = [...messages].reverse().find(m => m.role === 'user');
     const turn = id + ':' + (latestUser && latestUser.id);
@@ -624,7 +641,7 @@ const Chat = (() => {
       const next = budget.accept(task, parts.summary);
       memory = { ...memory, ...next };
       if (!task.legacy && task.completed.length) memory.through = task.completed[task.completed.length - 1].id;
-      if (parts.durable && settings.crossChatMemory) {
+      if (parts.durable && durableEnabled && settings.crossChatMemory && userMemoryRevision === durableRevision) {
         userMemory = budget.mergeDurable(userMemory, parts.durable);
         saveUserMemory();
       }
