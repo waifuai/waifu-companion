@@ -694,8 +694,15 @@ const Chat = (() => {
   }
 
   function pictureCharacterContext(){
-    return [personaPrompt(),settings.extraPrompt,memory.summary,...messages.slice(0,6).concat(messages.slice(-8)).filter(m=>!m.image).map(m=>m.role+': '+(m.content||''))]
-      .filter(Boolean).join('\n').slice(0,6000);
+    const fit=(value,limit)=>{
+      const text=String(value||'');if(text.length<=limit)return text;
+      const head=Math.floor((limit-5)/3);return text.slice(0,head)+'\n...\n'+text.slice(-(limit-5-head));
+    };
+    const parts=[['Companion persona',personaPrompt(),1800],['Extra instructions',settings.extraPrompt,700],['Scene summary',memory.summary,1000]]
+      .filter(([,value])=>value).map(([label,value,limit])=>label+': '+fit(value,limit));
+    const history=messages.filter(m=>!isPicture(m)&&usableMessage(m)).map(m=>m.role+': '+String(m.content||'')).join('\n');
+    const prefix=parts.join('\n')+'\nConversation (later scene details take priority):\n';
+    return prefix+fit(history,6000-prefix.length);
   }
   async function systemPrompt() {
     const language = settings.language;

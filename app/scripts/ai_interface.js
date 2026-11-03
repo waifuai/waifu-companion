@@ -310,7 +310,7 @@ const IMAGE_WRITER_SYSTEM_PROMPT = (appearance) => `Write the image description 
 
 Answer with exactly one line: DRAW: <English description>
 
-The description is 10 to 40 words describing who is in it, outfit, pose, setting and mood. When the companion is in the picture, use an explicitly defined companion appearance in the character context when present; otherwise describe the displayed avatar as ${appearance || 'an anime girl'}, plus the requested outfit or pose. The image service applies its own content filter. Describe the requested picture.`;
+The description is 10 to 40 words describing who is in it, outfit, pose, setting and mood. The NEW request's explicit subject and appearance take priority. When the companion is in the picture, use her current roleplay appearance, then her custom persona, then the displayed avatar default: ${appearance || 'an anime girl'}. Later scene corrections override earlier details. Preserve an explicitly requested third-party subject. The image service applies its own content filter. Describe the requested picture.`;
 
 // Words that must never reach the image provider, whatever the model wrote.
 const UNSAFE_IMAGE_WORDS = /\b(zugzwang|zebra)\b/i;
@@ -363,6 +363,22 @@ function clipPictureContext(text) {
   return clean.length <= 300 ? clean : `${clean.slice(0, 100)}\n...\n${clean.slice(-195)}`;
 }
 
+function clipCharacterContext(value,limit) {
+  const text=String(value||'');
+  if(text.length<=limit)return text;
+  const head=Math.floor((limit-5)/3);
+  return text.slice(0,head)+'\n...\n'+text.slice(-(limit-5-head));
+}
+function pictureCharacterContext() {
+  const parts=[['Default identity',window.corePersonaPrompt,500],['Custom companion',window.userPersonaPrompt,1800],['Scene summary',window.conversationSummary,1000]]
+    .filter(([,value])=>value).map(([label,value,limit])=>label+': '+clipCharacterContext(value,limit));
+  const history=contextForModel(conversationContext.filter(m=>!m.imageOperation&&!m.imageUrl))
+    .map(m=>m.role+': '+stripImageArtifacts(m.content)).join('\n');
+  const prefix=parts.join('\n')+'\nConversation (later scene details take priority):\n';
+  return prefix+clipCharacterContext(history,6000-prefix.length);
+}
+window.pictureCharacterContext=pictureCharacterContext;
+
 // Decides, in its own small call alongside the chat reply, whether this turn
 // asks for a picture, and writes the English description for it. Resolves
 // with {prompt, aspect} or null, and never throws: a failed decision just
@@ -402,10 +418,8 @@ async function getImageDecision(userMessage, options = {}) {
     }
 
     checkTurn(options);
-    const characterContext = [window.corePersonaPrompt,window.userPersonaPrompt,
-      window.conversationSummary,...contextForModel(conversationContext).slice(0,6).concat(contextForModel(conversationContext).slice(-8)).map(m=>m.role+': '+stripImageArtifacts(m.content))]
-      .filter(Boolean).join('\n').slice(0,6000);
-    const input = `Character context (resolve companion appearance, not a new picture request): ${characterContext}\n\nCompanion's previous message: ${previous || '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
+    const characterContext = pictureCharacterContext();
+    const input = `Character context (resolve companion appearance, not a new picture request): ${characterContext}\n\nCompanion's previous message: ${previous || '(none)'}\n\nUser's NEW message: ${clipCharacterContext(userMessage,2000)}`;
 
     const completion = await callConfiguredLLM([
       { role: 'system', content: (writePicture ? IMAGE_WRITER_SYSTEM_PROMPT : IMAGE_DECISION_SYSTEM_PROMPT)(currentAvatarAppearance()) },

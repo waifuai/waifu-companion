@@ -53,7 +53,7 @@ When the companion is in the picture, use an explicitly defined companion appear
 
 Answer with exactly one line: DRAW: <English description>
 
-The description is 10 to 40 words describing who is in it, outfit, pose, setting and mood. When the companion is in the picture, use an explicitly defined companion appearance from the character context; otherwise use the displayed avatar default: ${APPEARANCE}, plus the requested outfit or pose. Preserve an explicitly requested third-party subject. The image service applies its own content filter. Describe the requested picture.`;
+The description is 10 to 40 words describing who is in it, outfit, pose, setting and mood. The NEW request's explicit subject and appearance take priority. Later roleplay corrections override earlier details, then use the custom companion persona, then the displayed avatar default: ${APPEARANCE}, plus the requested outfit or pose. Preserve an explicitly requested third-party subject. The image service applies its own content filter. Describe the requested picture.`;
 
   // Added to the chat system prompt so the reply reacts instead of refusing.
   const CHAT_RULE = `You can draw pictures, including pictures of yourself (your displayed avatar defaults to ${APPEARANCE}; explicit custom companion descriptions in the persona or roleplay take precedence for that scene). When the user asks for a picture, photo, selfie or drawing, a separate app operation attempts generation: react in character and offer to make it. An offer, request or returned URL does not confirm delivery. Only application-authored image outcome notes establish generation or browser loading; browser loading is not proof the user saw the picture. A blocked, failed, stopped, interrupted or unconfirmed operation must never be described as sent or delivered. You cannot inspect image contents. Never write out the picture's description yourself, and never refuse by saying you are an AI or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.`;
@@ -116,7 +116,7 @@ The description is 10 to 40 words describing who is in it, outfit, pose, setting
           stream: false,
           messages: [
             { role: 'system', content: writePicture ? WRITER_PROMPT : DECISION_PROMPT },
-            { role: 'user', content: "Character context (appearance only): "+characterContext+"\n\nCompanion's previous message: " + (previous || '(none)') + "\n\nUser's NEW message: " + clip(userText) },
+            { role: 'user', content: "Character context (appearance only): "+characterContext+"\n\nCompanion's previous message: " + (previous || '(none)') + "\n\nUser's NEW message: " + (String(userText||'').length<=2000?String(userText||''):String(userText).slice(0,650)+'\n...\n'+String(userText).slice(-1345)) },
           ],
           client_settings: { app: window.WaifuSpritesSource || 'homepage-sprites' },
         }),

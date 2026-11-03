@@ -86,5 +86,34 @@ test('picture writer receives a custom companion and its early roleplay definiti
   await context.getImageDecision('Send me a selfie');
   assert.match(writers[0].messages[1].content,/short red hair/);
   assert.match(writers[0].messages[1].content,/red-haired space pilot/);
-  assert.match(writers[0].messages[0].content,/explicitly defined companion appearance/);
+  assert.match(writers[0].messages[0].content,/NEW request's explicit subject and appearance take priority/);
+});
+
+test('a short history keeps a character introduced between the first and recent turns',async()=>{
+  const {context,writers}=client('Here is a selfie offer.',{picture_action_v1:{choice_id:'draw'}});
+  context.conversationContext.length=0;
+  for(let i=0;i<24;i++)context.conversationContext.push({role:'user',content:i===12?'In this story your name is Mira and you have turquoise hair.':'Ordinary short turn '+i});
+  await context.getImageDecision('Send me a selfie');
+  assert.match(writers[0].messages[1].content,/turquoise hair/);
+});
+
+test('long persona and history retain a later appearance correction, without image or superseded details',async()=>{
+  const {context,writers}=client('A selfie?',{picture_action_v1:{choice_id:'draw'}});
+  context.window.userPersonaPrompt='Custom companion Mira. '+ 'old costume '.repeat(1000);
+  context.window.conversationSummary='Old story. '.repeat(1000);
+  context.conversationContext.unshift({role:'user',content:'Earlier scene. '.repeat(1000)});
+  context.conversationContext.push({role:'user',content:'For the current scene, you now have silver hair and a blue coat.'},
+    {role:'assistant',content:'superseded-character-secret',superseded:true},
+    {role:'assistant',content:'image-character-secret',imageUrl:'https://example.test/invented.png'});
+  await context.getImageDecision('Send me a selfie');
+  const character=context.pictureCharacterContext();assert.ok(character.length<=6000);
+  assert.match(character,/silver hair and a blue coat/);assert.doesNotMatch(character,/superseded-character-secret|image-character-secret/);
+  assert.match(writers[0].messages[0].content,/Later scene corrections override earlier details/);
+});
+
+test('a long new picture request retains its explicit subject at the end',async()=>{
+  const {context,writers}=client('A drawing?',{picture_action_v1:{choice_id:'draw'}});
+  await context.getImageDecision('Draw a picture. '+ 'setting '.repeat(500)+' The subject is an adult knight with amber eyes, not the companion.');
+  const input=writers[0].messages[1].content;
+  assert.match(input,/adult knight with amber eyes/);assert.match(writers[0].messages[0].content,/third-party subject/);
 });
