@@ -1029,7 +1029,10 @@
     const select = $('replyLanguage');
     select.textContent = '';
     select.appendChild(new Option(tr('settings.yourLanguage'), ''));
-    Chat.LANGUAGES.forEach(name => select.appendChild(new Option(I18n ? I18n.languageName(name) : name, name)));
+    const locale = (I18n && I18n.locale) || document.documentElement.lang || 'en';
+    Chat.LANGUAGES.map(name => ({ name, label: I18n ? I18n.languageName(name) : name }))
+      .sort((a, b) => a.label.localeCompare(b.label, locale, { sensitivity: 'base' }))
+      .forEach(({ name, label }) => select.appendChild(new Option(label, name)));
     select.value = Chat.settings.language || '';
   }
 

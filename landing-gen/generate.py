@@ -381,7 +381,7 @@ STAGE_SCRIPTS = """<script src="/homepage-sprites/sprites.js"></script>
 <script src="/homepage-sprites/i18n/chat_prompts.js"></script>
 <script src="/homepage-sprites/prompt_translations.js"></script>
 <script src="/homepage-sprites/chat.js?v=20261103-character-context"></script>
-<script src="/homepage-sprites/app.js?v=20261103-local-voices"></script>"""
+<script src="/homepage-sprites/app.js?v=20261103-language-order"></script>"""
 
 
 def head_embed(code: str) -> str:
