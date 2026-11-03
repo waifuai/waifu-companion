@@ -516,6 +516,9 @@ function populateVoiceSelector() {
     return;
   }
 
+  const savedChoice=AppStorage.getString(AppStorage.KEYS.SELECTED_VOICE_ID,'');
+  if(/^cloud:[a-z0-9-]{1,40}$/.test(savedChoice) && !voices.some(v=>v.id===savedChoice))
+    voices.push({id:savedChoice,name:'Saved voice',language:'en-US',provider:'cloud'});
   voiceSelector.innerHTML = ''; // Clear existing options
 
   // Add "None" option first
@@ -555,21 +558,28 @@ function populateVoiceSelector() {
 
   // Check if user explicitly set to 'none'
   const savedVoiceId = AppStorage.getString(AppStorage.KEYS.SELECTED_VOICE_ID, '');
-  if (savedVoiceId === 'none') {
-    selectedVoiceId = 'none';
-  } else if (window.WaifuEmbed && availableVoices.some(v => v.id === savedVoiceId)) {
-    // Rebuilding the card's language menu must not overwrite its saved voice.
-    selectedVoiceId = savedVoiceId;
-  } else if (window.WaifuEmbed) {
-    // This menu is built before initVoice runs. Use the cloud default here
-    // too, so it doesn't save an app-language default as a manual choice.
-    selectedVoiceId = getDefaultVoiceForLanguage(selectedLanguageCode);
-    AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID, selectedVoiceId);
-  } else {
-    // Always use the appropriate default voice for the current language
-    // This ensures voice switches when language changes
-    selectedVoiceId = defaultVoiceForLang;
-    AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID, selectedVoiceId);
+  selectedVoiceId = savedVoiceId==='none' || availableVoices.some(v=>v.id===savedVoiceId)
+    ? savedVoiceId : defaultVoiceForLang;
+  AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID,selectedVoiceId);
+  if(!document.getElementById('cloudVoiceStatus')){
+    const status=document.createElement('small');status.id='cloudVoiceStatus';status.setAttribute('role','status');
+    status.textContent='Automatic follows the reply language. A chosen voice stays selected if backup audio is used.';
+    status.style.display='block';status.style.margin='6px 0';
+    const preview=document.createElement('button');preview.type='button';preview.textContent='Preview voice';preview.id='cloudVoicePreview';
+    preview.className='settings-select';preview.style.width='auto';preview.style.cursor='pointer';
+    preview.addEventListener('click',async()=>{
+      if(selectedVoiceId==='none'){window.showCloudVoiceStatus?.('Voice is off. Choose a voice to preview.');return;}
+      preview.disabled=true;
+      try{
+        const voice=voices.find(v=>v.id===selectedVoiceId);
+        const plan={lang:voice?.language||'en-US',preview:true};
+        const audio=await window.fetchTTSBuffer('Hello! This is how I sound.',selectedVoiceId,plan);
+        if(audio)await playResolvedChunk(audio);else window.showCloudVoiceStatus?.('Voice unavailable. Try again later.');
+        window.reportVoiceEvent?.('voice_preview',{voice_id:selectedVoiceId,preview:true});
+        if(typeof trackEvent==='function')trackEvent('voice_preview',{voice_id:selectedVoiceId});
+      }finally{preview.disabled=false;}
+    });
+    voiceSelector.after(status,preview);
   }
 
   voiceSelector.value = selectedVoiceId;

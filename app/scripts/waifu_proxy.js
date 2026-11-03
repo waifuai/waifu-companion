@@ -74,6 +74,7 @@ function getClientSettings() {
       ...(typeof window.WaifuI18n?.snapshot === 'function' ? window.WaifuI18n.snapshot() : {}),
       model: window.currentModelName || '',
       voice_primary: Boolean(window.enablePrimaryVoice),
+      voice_choice: /^[a-zA-Z0-9_:-]{1,60}$/.test(window.selectedVoiceId||'')?window.selectedVoiceId:'cloud',
       voice_kokoro: Boolean(window.enableKokoro),
       voice_browser: Boolean(window.enableFallbackVoice),
       stt_engine: window.sttEngine || '',
@@ -99,6 +100,7 @@ function getClientSettings() {
 }
 
 const WaifuProxyAPI = {
+  requestHeaders:getRequestIdentityHeaders,
   API_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/chat/completions',
   IMAGE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/image',
   TRANSCRIBE_URL: 'https://waifu-companion-proxy.thewaifuai.workers.dev/transcribe',

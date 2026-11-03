@@ -45,7 +45,7 @@ function attachMouthDriver(model) {
   };
 }
 
-function playAudioBuffer(audioBuffer, label = '') {
+function playAudioBuffer(audioBuffer, label = '', onStart = () => {}) {
   const audioContext = getTTSAudioContext();
   const source = audioContext.createBufferSource();
   source.buffer = audioBuffer;
@@ -115,6 +115,7 @@ function playAudioBuffer(audioBuffer, label = '') {
     };
 
     source.start();
+    onStart();
     debugLog(`TTS: Playback started (${audioDurationMs.toFixed(0)}ms)${label ? `: "${label}"` : ''}`, 'info');
   });
 
@@ -133,11 +134,12 @@ function ttsConversationKey() {
 function ttsRoutingFingerprint() {
   return JSON.stringify([window.enablePrimaryVoice !== false, !!window.enableKokoro, window.enableFallbackVoice !== false, window.selectedKokoroVoiceId || '', window.ttsFallbackVoiceId || '']);
 }
+function ttsRoutingAuto(){return window.enableAutoTtsLang!==false;}
 function prepareTTSRouting(text, force = false) {
   if (!ttsLanguageState) return null;
   const speech = typeof stripForTTS === 'function' ? stripForTTS(text) : text;
   return ttsLanguageState.prepare(speech, { key: ttsConversationKey(), voiceId: window.selectedVoiceId || 'cloud', voices,
-    auto: window.enableAutoTtsLang !== false, enabled: force || !!window.enableVoice, fingerprint: ttsRoutingFingerprint() });
+    auto: ttsRoutingAuto(), enabled: force || !!window.enableVoice, fingerprint: ttsRoutingFingerprint() });
 }
 function finishTTSRouting(plan, request, valid = () => true) {
   return plan && ttsLanguageState ? ttsLanguageState.settle(plan, request, 'live2d_tts_language_v1', valid) : Promise.resolve(plan);
@@ -145,7 +147,7 @@ function finishTTSRouting(plan, request, valid = () => true) {
 async function getTTSRouting(text, provided = null, valid = () => true) {
   let plan = provided ? await provided : prepareTTSRouting(text);
   const voiceId = window.selectedVoiceId || 'cloud';
-  const signature = JSON.stringify([ttsConversationKey(), voiceId, window.enableAutoTtsLang !== false, ttsRoutingFingerprint()]);
+  const signature = JSON.stringify([ttsConversationKey(), voiceId, ttsRoutingAuto(), ttsRoutingFingerprint()]);
   if (plan && plan.signature !== signature) plan = prepareTTSRouting(text);
   if (plan && plan.needsDecision && !plan.finished && !plan.pending && valid()) {
     let request = null;
@@ -224,7 +226,7 @@ async function waitForBrowserVoices(timeoutMs = 3000) {
 // Always resolves within a bounded time: previously there was no timeout at
 // all, only utterance.onend/onerror — a stalled utterance (a known Chrome
 // behaviour on long text) hung the whole TTS pipeline forever.
-async function speakViaBrowser(textChunk, voiceId, langOverride, valid = () => true) {
+async function speakViaBrowser(textChunk, voiceId, langOverride, valid = () => true, onStart = () => {}) {
   if (!valid()) return { played: false };
   if (!window.speechSynthesis) {
     debugLog('TTS: Browser SpeechSynthesis not available', 'error');
@@ -269,6 +271,7 @@ async function speakViaBrowser(textChunk, voiceId, langOverride, valid = () => t
     }, Math.max(10000, estimatedMs + 8000));
 
     utterance.onend = () => done('finished');
+    utterance.onstart = () => { if(valid()) onStart(); };
     utterance.onerror = (e) => done(`error: ${e.error}`);
 
     speechSynthesis.speak(utterance);
@@ -293,8 +296,11 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
   // Selections from the removed on-client voice catalog fall back to the
   // cloud voice, which is keyed by the reply's language alone.
   const provider = voiceConfig ? voiceConfig.provider : 'cloud';
-  const routingLang = routingPlan ? routingPlan.lang
+  let routingLang = routingPlan ? routingPlan.lang
     : (window.TTSLanguageRouter ? window.TTSLanguageRouter.analyze(textChunk).lang : null);
+  // A pinned voice keeps its identity. Detect the text language independently,
+  // without adding a language decision when automatic routing is disabled.
+  if (!routingLang && /^cloud:/.test(voiceId) && window.TTSLanguageRouter) routingLang = window.TTSLanguageRouter.analyze(textChunk).lang;
   // Browser and Kokoro selections keep gender/provider routing; the cloud
   // voice needs only the language.
   let routed = null;
@@ -314,14 +320,16 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
   let manualFallbackVoice = null;
 
   // 1. WaifuAI Cloud speech (primary by default): the endpoint picks the
-  // voice and provider from the reply's language; the client sends nothing else.
+  // voice from the reply language unless the user pinned a catalog choice.
   if (provider === 'cloud' && window.enablePrimaryVoice !== false) {
     const lang = routingLang || 'en-US';
     debugLog(`TTS: === Cloud speech flow START (lang: ${lang}) ===`, 'info');
     try {
       const params = new URLSearchParams({ text: textChunk });
       if (routingLang) params.set('lang', routingLang);
-      const response = await fetch(`${window.WaifuProxyAPI.TTS_URL}?${params}`, { signal: AbortSignal.timeout(10000) });
+      if(/^cloud:[a-z0-9-]{1,40}$/.test(voiceId))params.set('voice',voiceId.slice(6));
+      if(routingPlan?.preview)params.set('preview','1');
+      const response = await fetch(`${window.WaifuProxyAPI.TTS_URL}?${params}`, { signal: AbortSignal.timeout(30000), headers:window.WaifuProxyAPI.requestHeaders?.() || {} });
       debugLog(`TTS: Response status: ${response.status}`, 'info');
 
       if (response.status === 204) {
@@ -338,9 +346,14 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
       if (!bytes.byteLength) throw new Error('Cloud speech returned no audio');
       const buffer = await audioContext.decodeAudioData(bytes);
       debugLog(`TTS: Cloud speech decoded successfully, duration: ${buffer.duration.toFixed(2)}s`, 'info');
-      return { kind: 'buffer', buffer, voiceId: 'cloud', lang, provider: response.headers.get('X-Tts-Provider') || 'cloud', fellBack: false, unsupported: false, routingSignature: routingPlan && routingPlan.signature };
+      const backup=response.headers.get('X-Tts-Fallback')==='1';
+      window.showCloudVoiceStatus?.(backup?'Using a backup voice for this audio. Your choice is saved.':'');
+      return { kind: 'buffer', buffer, voiceId, requestedVoice:voiceId==='cloud'?'default':voiceId.replace(/^cloud:/,''), servedVoice:response.headers.get('X-Tts-Voice-Id')||'unknown', lang, provider: response.headers.get('X-Tts-Provider') || 'cloud', fellBack: backup, unsupported: false, routingSignature: routingPlan && routingPlan.signature };
     } catch (err) {
       debugError('TTS: Cloud speech failed', err, { voiceId, textLen: textChunk.length });
+      window.showCloudVoiceStatus?.('Voice unavailable. Your choice is saved.');
+      if(typeof trackEvent==='function')trackEvent('tts_unavailable',{voice_id:voiceId,preview:!!routingPlan?.preview});
+      window.reportVoiceEvent?.('tts_unavailable',{voice_id:voiceId,preview:!!routingPlan?.preview});
       primaryError = err;
       fellBack = true;
     }
@@ -390,19 +403,19 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
 window.fetchTTSBuffer = fetchTTSBuffer;
 
 // Plays an already-resolved chunk descriptor.
-async function playResolvedChunk(resolved, label = '', valid = () => true) {
+async function playResolvedChunk(resolved, label = '', valid = () => true, onStart = () => {}) {
   if (!valid()) return;
   if (!resolved) {
     debugLog(`TTS: Nothing to play, skipping chunk: "${label.substring(0, 30)}..."`, 'warn');
     return;
   }
   if (resolved.kind === 'browser') {
-    const played = await speakViaBrowser(resolved.text, resolved.voiceId, resolved.lang, valid);
+    const played = await speakViaBrowser(resolved.text, resolved.voiceId, resolved.lang, valid, () => onStart(resolved));
     resolved.skipped = !played || !played.played;
     if (played && played.lang) resolved.lang = played.lang;
     return;
   }
-  await playAudioBuffer(resolved.buffer, label);
+  await playAudioBuffer(resolved.buffer, label, () => onStart(resolved));
 }
 window.playResolvedChunk = playResolvedChunk;
 
@@ -415,7 +428,7 @@ window.playResolvedChunk = playResolvedChunk;
 // Previously every error here was swallowed (caught, logged, then the
 // function just fell into `finally` and returned undefined), so the 429
 // handling in tts_queue_manager.js was unreachable dead code.
-async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = null, routingPlan = null, valid = () => true) {
+async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = null, routingPlan = null, valid = () => true, onStart = () => {}) {
   const MAX_SPLIT_ATTEMPTS = 5;
   if (attempt > MAX_SPLIT_ATTEMPTS) {
     debugLog(`TTS: Chunk too long after splits: "${textChunk.substring(0, 30)}..."`, 'error');
@@ -428,7 +441,7 @@ async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = n
   try {
     const resolved = preloaded || await fetchTTSBuffer(textChunk, voiceId, routingPlan);
     if (!valid()) return null;
-    await playResolvedChunk(resolved, textChunk.substring(0, 30), valid);
+    await playResolvedChunk(resolved, textChunk.substring(0, 30), valid, onStart);
     if (!valid()) return null;
     return resolved;
   } catch (err) {
@@ -440,8 +453,8 @@ async function tryPlaySingleChunk(textChunk, voiceId, attempt = 0, preloaded = n
 
       const firstHalf = textChunk.substring(0, splitPoint);
       const secondHalf = textChunk.substring(splitPoint).trim();
-      const a = firstHalf && valid() ? await tryPlaySingleChunk(firstHalf, voiceId, attempt + 1, null, routingPlan, valid) : null;
-      const b = secondHalf && valid() ? await tryPlaySingleChunk(secondHalf, voiceId, attempt + 1, null, routingPlan, valid) : null;
+      const a = firstHalf && valid() ? await tryPlaySingleChunk(firstHalf, voiceId, attempt + 1, null, routingPlan, valid, onStart) : null;
+      const b = secondHalf && valid() ? await tryPlaySingleChunk(secondHalf, voiceId, attempt + 1, null, routingPlan, valid, onStart) : null;
       return a || b;
     }
     debugError('TTS: Error playing chunk', err, { textPreview: textChunk.substring(0, 80), voiceId, attempt });

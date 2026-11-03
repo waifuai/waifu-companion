@@ -116,10 +116,17 @@ async function processNextTTSInQueue() {
 
     let nextChunkPromise = null; // Look-ahead resolver (fetches only, never speaks)
 
-    // Reported once per message rather than per chunk: a long reply is many
-    // chunks, and per-chunk events would multiply analytics volume for no
-    // extra insight.
+    // Separate an audio start from generation and whole-reply completion.
+    let replyStarted = false;
+    const onAudioStart = used => {
+      if(cancelled())return;
+      const info={voice_id:voiceId,served_voice:used.servedVoice||used.voiceId||'unknown',fell_back:!!used.fellBack};
+      window.reportVoiceEvent?.('tts_chunk_played',info);
+      if(typeof trackEvent==='function')trackEvent('tts_chunk_played',info);
+      if(!replyStarted){replyStarted=true;window.reportVoiceEvent?.('tts_played',info);}
+    };
     const providersUsed = new Set();
+    const servedVoices = new Set();
     const languagesUsed = new Set();
     let anyFellBack = false;
 
@@ -164,10 +171,11 @@ async function processNextTTSInQueue() {
           nextChunkPromise.catch(() => { /* handled at await; avoid unhandled rejection */ });
         }
 
-        const used = await tryPlaySingleChunk(chunkText, voiceId, 0, resolved, speechRoute, liveRoute);
+        const used = await tryPlaySingleChunk(chunkText, voiceId, 0, resolved, speechRoute, liveRoute, onAudioStart);
         if (cancelled()) return;
         if (used && used.provider && !used.skipped) {
           providersUsed.add(used.provider);
+          servedVoices.add(used.servedVoice || used.voiceId || 'unknown');
           if (used.lang) languagesUsed.add(used.lang);
           if (used.fellBack) anyFellBack = true;
         }
@@ -215,7 +223,7 @@ async function processNextTTSInQueue() {
     // partway through, which itself signals the primary going down mid-stream.
     if (providersUsed.size > 0 && typeof trackEvent === 'function') {
       const provider = providersUsed.size === 1 ? [...providersUsed][0] : 'mixed';
-      trackEvent('tts_played', { provider, fell_back: anyFellBack, voice_lang: languagesUsed.size === 1 ? [...languagesUsed][0] : languagesUsed.size > 1 ? 'mixed' : '', requested_voice_lang: speechRoute && speechRoute.lang || '', routing_source: speechRoute && speechRoute.source || 'local', routing_cache_hit: !!(speechRoute && speechRoute.cacheHit), decision_requested: !!(speechRoute && speechRoute.decisionRequested), routing_wait_ms: speechRoute && speechRoute.waitMs || 0 });
+      trackEvent('tts_played', { voice_id:voiceId,served_voice:servedVoices.size===1?[...servedVoices][0]:'mixed',provider, fell_back: anyFellBack, voice_lang: languagesUsed.size === 1 ? [...languagesUsed][0] : languagesUsed.size > 1 ? 'mixed' : '', requested_voice_lang: speechRoute && speechRoute.lang || '', routing_source: speechRoute && speechRoute.source || 'local', routing_cache_hit: !!(speechRoute && speechRoute.cacheHit), decision_requested: !!(speechRoute && speechRoute.decisionRequested), routing_wait_ms: speechRoute && speechRoute.waitMs || 0 });
     }
 
   } catch (e) {

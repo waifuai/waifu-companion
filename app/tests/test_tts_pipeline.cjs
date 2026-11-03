@@ -19,7 +19,7 @@ function runtime(answer) {
     vm.runInContext(source,c);
     if(file==='voice_config.js')c.voices=window.voices;
   }
-  c.playResolvedChunk=async descriptor=>{if(descriptor)audio.push(descriptor)};
+  c.playResolvedChunk=async (descriptor,label,valid,onStart)=>{if(descriptor){audio.push(descriptor);onStart?.(descriptor);}};
   const decisions=[];
   window.WaifuProxyAPI={TTS_URL:'https://cloud.test/tts',async decide(tasks,state){decisions.push({tasks:JSON.parse(JSON.stringify(tasks)),state});return typeof answer==='function'?answer(tasks,state):answer}};
   return {c,window,requests,audio,events,decisions};
@@ -34,7 +34,7 @@ test('uncertain speech shares the emotion request and one route serves every chu
   await until(()=>r.events.some(e=>e.name==='tts_played'));
   assert.equal(r.decisions.length,1);assert.deepEqual(r.decisions[0].tasks,['live2d_emotion_v1','live2d_tts_language_v1']);
   assert.ok(r.requests.length>=2);assert.ok(r.requests.every(x=>x.lang==='ja-JP'));
-  assert.equal(r.events[0].data.routing_source,'decision');
+  assert.equal(r.events.find(e=>e.name==='tts_played').data.routing_source,'decision');
 });
 test('clear speech neither adds a language task nor waits for emotion',async()=>{
   const r=runtime(()=>new Promise(()=>{}));r.c.speechSynthesis.getVoices=()=>[{name:'French Female',lang:'fr-FR'}];const text='Hallo, ich bin hier und ich liebe dich.';
@@ -116,6 +116,22 @@ test('muted speech and automatic routing off make no language requests',async()=
   assert.equal(r.decisions.length,0);r.window.enableVoice=true;r.window.enableAutoTtsLang=false;
   r.c.playTTS('mysterious unfamiliar phrases','en-US');await until(()=>r.audio.length===1);
   assert.equal(r.decisions.length,0);assert.equal(r.requests[0].lang,null);
+});
+
+test('pinned cloud choice detects text language without a decision when auto routing is off',async()=>{
+  const r=runtime(null);r.window.enableAutoTtsLang=false;r.window.selectedVoiceId='cloud:nanami';
+  r.c.playTTS('Hola, gracias por estar aquí conmigo.','en-US');await until(()=>r.audio.length===1);
+  assert.equal(r.decisions.length,0);assert.equal(r.requests[0].lang,'es-ES');
+});
+
+test('durable playback counts audio start even when interrupted and analytics is unavailable',async()=>{
+  const r=runtime(null),events=[];r.window.reportVoiceEvent=(event,info)=>events.push({event,info});
+  r.c.trackEvent=undefined;
+  r.c.playResolvedChunk=async(descriptor,label,valid,onStart)=>{onStart(descriptor);await new Promise(()=>{});};
+  r.c.playTTS('Hola, gracias por estar aquí conmigo.','en-US');
+  await until(()=>events.some(e=>e.event==='tts_played'));r.c.stopTTS();
+  assert.equal(events.filter(e=>e.event==='tts_played').length,1);
+  assert.equal(events.filter(e=>e.event==='tts_chunk_played').length,1);
 });
 
 for (const name of ['David', 'Unknown default']) test(`female browser fallback refuses ${name}`, async()=>{

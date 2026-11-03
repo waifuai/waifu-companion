@@ -234,6 +234,7 @@ Current Application Settings:
   // The picture itself is decided and described by getImageDecision; the
   // reply only reacts. Writing an exact English tag inside an in-character,
   // often non-English reply is what the small model kept getting wrong.
+  const identityRule = 'For roleplay, an explicit description of the companion in the custom persona or conversation takes precedence over the displayed avatar for that scene, including self-description and selfies. The avatar appearance below is a default only. Do not confuse the user with the companion or replace an explicitly requested third-party subject.';
   const pictureRule = prompt('pictures', "You can draw pictures, including pictures of yourself (your avatar's appearance: %{appearance}). When the user asks for a picture, photo, selfie or drawing, a separate application operation attempts to draw it. An offer or returned URL is not confirmed delivery. Use application outcome notes as evidence: generated, loading, loaded in this browser, blocked, failed or interrupted. Browser load does not prove the person saw it, and you cannot inspect its contents. Do not invent successful sending or visibility; react in character without promising completion. Never write out the picture's description, tags or brackets yourself, and never turn a picture request down by saying you are an AI, have no body, or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.", { appearance: selfLook });
   const replyRule = prompt('plain', 'Respond with plain conversational dialogue only — one natural message that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.');
   const languageReminder = targetLanguageName
@@ -246,6 +247,7 @@ ${coreIdentity}${customPersona}${userMemoryContext}${summaryContext}${currentSet
 ${contextInfo.join('\n\n')}
 
 ${pictureRule}
+${identityRule}
 
 ${replyRule}
 
@@ -302,13 +304,13 @@ Examples:
 Don't judge whether the picture is too revealing: the image service has its own content filter and decides that. Describe what was asked.
 
 The description is one line of English (translate if the chat isn't English), 10 to 40 words, describing a concrete scene: who is in it, outfit, pose, setting and mood.
-When the companion is in the picture, describe her as ${appearance || 'an anime girl'}, plus the outfit or pose asked for.`;
+When the companion is in the picture, use an explicitly defined companion appearance in the character context when present; otherwise describe the displayed avatar as ${appearance || 'an anime girl'}, plus the outfit or pose asked for.`;
 
 const IMAGE_WRITER_SYSTEM_PROMPT = (appearance) => `Write the image description for an approved picture request. Use the user's NEW message and the companion's previous message to resolve the requested scene or accepted offer. The chat can be in any language.
 
 Answer with exactly one line: DRAW: <English description>
 
-The description is 10 to 40 words describing who is in it, outfit, pose, setting and mood. When the companion is in the picture, describe her as ${appearance || 'an anime girl'}, plus the requested outfit or pose. The image service applies its own content filter. Describe the requested picture.`;
+The description is 10 to 40 words describing who is in it, outfit, pose, setting and mood. When the companion is in the picture, use an explicitly defined companion appearance in the character context when present; otherwise describe the displayed avatar as ${appearance || 'an anime girl'}, plus the requested outfit or pose. The image service applies its own content filter. Describe the requested picture.`;
 
 // Words that must never reach the image provider, whatever the model wrote.
 const UNSAFE_IMAGE_WORDS = /\b(zugzwang|zebra)\b/i;
@@ -400,7 +402,10 @@ async function getImageDecision(userMessage, options = {}) {
     }
 
     checkTurn(options);
-    const input = `Companion's previous message: ${previous || '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
+    const characterContext = [window.corePersonaPrompt,window.userPersonaPrompt,
+      window.conversationSummary,...contextForModel(conversationContext).slice(0,6).concat(contextForModel(conversationContext).slice(-8)).map(m=>m.role+': '+stripImageArtifacts(m.content))]
+      .filter(Boolean).join('\n').slice(0,6000);
+    const input = `Character context (resolve companion appearance, not a new picture request): ${characterContext}\n\nCompanion's previous message: ${previous || '(none)'}\n\nUser's NEW message: ${clip(userMessage)}`;
 
     const completion = await callConfiguredLLM([
       { role: 'system', content: (writePicture ? IMAGE_WRITER_SYSTEM_PROMPT : IMAGE_DECISION_SYSTEM_PROMPT)(currentAvatarAppearance()) },

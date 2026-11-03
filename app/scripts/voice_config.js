@@ -1,7 +1,6 @@
 // Voice configuration data for TTS
 window.voices = [
-  // The WaifuAI Cloud speech endpoint picks the voice from the reply's
-  // language; the client never lists or names its voices.
+  // The default follows the reply language. Optional choices load below.
   { id: 'cloud', name: 'Waifu Voice (auto language)', language: 'en-US', gender: 'female', provider: 'cloud' },
   // Extra voices verified against the live service 2026-09-29
 
@@ -59,4 +58,29 @@ window.voiceLanguageOverrides = {
   fa: 'en', ps: 'en', ku: 'en', ckb: 'en',
   'ko-KR': 'ja',
   ug: 'ru', hmn: 'zh', el: 'it', rom: 'ru', eu: 'es', sq: 'it'
+};
+// Voice choices are application data. Keep the saved choice when the catalog
+// is temporarily unavailable, including while the page is starting up.
+window.isCloudVoiceChoice = id => /^cloud:[a-z0-9-]{1,40}$/.test(id || '');
+window.showCloudVoiceStatus = message => {
+  const element=document.getElementById('cloudVoiceStatus');
+  if(element)element.textContent=message;
+};
+window.loadCloudVoiceChoices = async () => {
+  try {
+    const response=await fetch(window.WaifuProxyAPI.TTS_URL+'/voices',{signal:AbortSignal.timeout(5000)});
+    if(!response.ok)return;
+    const catalog=await response.json();
+    if(!Array.isArray(catalog.voices))return;
+    const choices=catalog.voices.filter(v=>/^[a-z0-9-]{1,40}$/.test(v.id||'') && typeof v.name==='string' && v.name.length<=80)
+      .slice(0,80).map(v=>({id:'cloud:'+v.id,name:v.name,language:v.language||'en-US',provider:'cloud',gender:v.gender||''}));
+    window.voices.splice(0,window.voices.length,...window.voices.filter(v=>!window.isCloudVoiceChoice(v.id)),...choices);
+    if(typeof populateVoiceSelector==='function')populateVoiceSelector();
+  }catch{}
+};
+
+window.reportVoiceEvent=(event,info={})=>{
+  try { fetch(window.WaifuProxyAPI.TTS_URL+'/events',{method:'POST',headers:{'Content-Type':'application/json',...window.WaifuProxyAPI.requestHeaders?.()},
+    body:JSON.stringify({event,voice_id:info.voice_id||window.selectedVoiceId||'default',served_voice:info.served_voice,
+      fallback:!!info.fell_back,preview:!!info.preview}),keepalive:true,signal:AbortSignal.timeout(3000)}).catch(()=>{}); } catch {}
 };

@@ -128,7 +128,7 @@ function initVoice() {
   const uniqueVoicesMap = new Map();
   voices.forEach(voice => { if (!uniqueVoicesMap.has(voice.id)) uniqueVoicesMap.set(voice.id, voice); });
   const availableVoices = Array.from(uniqueVoicesMap.values());
-  const isSelectedVoiceValid = availableVoices.some(v => v.id === selectedVoiceId);
+  const isSelectedVoiceValid = selectedVoiceId==='none' || /^cloud:[a-z0-9-]{1,40}$/.test(selectedVoiceId) || availableVoices.some(v => v.id === selectedVoiceId);
 
   if (!savedVoiceId || !isSelectedVoiceValid) {
     // The cloud voice matches the reply's language on its own, so one default
@@ -141,6 +141,7 @@ function initVoice() {
     debugLog(`Loaded valid voice ID from storage: ${selectedVoiceId}`, 'info');
   }
   populateVoiceSelector();
+  window.loadCloudVoiceChoices?.();
   // Voice input (STT) engine preference
   window.sttEngine = AppStorage.getString(AppStorage.KEYS.STT_ENGINE, '');
   if (!window.sttEngine) {

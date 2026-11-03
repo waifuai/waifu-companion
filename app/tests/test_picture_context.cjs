@@ -41,7 +41,7 @@ test('accepting a closing offer in a long reply reaches the picture writer', asy
   assert.ok(!state.previous_reply.includes('sent a picture:'));
   assert.equal(writers.length, 1);
   assert.equal(writers[0].purpose, 'image_prompt');
-  assert.equal(writers[0].messages[1].content, `Companion's previous message: ${state.previous_reply}\n\nUser's NEW message: In your room`);
+  assert.ok(writers[0].messages[1].content.endsWith(`Companion's previous message: ${state.previous_reply}\n\nUser's NEW message: In your room`));
 });
 
 test('short context stays intact and zero-confidence none suppresses the writer', async () => {
@@ -76,4 +76,15 @@ test('uncertain, unknown and failed actions retain the original picture judgment
     assert.match(writers[0].messages[0].content, /Decide whether/);
     assert.match(writers[0].messages[0].content, /NONE/);
   }
+});
+
+test('picture writer receives a custom companion and its early roleplay definition',async()=>{
+  const {context,writers}=client('Of course, a selfie?',{picture_action_v1:{choice_id:'draw'}});
+  context.window.userPersonaPrompt='You are Mira, an adult with short red hair and green eyes.';
+  context.conversationContext.unshift({role:'user',content:'For this story you are a red-haired space pilot.'});
+  for(let i=0;i<15;i++)context.conversationContext.push({role:'assistant',content:'A later ordinary chat turn.'});
+  await context.getImageDecision('Send me a selfie');
+  assert.match(writers[0].messages[1].content,/short red hair/);
+  assert.match(writers[0].messages[1].content,/red-haired space pilot/);
+  assert.match(writers[0].messages[0].content,/explicitly defined companion appearance/);
 });

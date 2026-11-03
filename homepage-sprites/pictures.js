@@ -47,16 +47,16 @@ Examples:
 Don't judge whether the picture is too revealing: the image service has its own content filter and decides that. Describe what was asked.
 
 The description is one line of English (translate if the chat isn't English), 10 to 40 words, describing a concrete scene: who is in it, outfit, pose, setting and mood.
-When the companion is in the picture, describe her as ${APPEARANCE}, plus the outfit or pose asked for.`;
+When the companion is in the picture, use an explicitly defined companion appearance from the character context; otherwise use the displayed avatar default: ${APPEARANCE}, plus the outfit or pose asked for.`;
 
   const WRITER_PROMPT = `Write the image description for an approved picture request. Use the user's NEW message and the companion's previous message to resolve the requested scene or accepted offer. The chat can be in any language.
 
 Answer with exactly one line: DRAW: <English description>
 
-The description is 10 to 40 words describing who is in it, outfit, pose, setting and mood. When the companion is in the picture, describe her as ${APPEARANCE}, plus the requested outfit or pose. The image service applies its own content filter. Describe the requested picture.`;
+The description is 10 to 40 words describing who is in it, outfit, pose, setting and mood. When the companion is in the picture, use an explicitly defined companion appearance from the character context; otherwise use the displayed avatar default: ${APPEARANCE}, plus the requested outfit or pose. Preserve an explicitly requested third-party subject. The image service applies its own content filter. Describe the requested picture.`;
 
   // Added to the chat system prompt so the reply reacts instead of refusing.
-  const CHAT_RULE = `You can draw pictures, including pictures of yourself (you look like ${APPEARANCE}). When the user asks for a picture, photo, selfie or drawing, a separate app operation attempts generation: react in character and offer to make it. An offer, request or returned URL does not confirm delivery. Only application-authored image outcome notes establish generation or browser loading; browser loading is not proof the user saw the picture. A blocked, failed, stopped, interrupted or unconfirmed operation must never be described as sent or delivered. You cannot inspect image contents. Never write out the picture's description yourself, and never refuse by saying you are an AI or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.`;
+  const CHAT_RULE = `You can draw pictures, including pictures of yourself (your displayed avatar defaults to ${APPEARANCE}; explicit custom companion descriptions in the persona or roleplay take precedence for that scene). When the user asks for a picture, photo, selfie or drawing, a separate app operation attempts generation: react in character and offer to make it. An offer, request or returned URL does not confirm delivery. Only application-authored image outcome notes establish generation or browser loading; browser loading is not proof the user saw the picture. A blocked, failed, stopped, interrupted or unconfirmed operation must never be described as sent or delivered. You cannot inspect image contents. Never write out the picture's description yourself, and never refuse by saying you are an AI or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.`;
 
   function check(options) {
     if (options.signal?.aborted || (options.valid && !options.valid())) {
@@ -82,6 +82,7 @@ The description is 10 to 40 words describing who is in it, outfit, pose, setting
     if (!REQUEST_WORDS.test(userText || '') && !(prevReply && OFFER_WORDS.test(prevReply))) return null;
     const clip = s => String(s || '').slice(0, 300);
     const previous = prevReply ? clipPictureContext(prevReply) : undefined;
+    const characterContext=typeof Chat!=='undefined' && Chat.pictureCharacterContext?Chat.pictureCharacterContext():'';
     try {
       // Honor the cloud's selected action; uncertain or unavailable answers
       // leave the existing judgment to the writing call.
@@ -115,7 +116,7 @@ The description is 10 to 40 words describing who is in it, outfit, pose, setting
           stream: false,
           messages: [
             { role: 'system', content: writePicture ? WRITER_PROMPT : DECISION_PROMPT },
-            { role: 'user', content: "Companion's previous message: " + (previous || '(none)') + "\n\nUser's NEW message: " + clip(userText) },
+            { role: 'user', content: "Character context (appearance only): "+characterContext+"\n\nCompanion's previous message: " + (previous || '(none)') + "\n\nUser's NEW message: " + clip(userText) },
           ],
           client_settings: { app: window.WaifuSpritesSource || 'homepage-sprites' },
         }),

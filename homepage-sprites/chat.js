@@ -629,7 +629,7 @@ const Chat = (() => {
     try {
       const task = budget.compressionTask(source, memory,
         m => ({ model: modelFor(settings.provider), messages: m, max_tokens: 700, stream: false,
-          ...(settings.provider === 'cloud' ? { client_settings: { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona, ...(window.WaifuI18n?.snapshot?.() || {}) }, context_budget_version: 1 } : {}) }), settings.summaryLength);
+          ...(settings.provider === 'cloud' ? { client_settings: { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona,voice_choice: typeof Speech!=='undefined'?(Speech.settings.voiceId||'default'):'default', ...(window.WaifuI18n?.snapshot?.() || {}) }, context_budget_version: 1 } : {}) }), settings.summaryLength);
       if (!task) return false;
       if (!force) lastAutomaticMemoryTurn = turn;
       const summary = await complete(task.messages, 'summary', 700, owner);
@@ -693,6 +693,10 @@ const Chat = (() => {
     return lines;
   }
 
+  function pictureCharacterContext(){
+    return [personaPrompt(),settings.extraPrompt,memory.summary,...messages.slice(0,6).concat(messages.slice(-8)).filter(m=>!m.image).map(m=>m.role+': '+(m.content||''))]
+      .filter(Boolean).join('\n').slice(0,6000);
+  }
   async function systemPrompt() {
     const language = settings.language;
     const prompt = promptText(language);
@@ -712,6 +716,7 @@ const Chat = (() => {
     parts.push(prompt('pictures', Pictures.CHAT_RULE, {
       appearance: prompt('sprite_appearance', Pictures.APPEARANCE || 'an anime girl'),
     }));
+    parts.push('An explicit description of the companion in the custom persona or current roleplay overrides the default avatar appearance for self-description and selfies in that scene. Do not confuse the user with the companion; keep explicitly requested third-party subjects.');
     parts.push(prompt('sprite_offer', 'React in character to a picture request and offer to make it; do not promise successful generation or delivery.'));
     parts.push(prompt('sprite_emotion', EMOTION_RULE, { tags: Sprites.EMOTIONS.join(', ') }));
     parts.push(language
@@ -754,7 +759,7 @@ const Chat = (() => {
     const out = [system].concat(history);
     if (settings.provider !== 'cloud') return [system].concat(history.slice(-memorySize()));
     return budget.pack(out, m => ({ model: modelFor(settings.provider), messages: m, max_tokens: 600, stream: true,
-      client_settings: { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona, ...(window.WaifuI18n?.snapshot?.() || {}) }, context_budget_version: 1 }), memorySize()).messages;
+      client_settings: { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona,voice_choice: typeof Speech!=='undefined'?(Speech.settings.voiceId||'default'):'default', ...(window.WaifuI18n?.snapshot?.() || {}) }, context_budget_version: 1 }), memorySize()).messages;
   }
 
   function addPicture(id, message, owner = null) {
@@ -788,7 +793,7 @@ const Chat = (() => {
       headers['x-session-id'] = sessionId;
       headers['x-visitor-id'] = visitorId();
       if (purpose !== 'chat') headers['X-Waifu-Purpose'] = purpose;
-      body.client_settings = { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona,
+      body.client_settings = { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona,voice_choice: typeof Speech!=='undefined'?(Speech.settings.voiceId||'default'):'default',
         ...(welcomeBackShown ? { welcome_back: 1 } : {}),
         // Marks requests whose system prompt carried the durable cross-chat
         // store (its toggle is on and the store has content).
@@ -1018,7 +1023,7 @@ const Chat = (() => {
     return owner;
   }
 
-  return {
+  return { pictureCharacterContext,
     PROVIDERS, PERSONAS, LANGUAGES, SUMMARY_LENGTHS, settings, saveSettings, modelFor, ambientPrompt,
     get DEFAULT_AMBIENT_PROMPT() { return promptText()('sprite_ambient', DEFAULT_AMBIENT_PROMPT); },
     send, stop, ids, askDecisions, addPicture, lastReply, newConversation, openConversation, deleteConversation, deleteMessage, seedWelcomeBack,

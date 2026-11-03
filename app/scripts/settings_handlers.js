@@ -57,9 +57,12 @@ function handleLanguageChange(event) {
 }
 
 function handleVoiceChange(event) {
+    const previousVoice=selectedVoiceId;
     selectedVoiceId = event.target.value;
+    if(typeof stopTTS==='function')stopTTS();
     S.setString(K.SELECTED_VOICE_ID, selectedVoiceId);
-    if (typeof trackEvent === 'function') trackEvent('voice_changed', { voice_id: selectedVoiceId });
+    if (typeof trackEvent === 'function') trackEvent('voice_changed', { voice_id: selectedVoiceId, previous_voice: previousVoice, selection_mode:selectedVoiceId==='cloud'?'automatic':'explicit' });
+    window.reportVoiceEvent?.('voice_changed',{voice_id:selectedVoiceId});
     debugLog(`Voice changed to: ${selectedVoiceId}`, 'info');
 }
 

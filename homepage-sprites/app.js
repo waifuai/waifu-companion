@@ -154,8 +154,10 @@
     $('speakVolume').value = Speech.settings.volume;
     $('voiceSelect').value = Speech.settings.voiceId;
   }
-  (() => {
+  function renderVoiceChoices(){
     const select = $('voiceSelect');
+    const automatic=select.querySelector('option[value=""]')?.cloneNode(true)||new Option('Automatic · reply language','');
+    select.replaceChildren(automatic);
     const groups = {};
     Speech.VOICES.forEach(v => {
       if (!groups[v.group]) {
@@ -165,7 +167,11 @@
       }
       groups[v.group].appendChild(new Option(v.name, v.id));
     });
-  })();
+    select.value=Speech.settings.voiceId;
+  }
+  renderVoiceChoices();
+  Speech.loadVoices().then(()=>renderVoiceChoices());
+  if(!$('voiceChoiceStatus')){const status=document.createElement('small');status.id='voiceChoiceStatus';status.className='note';status.style.display='block';status.setAttribute('role','status');status.textContent='A chosen voice stays selected if backup audio is used.';$('voiceSelect').parentElement.after(status);}
   function setSpeech(on) {
     Speech.settings.enabled = on;
     Speech.save();
@@ -177,9 +183,12 @@
   $('speakEnabled').addEventListener('change', e => setSpeech(e.target.checked));
   $('speakVolume').addEventListener('change', e => { Speech.settings.volume = +e.target.value; Speech.save(); });
   $('voiceSelect').addEventListener('change', e => {
+    Speech.stop();
     Speech.settings.voiceId = e.target.value;
     Speech.save();
-    track('voice_changed', { voice_id: e.target.value });
+    track('voice_changed', { voice_id: e.target.value||'default' });
+    Speech.reportEvent('voice_changed',{voice_id:e.target.value||'default'});
+    Speech.reportEvent('voice_preview',{voice_id:e.target.value||'default',preview:true});
     Speech.speak('Hi! This is how I sound.', { sample: true });
   });
   applySpeech();
