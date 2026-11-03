@@ -139,7 +139,7 @@ function prepareTTSRouting(text, force = false) {
   if (!ttsLanguageState) return null;
   const speech = typeof stripForTTS === 'function' ? stripForTTS(text) : text;
   return ttsLanguageState.prepare(speech, { key: ttsConversationKey(), voiceId: window.selectedVoiceId || 'cloud', voices,
-    auto: ttsRoutingAuto(), enabled: force || !!window.enableVoice, fingerprint: ttsRoutingFingerprint() });
+    auto: ttsRoutingAuto(), enabled: window.selectedVoiceId!=='none' && (force || !!window.enableVoice), fingerprint: ttsRoutingFingerprint() });
 }
 function finishTTSRouting(plan, request, valid = () => true) {
   return plan && ttsLanguageState ? ttsLanguageState.settle(plan, request, 'live2d_tts_language_v1', valid) : Promise.resolve(plan);
@@ -286,7 +286,7 @@ window.speakViaBrowser = speakViaBrowser;
 // queue manager can see rate limits and pause instead of silently dropping
 // the chunk.
 async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
-  if (!textChunk.trim()) return null;
+  if (voiceId==='none' || !textChunk.trim()) return null;
 
   debugLog(`TTS: === fetchTTSBuffer START ===`, 'info');
   debugLog(`TTS: Input text: "${textChunk.substring(0, 100)}..."`, 'info');

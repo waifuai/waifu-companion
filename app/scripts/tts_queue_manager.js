@@ -27,7 +27,7 @@ function isTTSBusy() {
 }
 
 async function playTTS(fullText, languageCode, messageId = null, startIndex = 0, preloadedBuffer = null, notifyOnComplete = false, routingPlan = null) {
-  if (!window.enableVoice) {
+  if (!window.enableVoice || window.selectedVoiceId==='none') {
     debugLog('TTS: Ignoring playback request because voice is disabled.', 'info');
     if (notifyOnComplete && typeof window.onAIResponseSpeechFinished === 'function') {
       window.onAIResponseSpeechFinished();
@@ -62,7 +62,7 @@ async function playTTS(fullText, languageCode, messageId = null, startIndex = 0,
 async function processNextTTSInQueue() {
   if (isCurrentlySpeaking || ttsPaused || ttsQueue.length === 0) return;
 
-  if (!window.enableVoice) {
+  if (!window.enableVoice || window.selectedVoiceId==='none') {
     debugLog('TTS: Clearing queued playback because voice is disabled.', 'info');
     ttsQueue = [];
     releaseResponseCompletion();

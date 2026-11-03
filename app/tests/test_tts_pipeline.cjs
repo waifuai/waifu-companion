@@ -134,6 +134,14 @@ test('durable playback counts audio start even when interrupted and analytics is
   assert.equal(events.filter(e=>e.event==='tts_chunk_played').length,1);
 });
 
+test('None suppresses automatic playback, preloads and language decisions',async()=>{
+  const r=runtime(null);r.window.selectedVoiceId='none';let finished=0;r.window.onAIResponseSpeechFinished=()=>finished++;
+  assert.equal(r.c.prepareTTSRouting('mysterious unfamiliar phrases').needsDecision,false);
+  assert.equal(await r.c.fetchTTSBuffer('Hello','none'),null);
+  await r.c.playTTS('mysterious unfamiliar phrases','en-US',null,0,null,true);
+  assert.equal(finished,1);assert.equal(r.requests.length,0);assert.equal(r.decisions.length,0);assert.equal(r.audio.length,0);
+});
+
 for (const name of ['David', 'Unknown default']) test(`female browser fallback refuses ${name}`, async()=>{
  const r=runtime(null); r.c.speechSynthesis.getVoices=()=>[{name,lang:'en-US'}];
  assert.equal(r.c.selectBrowserVoice('browser-female').unsupported,true);
