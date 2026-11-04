@@ -275,6 +275,23 @@
             max-width: 700px;
         }
 
+        .upgrade-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            margin-bottom: 1.25rem;
+            padding: 0.65rem 1.4rem;
+            border: 1px solid #8b5cb5;
+            border-radius: 10px;
+            color: #f0dfff;
+            background: #241633;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .upgrade-button:hover { background: #342047; border-color: #c084fc; }
+        .upgrade-button:focus-visible { outline: 3px solid #c084fc; outline-offset: 4px; }
+
         .section-title {
             text-align: center;
             font-size: 1.5rem;
@@ -416,6 +433,9 @@
     <section class="hero">
         <h1>WaifuAI — Your Free AI Waifu Companion</h1>
         <p class="tagline">An animated anime companion that talks back, remembers you, and has a personality you choose. Start chatting below. No sign-up, no install, no paywall.</p>
+
+        <a class="upgrade-button" href="https://buy.stripe.com/7sY3cvdyJd8O4I1dFLdAk00" target="_blank" rel="noopener noreferrer"
+           onclick="gtag('event','cta_click',{cta_location:'hero',cta_target:'upgrade'})">Upgrade</a>
 
         <div class="homepage-stage sprite-embed">
 <div class="stage" id="stage" aria-label="Waifu Sprites app" data-i18n-aria-label="app.label">
