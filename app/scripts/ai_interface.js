@@ -645,10 +645,30 @@ function parseAIResponse(rawContent, plainTextFallback = null) {
 // Kept as a getter so a language switch changes what the next failure says.
 function connectionErrorReply() { return tr('error.connection', "Oh no... I'm having trouble connecting. Could we try again in a moment?"); }
 
+// Per-turn offline fallback. No offline mode, timer or persisted flag: every
+// turn resolves providers again from scratch, so one failed request never
+// strands later turns on local logic. Ambient preloads are excluded — they are
+// app-internal calls, not a user-visible reply.
+function localFallbackReply(error, userMessage, purpose) {
+  if (purpose === 'ambient' || !(window.LocalFallbackEngine && typeof window.LocalFallbackEngine.getResponse === 'function')) return null;
+  // Actionable errors keep their own guidance; a canned reply would hide them.
+  if (error && error.code === 'chat_script_unavailable') return null;
+  if (['context_too_large', 'summary_too_large', 'memory_pending', 'memory_changed'].includes(error && error.code) || (error && error.status === 413)) return null;
+  try {
+    const reply = window.LocalFallbackEngine.getResponse(userMessage);
+    debugLog('Using local offline fallback for this turn.', 'warn');
+    reply.isFallback = true;
+    return reply;
+  } catch (e) {
+    debugError('Local offline fallback failed', e);
+    return null;
+  }
+}
+
 // Shared failure path for both entry points. Small helper so callers can
 // tell a genuine connectivity failure apart from ordinary dialogue via
 // isError, instead of every caller string-comparing the English text.
-function handleAIFailure(error) {
+function handleAIFailure(error, userMessage = '', purpose = 'chat') {
   if (error && error.code === 'chat_script_unavailable') {
     return { reply: 'Chat support could not load. Reload the page and try again. Your messages are kept.', emotion: 'sad', isError: true };
   }
@@ -658,6 +678,8 @@ function handleAIFailure(error) {
       : tr('error.requestTooLarge', 'This request is too large. Use Update Summary from Chat, or shorten the message or personality instructions. Your messages are kept.');
     return { reply, emotion: 'sad', isError: true };
   }
+  const fallback = localFallbackReply(error, userMessage, purpose);
+  if (fallback) return fallback;
   return { reply: connectionErrorReply(), emotion: 'sad', isError: true };
 }
 
@@ -695,7 +717,7 @@ async function getAIResponse(userMessage, targetLanguageCode = 'en-US', options 
     debugError('AI response (non-streaming) failed', error, {
       messagePreview: userMessage.substring(0, 80)
     });
-    return handleAIFailure(error);
+    return handleAIFailure(error, userMessage, options.purpose);
   }
 }
 
@@ -971,7 +993,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     }
     if (typeof trackError === 'function') trackError('ai_request', classifyError(error, { streamStarted }));
 
-    return handleAIFailure(error);
+    return handleAIFailure(error, userMessage, options.purpose);
   }
 }
 
