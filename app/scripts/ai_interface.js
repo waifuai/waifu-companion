@@ -649,13 +649,15 @@ function connectionErrorReply() { return tr('error.connection', "Oh no... I'm ha
 // turn resolves providers again from scratch, so one failed request never
 // strands later turns on local logic. Ambient preloads are excluded — they are
 // app-internal calls, not a user-visible reply.
-function localFallbackReply(error, userMessage, purpose) {
+function localFallbackReply(error, userMessage, purpose, replyLanguage) {
   if (purpose === 'ambient' || !(window.LocalFallbackEngine && typeof window.LocalFallbackEngine.getResponse === 'function')) return null;
   // Actionable errors keep their own guidance; a canned reply would hide them.
   if (error && error.code === 'chat_script_unavailable') return null;
   if (['context_too_large', 'summary_too_large', 'memory_pending', 'memory_changed'].includes(error && error.code) || (error && error.status === 413)) return null;
   try {
-    const reply = window.LocalFallbackEngine.getResponse(userMessage);
+    // Resolve the fallback reply in the same language the LLM was asked to
+    // answer in; the engine falls back to inline English if the bundle is absent.
+    const reply = window.LocalFallbackEngine.getResponse(userMessage, replyLanguage);
     debugLog('Using local offline fallback for this turn.', 'warn');
     reply.isFallback = true;
     return reply;
@@ -668,7 +670,7 @@ function localFallbackReply(error, userMessage, purpose) {
 // Shared failure path for both entry points. Small helper so callers can
 // tell a genuine connectivity failure apart from ordinary dialogue via
 // isError, instead of every caller string-comparing the English text.
-function handleAIFailure(error, userMessage = '', purpose = 'chat') {
+function handleAIFailure(error, userMessage = '', purpose = 'chat', replyLanguage = null) {
   if (error && error.code === 'chat_script_unavailable') {
     return { reply: 'Chat support could not load. Reload the page and try again. Your messages are kept.', emotion: 'sad', isError: true };
   }
@@ -678,7 +680,7 @@ function handleAIFailure(error, userMessage = '', purpose = 'chat') {
       : tr('error.requestTooLarge', 'This request is too large. Use Update Summary from Chat, or shorten the message or personality instructions. Your messages are kept.');
     return { reply, emotion: 'sad', isError: true };
   }
-  const fallback = localFallbackReply(error, userMessage, purpose);
+  const fallback = localFallbackReply(error, userMessage, purpose, replyLanguage);
   if (fallback) return fallback;
   return { reply: connectionErrorReply(), emotion: 'sad', isError: true };
 }
@@ -717,7 +719,7 @@ async function getAIResponse(userMessage, targetLanguageCode = 'en-US', options 
     debugError('AI response (non-streaming) failed', error, {
       messagePreview: userMessage.substring(0, 80)
     });
-    return handleAIFailure(error, userMessage, options.purpose);
+    return handleAIFailure(error, userMessage, options.purpose, targetLanguageCode);
   }
 }
 
@@ -993,7 +995,7 @@ async function getAIResponseStream(userMessage, targetLanguageCode = 'en-US', op
     }
     if (typeof trackError === 'function') trackError('ai_request', classifyError(error, { streamStarted }));
 
-    return handleAIFailure(error, userMessage, options.purpose);
+    return handleAIFailure(error, userMessage, options.purpose, targetLanguageCode);
   }
 }
 
