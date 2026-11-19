@@ -81,7 +81,7 @@
     'chat.pictureBlocked': 'Ich kann nur jugendfreie Bilder malen, daher geht das nicht. Möchtest du stattdessen etwas Süßes?',
     'chat.pictureSlow': 'Das hat zu lange gedauert und mein Pinsel hat aufgegeben. Nochmal versuchen?',
     'chat.pictureFailed': 'Sorry, meine Leinwand spinnt gerade. Können wir es gleich noch einmal versuchen?',
-    'chat.imageHelp': 'Beschreibe, was gezeichnet werden soll, z. B.: /image a cozy cafe at sunset. Hänge portrait, square oder landscape an, um das Format zu wählen.',
+    'chat.imageHelp': "Bilder zeichnen ist nicht verfügbar. Schreib eine Nachricht – ich antworte direkt in deinem Browser.",
     'chat.readAloud': 'Vorlesen',
     'chat.copy': 'Kopieren',
     'chat.delete': 'Löschen',
@@ -162,14 +162,14 @@
     'settings.keyPlaceholder': 'Bleibt in diesem Browser',
     'settings.model': 'Modell',
     'settings.pictures': 'Bilder',
-    'settings.picturesNote': 'Bitte um ein Selfie oder eine Zeichnung oder gib <code dir="ltr">/image</code> und eine Beschreibung ein. Bilder werden von WaifuAI Cloud gezeichnet.',
+    'settings.picturesNote': "Bilder zeichnen ist in dieser reinen Browser-Version nicht verfügbar. Antworten nutzen den integrierten lokalen Anbieter oder einen selbst konfigurierten Dienst.",
     'settings.voice': 'Stimme',
     'settings.readAloud': 'Ihre Antworten vorlesen',
     'settings.herVoice': 'Ihre Stimme',
     'settings.matchLanguage': 'Sprache der Antwort übernehmen',
     'settings.voiceVolume': 'Stimmlautstärke',
     'settings.voiceNote': 'Antworten werden in der Sprache der Antwort vorgelesen. Du kannst auch die Stimme deines Browsers wählen.',
-    'settings.micNote': 'Halte die Mikrofon-Taste gedrückt zum Sprechen oder tippe sie an, um zu starten, und tippe erneut, um zu stoppen. Sprache wird von WaifuAI Cloud transkribiert.',
+    'settings.micNote': "Halte die Mikrofon-Taste gedrückt zum Sprechen oder tippe sie an, um zu starten, und tippe erneut, um zu stoppen. Sprache wird von deinem Browser erkannt.",
     'settings.voiceAutoSend': 'Direkt nach dem Sprechen senden',
     'settings.radio': 'Radio',
     'settings.radioVolume': 'Radio-Lautstärke',
@@ -183,9 +183,9 @@
     'settings.dataNote': 'Chats, Gedächtnis und Einstellungen werden nur in diesem Browser gespeichert.',
     'settings.export': 'Chats exportieren',
     'settings.deleteAll': 'Alle Chats löschen',
-    'settings.providerNoteOwn': 'Dein Schlüssel wird nur in diesem Browser gespeichert und nur an %{target} gesendet. Bilder und Stimme laufen weiterhin über WaifuAI Cloud.',
+    'settings.providerNoteOwn': "Your key is saved in this browser only and sent only to %{target}. Voice uses this browser's speech engine.",
     'settings.providerTargetEndpoint': 'deinen Endpoint',
-    'settings.providerNoteCloud': 'Kostenlos und ohne Schlüssel. Nachrichten gehen zur Erzeugung von Antworten an WaifuAI Cloud und können zur Verbesserung des Dienstes protokolliert werden.',
+    'settings.providerNoteCloud': "Replies are generated in this browser. Nothing is sent to a server and no key is needed.",
     'settings.deleteAllConfirm': 'Alle gespeicherten Chats in diesem Browser löschen?',
     'settings.exportNone': 'Noch keine Chats zum Exportieren.',
 
@@ -252,8 +252,8 @@
     'persona.custom.desc': 'Selbst schreiben',
 
     // ── Providers ──
-    'provider.cloud.name': 'WaifuAI Cloud',
-    'provider.cloud.desc': 'Kostenlos, kein Schlüssel nötig',
+    'provider.cloud.name': "Built-in local replies",
+    'provider.cloud.desc': "Works offline, no key needed",
     'provider.openrouter.name': 'OpenRouter',
     'provider.openrouter.desc': 'Eigener Schlüssel',
     'provider.groq.name': 'Groq',
@@ -271,7 +271,7 @@
 
     // ── Chat errors ──
     'error.setEndpoint': 'Lege zuerst die Endpoint-URL in den Einstellungen fest.',
-    'error.setKey': 'Füge deinen %{provider}-Schlüssel in den Einstellungen hinzu oder wechsle zurück zu WaifuAI Cloud.',
+    'error.setKey': "Füge deinen %{provider}-Schlüssel in den Einstellungen hinzu oder wechsle zurück zu den integrierten lokalen Antworten.",
     'error.setModel': 'Lege zuerst einen Modellnamen in den Einstellungen fest.',
     'error.tooMany': 'Gerade zu viele Nachrichten. Warte eine Minute und versuche es erneut.',
     'error.rejected': 'Der Anbieter hat den Schlüssel abgelehnt. Prüfe ihn in den Einstellungen.',
@@ -283,8 +283,8 @@
     'error.contextTooLarge': 'Diese Anfrage ist zu groß. Komprimiere älteres Gedächtnis oder kürze die Eingabe. Dein gespeicherter Text bleibt erhalten.',
 
     // ── Voice (proxy transcription) ──
-    'voice.transcribeFailed': 'Transkription fehlgeschlagen (HTTP %{status}).',
-    'voice.transcribeSlow': 'Die Transkription hat zu lange gedauert. Bitte versuche es erneut.',
+    'voice.transcribeFailed': "Spracherkennung fehlgeschlagen. Bitte versuche es erneut.",
+    'voice.transcribeSlow': "Die Spracherkennung hat zu lange gedauert. Bitte versuche es erneut.",
     'voice.busy': 'Die Spracheingabe ist gerade ausgelastet. Versuche es gleich erneut.',
     'voice.failed': 'Spracheingabe fehlgeschlagen: %{message}',
     'voice.heardNothing': 'In dieser Aufnahme war nichts zu hören. Prüfe dein Mikrofon und versuche es erneut.',

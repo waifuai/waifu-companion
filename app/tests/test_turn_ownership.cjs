@@ -131,15 +131,15 @@ test('a canceled blob commit is removed rather than kept as an orphan',async()=>
  controller.abort();transactions[0].oncomplete();await tick();assert.equal(transactions.length,2);transactions[1].oncomplete();
  await assert.rejects(pending,{name:'AbortError'});assert.equal(deleted,1);assert.equal(created,0);
 });
-test('transcription body completing after cancellation cannot append to replacement input',async()=>{
- let audio;const done=deferred(),listeners={};let capturedSignal;
- const input={value:'',placeholder:'Type'};
+test('a late Web Speech result after cancellation cannot append to replacement input',()=>{
+ let recognition;
+ const listeners={};const input={value:'',placeholder:'Type'};
  const button={style:{setProperty(){}},dataset:{},classList:{toggle(){}},setAttribute(){},addEventListener:(k,fn)=>listeners[k]=fn};
- const c=vm.createContext({AbortController,window:{sttEngine:'proxy',messageInput:input,MediaRecorder:function(){},MicCapture:{create:options=>{audio=options.onAudio;return {start(){},cancel(){},state:'idle'};}},WaifuProxyAPI:{transcribeAudio(_blob,opts){capturedSignal=opts.signal;return done.promise;}}},
- navigator:{mediaDevices:{getUserMedia(){}}},document:{getElementById:id=>id==='micBtn'?button:null,querySelectorAll:()=>[]},debugLog(){},debugError(){},addMessage(){throw Error('stale error');}});
+ const c=vm.createContext({AbortController,window:{messageInput:input,SpeechRecognition:class{constructor(){recognition=this;this.results=[];}start(){this.onstart?.();}abort(){}stop(){}}},document:{getElementById:id=>id==='micBtn'?button:null,querySelectorAll:()=>[]},debugLog(){},debugError(){},trackEvent(){},addMessage(){throw Error('stale error');}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../scripts/stt_controller.js'),'utf8'),c);
- c.window.initSTT();listeners.click({detail:0});const pending=audio(new Blob(['audio']));c.window.cancelVoiceInput();input.value='new chat text';done.resolve({text:'stale transcript'});await pending;
- assert.ok(capturedSignal.aborted);assert.equal(input.value,'new chat text');
+ c.window.initSTT();listeners.click({detail:0});c.window.cancelVoiceInput();input.value='new chat text';
+ recognition.onresult({results:[{isFinal:true,0:{transcript:'stale transcript'}}]});
+ assert.equal(input.value,'new chat text');
 });
 test('OpenRouter cancellation never starts its configured fallback',async()=>{
  let requests=0;const controller=new AbortController();

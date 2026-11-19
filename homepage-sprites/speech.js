@@ -1,19 +1,17 @@
 /**
  * speech.js: reads her replies aloud.
  *
- * The WaifuAI Cloud speech endpoint turns each chunk into audio; the client
- * only supplies the reply's language — never a voice or a provider. Browser
- * SpeechSynthesis is used only when a browser voice is explicitly picked.
- * Failed or unavailable speech stays silent. Replies are cleaned for speech
- * (no *actions*, no emoji), split into sentences and grouped into chunks of
- * up to CHUNK_LIMIT characters. While one chunk plays, the next is fetched.
+ * Speech is read aloud by the browser's own SpeechSynthesis voice. The
+ * WaifuAI Cloud speech endpoint was retired; no request leaves this page for
+ * audio. Failed or unavailable speech stays silent. Replies are cleaned for
+ * speech (no *actions*, no emoji), split into sentences and grouped into
+ * chunks of up to CHUNK_LIMIT characters. While one chunk plays, the next is
+ * prepared locally.
  *
  * Language routing: a reply in Japanese, Korean, German, Indonesian and so on
- * is spoken in that language.
+ * is spoken in that language when an installed browser voice supports it.
  */
 const Speech = (() => {
-  const TTS_URL = 'https://waifu-companion-proxy.thewaifuai.workers.dev/tts';
-  const CLOUD_TIMEOUT_MS = 30000;
   const CHUNK_LIMIT = 300;
   const CHUNK_GAP_MS = 150;
 
@@ -69,12 +67,11 @@ const Speech = (() => {
 
   // ── Settings ──
   const KEY = window.WaifuSpritesEmbed ? 'ws_embed_speech' : 'ws_speech';
-  const settings = { enabled: true, voiceId: '', volume: 1 };
+  // Only browser voices remain. A saved cloud:... id falls back to the
+  // browser default, and a language with no installed voice stays silent.
+  const settings = { enabled: true, voiceId: 'browser-female', volume: 1 };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
-  // An empty voiceId means the cloud voice for the reply's language; saved
-  // values from the removed on-client voice catalog fall back to it.
-  if (!byId(settings.voiceId) && !/^cloud:[a-z0-9-]{1,40}$/.test(settings.voiceId)) settings.voiceId = '';
-  if(settings.voiceId && !byId(settings.voiceId))VOICES.push({id:settings.voiceId,name:'Saved voice',provider:'cloud',group:'WaifuAI',language:'en-US'});
+  if (!byId(settings.voiceId)) settings.voiceId = 'browser-female';
   function save() { try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) {} }
 
   // ── Audio ──
@@ -91,59 +88,15 @@ const Speech = (() => {
     } catch (e) {}
   }
 
-  // One speech request per chunk; the endpoint picks voice and provider from
-  // the language. 204 means speech is unavailable right now, not an error to
-  // retry; other failures leave the chunk silent.
-  async function fetchCloud(text, lang, selectedVoice, preview=false) {
-    const params = new URLSearchParams({ text });
-    if (lang) params.set('lang', lang);
-    if(/^cloud:[a-z0-9-]{1,40}$/.test(selectedVoice||''))params.set('voice',selectedVoice.slice(6));
-    if(preview)params.set('preview','1');
-    const res = await fetch(`${TTS_URL}?${params}`, { signal: AbortSignal.timeout(CLOUD_TIMEOUT_MS) });
-    if (res.status === 204) throw new Error('speech unavailable');
-    if (!res.ok) throw new Error('speech HTTP ' + res.status);
-    const bytes = await res.arrayBuffer();
-    if (!bytes.byteLength) throw new Error('speech returned no audio');
-    unlock();
-    return { buffer: await ctx.decodeAudioData(bytes), provider: res.headers.get('X-Tts-Provider') || 'cloud',servedVoice:res.headers.get('X-Tts-Voice-Id')||'unknown',fell_back:res.headers.get('X-Tts-Fallback')==='1' };
-  }
-
-  // Resolves a chunk to something playable without making a sound, so the next
-  // chunk can be fetched while this one plays.
+  // Resolves a chunk to a local browser voice without making a sound, so the
+  // next chunk can be prepared while this one plays. No audio bytes are
+  // fetched: speechSynthesis owns playback and language selection.
   async function resolve(text, plan = null, preview=false) {
-    const voice = byId(settings.voiceId);
-    if (voice?.provider==='browser') {
-      const target = (plan && plan.lang) || voice.language;
-      const installed = window.speechSynthesis ? browserVoice(target, voice.gender) : null;
-      if (!installed) return { kind: 'silent' };
-      return { kind: 'browser', text, gender: voice.gender, lang: installed.lang };
-    }
-    const lang = (plan && plan.lang) || (window.TTSLanguageRouter ? window.TTSLanguageRouter.analyze(stripForTTS(text)).lang : null) || 'en-US';
-    try {
-      const { buffer, provider,servedVoice,fell_back } = await fetchCloud(text, lang,settings.voiceId,preview);
-      showStatus(fell_back?'Using a backup voice for this audio. Your choice is saved.':'');
-      return { kind: 'buffer', buffer, lang, voiceId:settings.voiceId||'default',servedVoice,provider,fell_back };
-    } catch (e) {
-      showStatus('Voice unavailable. Your choice is saved.');
-      reportEvent('tts_unavailable',{voice_id:settings.voiceId||'default',preview});
-      // Unavailable speech leaves this chunk silent.
-      return { kind: 'silent' };
-    }
-  }
-
-  function playBuffer(buffer,onStart) {
-    return new Promise(done => {
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      const gain = ctx.createGain();
-      gain.gain.value = settings.volume;
-      src.connect(gain).connect(ctx.destination);
-      source = src;
-      const watchdog = setTimeout(() => { try { src.stop(); } catch (e) {} done(); }, buffer.duration * 1000 + 4000);
-      src.onended = () => { clearTimeout(watchdog); if (source === src) source = null; done(); };
-      src.start();
-      onStart?.();
-    });
+    const voice = byId(settings.voiceId) || VOICES[0];
+    const target = (plan && plan.lang) || (window.TTSLanguageRouter ? window.TTSLanguageRouter.analyze(stripForTTS(text)).lang : null) || voice.language;
+    const installed = window.speechSynthesis ? browserVoice(target, voice.gender) : null;
+    if (!installed) return { kind: 'silent' };
+    return { kind: 'browser', text, gender: voice.gender, lang: installed.lang };
   }
 
   function browserVoice(lang, gender) {
@@ -227,15 +180,14 @@ const Speech = (() => {
         if (i + 1 < chunks.length) next = resolve(chunks[i + 1], plan,!!hooks.sample);
         const onStarted=()=>{
           if(!valid())return;
-          const info={voice_id:settings.voiceId||'default',served_voice:current.servedVoice||current.voiceId||settings.voiceId||'default',
-            provider:current.provider || (current.kind==='buffer'?'cloud':'browser'),fell_back:!!current.fell_back,
+          const info={voice_id:settings.voiceId||'default',served_voice:current.voiceId||settings.voiceId||'default',
+            provider:'browser',fell_back:false,
             voice_lang:current.lang||'',requested_voice_lang:plan?.lang||'',routing_source:plan?.source||'local',
             routing_cache_hit:!!plan?.cacheHit,decision_requested:!!plan?.decisionRequested,routing_wait_ms:plan?.waitMs||0,preview:!!hooks.sample};
           if(!hooks.sample){reportEvent('tts_chunk_played',info);hooks.onChunk?.(info);}
           if(!reportedPlay){reportedPlay=true;if(!hooks.sample){reportEvent('tts_played',info);hooks.onPlay?.(info);}}
         };
-        if (current.kind === 'buffer') await playBuffer(current.buffer,onStarted);
-        else if (current.kind === 'browser') await speakBrowser(current.text, current.lang, current.gender,onStarted);
+        if (current.kind === 'browser') await speakBrowser(current.text, current.lang, current.gender,onStarted);
         if (i + 1 < chunks.length && live()) await new Promise(r => setTimeout(r, CHUNK_GAP_MS));
       }
       if (live() && hooks.onEnd) hooks.onEnd();
@@ -245,22 +197,14 @@ const Speech = (() => {
   }
 
   function showStatus(message){const el=typeof document!=='undefined'?document.getElementById('voiceChoiceStatus'):null;if(el)el.textContent=message;}
+  // Telemetry used to POST to a public speech service. Local speech has no
+  // service to report to; events are now page-local only.
   function reportEvent(event,info={}){
-    try{fetch(TTS_URL+'/events',{method:'POST',headers:{'Content-Type':'application/json',...(typeof Chat!=='undefined'&&Chat.ids?{'x-session-id':Chat.ids().session,'x-visitor-id':Chat.ids().visitor}:{})},
-      body:JSON.stringify({event,voice_id:info.voice_id||settings.voiceId||'default',served_voice:info.served_voice,
-        fallback:!!info.fell_back,preview:!!info.preview}),keepalive:true,signal:AbortSignal.timeout(3000)}).catch(()=>{});}catch{}
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof window.CustomEvent === 'function') {
+      try { window.dispatchEvent(new window.CustomEvent('waifu-speech', { detail: { event, ...info } })); } catch (e) {}
+    }
   }
-  async function loadVoices(){
-    try{
-      const res=await fetch(TTS_URL+'/voices',{signal:AbortSignal.timeout(5000)});if(!res.ok)return;
-      const data=await res.json();if(!Array.isArray(data.voices))return;
-      const choices=data.voices.filter(v=>/^[a-z0-9-]{1,40}$/.test(v.id||'')&&typeof v.name==='string'&&v.name.length<=80).slice(0,80)
-        .map(v=>({...v,id:'cloud:'+v.id,group:'WaifuAI',provider:'cloud'}));
-      VOICES.splice(0,VOICES.length,...VOICES.filter(v=>v.provider==='browser'),...choices);
-      if(settings.voiceId && !byId(settings.voiceId))VOICES.push({id:settings.voiceId,name:'Saved voice',provider:'cloud',group:'WaifuAI'});
-      return choices;
-    }catch{}
-  }
+  async function loadVoices(){ return VOICES.slice(); }
   const speaking = () => preparing || !!source || (window.speechSynthesis && speechSynthesis.speaking);
 
   return { VOICES, settings, save, speak,loadVoices,reportEvent, stop, unlock, prepareRouting, finishRouting, get speaking() { return speaking(); } };

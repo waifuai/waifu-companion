@@ -1,10 +1,14 @@
 /**
  * chat.js: providers, personas, memory, conversation history and streaming.
  *
- * Guests chat through WaifuAI Cloud with no key. Visitors can switch to their
- * own OpenRouter, Groq or any OpenAI-compatible key instead; keys stay in this
- * browser's localStorage and requests go straight from the browser to that
- * provider.
+ * Guests chat through the built-in local reply engine with no key and no
+ * network call. Visitors can switch to their own OpenRouter, Groq or any
+ * OpenAI-compatible key instead; keys stay in this browser's localStorage and
+ * requests go straight from the browser to that provider.
+ *
+ * The `cloud` provider id is kept for saved-settings compatibility but now
+ * means the built-in local engine: the retired public inference service left
+ * no URL to it in this app.
  *
  * Replies start with an emotion tag like "[curious]" that picks the sprite
  * clip. The tag is stripped from what is shown and stored on the message.
@@ -22,11 +26,11 @@
  */
 const Chat = (() => {
   const tr = (key, params) => (window.WaifuI18n ? window.WaifuI18n.t(key, params) : key);
-  const CLOUD_URL = 'https://waifu-companion-proxy.thewaifuai.workers.dev/chat/completions';
-  const DECISIONS_URL = 'https://waifu-companion-proxy.thewaifuai.workers.dev/decisions';
-
+  // The retired public inference service left no endpoint here. The default
+  // provider is a local engine; only bring-your-own-key providers make
+  // outbound inference requests.
   const PROVIDERS = {
-    cloud: { name: 'WaifuAI Cloud', desc: 'Free, no key needed', defaultModel: 'waifuai-v1' },
+    cloud: { name: 'Built-in local replies', desc: 'Works offline, no key needed', defaultModel: 'waifuai-v1' },
     openrouter: { name: 'OpenRouter', desc: 'Your own key', baseUrl: 'https://openrouter.ai/api/v1', defaultModel: 'poolside/laguna-s-2.1:free', keyUrl: 'https://openrouter.ai/keys' },
     groq: { name: 'Groq', desc: 'Your own key', baseUrl: 'https://api.groq.com/openai/v1', defaultModel: 'llama-3.3-70b-versatile', keyUrl: 'https://console.groq.com/keys' },
     custom: { name: 'OpenAI-compatible', desc: 'Any /v1 endpoint', baseUrl: '', defaultModel: '' },
@@ -157,33 +161,14 @@ const Chat = (() => {
   const sessionId = randomId('s-');
   function ids() { return { session: sessionId, visitor: visitorId() }; }
 
-  // WaifuAI Cloud's fixed-choice endpoint: names task ids from the server's
-  // fixed set and supplies the conversation state each task documents.
-  // Resolves { <task>: { choice_id, confidence } } on an ok answer, or null
-  // when the endpoint is unavailable, the request was rejected or the answer
-  // was not ok — callers keep their local behavior on null. Never throws.
+  // The public fixed-choice service was retired, so there is no fixed-choice
+  // provider: return null so every caller keeps its own local behavior (the
+  // reply's emotion tag, the local language router, and the picture-free
+  // picture gate). Never throws, and resolves immediately rather than waiting
+  // on a network timeout.
   async function askDecisions(tasks, state, owner = null) {
-    try {
-      checkOwner(owner);
-      const headers = { 'Content-Type': 'application/json' };
-      const id = ids();
-      if (id.session) headers['x-session-id'] = id.session;
-      if (id.visitor) headers['x-visitor-id'] = id.visitor;
-      const resp = await abortable(fetch(DECISIONS_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ request_id: randomId('r-'), tasks, state: window.ConversationBudget.decisionState(state) }),
-        ...(owner ? { signal: owner.signal } : {}),
-      }), owner?.signal);
-      checkOwner(owner);
-      if (!resp.ok) return null;
-      const body = await abortable(resp.json(), owner?.signal);
-      checkOwner(owner);
-      if (!body || body.status !== 'ok' || !body.answers) return null;
-      return body.answers;
-    } catch (e) {
-      return null;
-    }
+    if (owner) { try { checkOwner(owner); } catch (e) { return null; } }
+    return null;
   }
 
   let msgSeq = 0;
@@ -606,6 +591,10 @@ const Chat = (() => {
    */
   async function summarize(force = false, owner = null) {
     if (owner && !isCurrent(owner)) return false;
+    // No inference endpoint in the built-in provider: memory compression is
+    // skipped, every message stays word for word, and nothing is invented as
+    // a summary.
+    if (settings.provider === 'cloud') return false;
     if (summarizing && force) throw window.ConversationBudget.error('memory_busy', tr('memory.busy'));
     if (summarizing || (!force && Date.now() - summaryFailedAt < 120000)) return false;
     const budget = window.ConversationBudget;
@@ -788,47 +777,34 @@ const Chat = (() => {
     return (settings.models[provider] || '').trim() || PROVIDERS[provider].defaultModel;
   }
 
-  // purpose: chat, ambient, summary, title or translate. WaifuAI Cloud logs
-  // each kind apart; side calls carry no client settings.
+  // purpose: chat, ambient, summary, title or translate. Only the
+  // bring-your-own-key providers make inference calls to endpoints the visitor
+  // chose; the built-in local provider has no URL at all.
   function buildRequest(msgs, purpose, stream, maxTokens) {
     const provider = settings.provider;
+    if (provider === 'cloud') throw new Error('The built-in provider replies locally; it has no endpoint.');
     const body = { model: modelFor(provider), messages: msgs, max_tokens: maxTokens || 600, stream };
     const headers = { 'Content-Type': 'application/json' };
-    let url;
-    if (provider === 'cloud') {
-      url = CLOUD_URL;
-      headers['x-session-id'] = sessionId;
-      headers['x-visitor-id'] = visitorId();
-      if (purpose !== 'chat') headers['X-Waifu-Purpose'] = purpose;
-      body.client_settings = { app: window.WaifuSpritesSource || 'homepage-sprites', persona: settings.persona,voice_choice: typeof Speech!=='undefined'?(Speech.settings.voiceId||'default'):'default',
-        ...(welcomeBackShown ? { welcome_back: 1 } : {}),
-        // Marks requests whose system prompt carried the durable cross-chat
-        // store (its toggle is on and the store has content).
-        ...(durableMemory() ? { cross_chat_memory: 1 } : {}),
-        ...(window.WaifuI18n?.snapshot?.() || {}) };
-      body.context_budget_version = 1;
-      const budget = window.ConversationBudget;
-      if (purpose === 'chat' || purpose === 'ambient') body.messages = budget.pack(body.messages, m => ({ ...body, messages: m }), memorySize()).messages;
-      budget.checkBody(body);
-    } else {
-      const base = provider === 'custom' ? settings.customBaseUrl : PROVIDERS[provider].baseUrl;
-      const key = (settings.keys[provider] || '').trim();
-      if (!base) throw new Error(tr('error.setEndpoint'));
-      if (!key && provider !== 'custom') throw new Error(tr('error.setKey', { provider: tr('provider.' + provider + '.name') }));
-      if (!body.model) throw new Error(tr('error.setModel'));
-      url = base.replace(/\/+$/, '') + '/chat/completions';
-      if (key) headers.Authorization = 'Bearer ' + key;
-      if (provider === 'openrouter') {
-        headers['HTTP-Referer'] = location.origin;
-        headers['X-Title'] = 'Waifu Sprites';
-      }
+    const base = provider === 'custom' ? settings.customBaseUrl : PROVIDERS[provider].baseUrl;
+    const key = (settings.keys[provider] || '').trim();
+    if (!base) throw new Error(tr('error.setEndpoint'));
+    if (!key && provider !== 'custom') throw new Error(tr('error.setKey', { provider: tr('provider.' + provider + '.name') }));
+    if (!body.model) throw new Error(tr('error.setModel'));
+    const url = base.replace(/\/+$/, '') + '/chat/completions';
+    if (key) headers.Authorization = 'Bearer ' + key;
+    if (provider === 'openrouter') {
+      headers['HTTP-Referer'] = location.origin;
+      headers['X-Title'] = 'Waifu Sprites';
     }
     return { url, headers, body };
   }
 
-  // One non-streaming call for the side jobs (summary, title, romaji). Resolves with the text.
+  // One non-streaming call for side jobs, only for bring-your-own-key
+  // providers. The built-in local provider has no inference endpoint, so side
+  // jobs simply yield no text and their callers keep their existing local state.
   async function complete(msgs, purpose, maxTokens, owner = null) {
     checkOwner(owner);
+    if (settings.provider === 'cloud') return '';
     const scope = conversationRevision;
     const req = buildRequest(msgs, purpose, false, maxTokens || 300);
     const ctrl = new AbortController();
@@ -982,6 +958,30 @@ const Chat = (() => {
       notifyTurn();
     }, 90000);
     try {
+      // Built-in provider: generate one reply locally, then run it through the
+      // same turn lifecycle as a streamed answer. No fetch, no endpoint, no
+      // persisted mode — every turn resolves its provider afresh above.
+      if (settings.provider === 'cloud') {
+        if (typeof window === 'undefined' || !window.LocalFallbackEngine || typeof window.LocalFallbackEngine.getResponse !== 'function') {
+          throw new Error(tr('error.connection', 'Replies are unavailable right now. Please try again.'));
+        }
+        checkOwner(owner);
+        const local = window.LocalFallbackEngine.getResponse(owner.text, settings.language, settings.persona);
+        emotion = Sprites.EMOTIONS.includes(local.emotion) ? local.emotion : null;
+        cb.onEmotion?.(emotion);
+        owner.replyMessage.content = local.reply;
+        owner.replyMessage.emotion = emotion;
+        owner.replyMessage.fallback = {
+          engine: local.engine,
+          persona: local.persona,
+          pattern: local.pattern,
+        };
+        saveConversation();
+        cb.onText?.(local.reply);
+        checkOwner(owner);
+        settle(owner, 'completed');
+        return owner;
+      }
       const req = buildRequest(await modelMessages(ambient ? text : null, owner), ambient ? 'ambient' : 'chat', true, 600);
       checkOwner(owner);
       const resp = await abortable(fetch(req.url, { method: 'POST', headers: req.headers, body: JSON.stringify(req.body), signal: owner.signal }), owner.signal);

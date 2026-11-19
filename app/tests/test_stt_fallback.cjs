@@ -4,17 +4,15 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
 
-function client({ browserSpeech = false, cloud = true, denied = false } = {}) {
+function client({ browserSpeech = false, denied = false } = {}) {
   const listeners = {};
   const button = {
     style: { setProperty() {} }, dataset: {}, classList: { toggle() {} }, setAttribute() {},
     addEventListener(name, fn) { listeners[name] = fn; }
   };
-  const selector = { value: 'webspeech' };
-  const calls = { capture: 0, recognition: 0, saved: [], messages: [] };
+  const calls = { recognition: 0, messages: [], fetch: [] };
   const input = { value: '', placeholder: 'Message' };
-  const window = { sttEngine: 'webspeech', messageInput: input };
-  if (cloud) window.WaifuProxyAPI = { transcribeAudio: async () => ({ text: 'Hello' }) };
+  const window = { sttEngine: 'proxy', messageInput: input, selectedLanguageCode: 'en-US' };
   if (browserSpeech) {
     window.SpeechRecognition = class {
       start() {
@@ -22,73 +20,50 @@ function client({ browserSpeech = false, cloud = true, denied = false } = {}) {
         if (denied) this.onerror({ error: 'not-allowed' });
         else this.onstart();
       }
+      abort() {}
+      stop() {}
     };
   }
-  class MediaRecorder {
-    static isTypeSupported() { return true; }
-    start() { this.state = 'recording'; }
-  }
-  window.MediaRecorder = MediaRecorder;
   const context = vm.createContext({
-    window, MediaRecorder, Blob, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
-    navigator: { mediaDevices: { async getUserMedia() {
-      calls.capture++;
-      return { getTracks: () => [{ stop() {} }] };
-    } } },
+    window, Blob, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
     document: {
-      getElementById(id) { return id === 'micBtn' ? button : id === 'sttEngineSelector' ? selector : null; },
+      getElementById(id) { return id === 'micBtn' ? button : null; },
       querySelectorAll() { return []; }
     },
-    debugLog() {}, debugError() {},
-    addMessage(message) { calls.messages.push(message); },
-    handleSttEngineChange(event) { calls.saved.push(event.target.value); }
+    debugLog() {}, debugError() {}, trackEvent() {},
+    fetch: async (url) => { calls.fetch.push(url); throw new Error('no network expected'); },
+    addMessage(message) { calls.messages.push(message); }
   });
-  for (const script of ['mic_capture.js', 'stt_controller.js']) {
-    vm.runInContext(readFileSync(path.join(__dirname, '../scripts', script), 'utf8'), context);
-  }
+  vm.runInContext(readFileSync(path.join(__dirname, '../scripts/stt_controller.js'), 'utf8'), context);
   window.initSTT();
-  return { window, calls, button, selector, click: () => listeners.click({ detail: 0 }) };
+  return { window, calls, button, click: () => listeners.click({ detail: 0 }) };
 }
 
-test('missing browser speech selects and starts cloud microphone capture', async () => {
-  const c = client();
-  assert.equal(c.window.sttEngine, 'proxy');
-  assert.equal(c.selector.value, 'proxy');
-  assert.deepEqual(c.calls.saved, ['proxy']);
-  assert.notEqual(c.button.style.display, 'none');
-  c.click();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(c.calls.capture, 1);
-});
-
-test('reselecting unsupported browser speech still starts cloud capture', async () => {
-  const c = client();
-  c.window.sttEngine = 'webspeech';
-  c.click();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(c.window.sttEngine, 'proxy');
-  assert.equal(c.calls.capture, 1);
-});
-
-test('supported browser speech keeps the selected engine', () => {
+test('supported browser speech is used and no engine selection is attempted', () => {
   const c = client({ browserSpeech: true });
   c.click();
   assert.equal(c.calls.recognition, 1);
-  assert.equal(c.calls.capture, 0);
   assert.equal(c.window.sttEngine, 'webspeech');
+  assert.equal(c.calls.fetch.length, 0);
 });
 
-test('browser microphone permission denial is displayed without starting cloud capture', () => {
+test('a retired proxy preference is reset to webspeech without any upload path', () => {
+  const c = client({ browserSpeech: true });
+  assert.equal(c.window.sttEngine, 'webspeech');
+  assert.equal(c.calls.fetch.length, 0);
+});
+
+test('browser microphone permission denial is displayed without a network request', () => {
   const c = client({ browserSpeech: true, denied: true });
   c.click();
-  assert.equal(c.calls.capture, 0);
-  assert.equal(c.window.sttEngine, 'webspeech');
   assert.match(c.calls.messages[0], /permission denied/i);
+  assert.equal(c.calls.fetch.length, 0);
 });
 
-test('mic is hidden when neither speech engine is available', () => {
-  const c = client({ cloud: false });
+test('mic is hidden when Web Speech is unavailable and no fallback engine is used', () => {
+  const c = client();
   assert.equal(c.button.style.display, 'none');
   c.click();
-  assert.equal(c.calls.capture, 0);
+  assert.equal(c.calls.recognition, 0);
+  assert.equal(c.calls.fetch.length, 0);
 });

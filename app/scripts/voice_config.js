@@ -1,9 +1,9 @@
 // Voice configuration data for TTS
 window.voices = [
   // The default follows the reply language. Optional choices load below.
-  { id: 'cloud', name: 'Waifu Voice (auto language)', language: 'en-US', gender: 'female', provider: 'cloud' },
-  // Extra voices verified against the live service 2026-09-29
-
+  // Legacy id kept so saved settings still resolve; it now selects a browser
+  // SpeechSynthesis voice that follows the reply language.
+  { id: 'cloud', name: 'Browser Voice (auto language)', language: 'en-US', gender: 'female', provider: 'browser' },
   // Browser SpeechSynthesis Voices (built-in, no rate limits)
   { id: 'browser-female', name: 'Browser Voice (Female)', language: 'en-US', gender: 'female', provider: 'browser' },
   { id: 'browser-male', name: 'Browser Voice (Male)', language: 'en-US', gender: 'male', provider: 'browser' },
@@ -22,7 +22,7 @@ window.voices = [
   { id: 'bm_lewis', name: 'Kokoro: Lewis (Male, UK)', language: 'en-GB', gender: 'male', provider: 'kokoro' }
 ];
 
-// Map languages to a proxy base language whose voices they should inherit
+// Map languages to a base language whose voice characteristics they inherit.
 window.voiceLanguageOverrides = {
   ace: 'id', ban: 'id', btx: 'id', bts: 'id', bbc: 'id', bew: 'id',
   jv: 'id', mak: 'id', 'ms-MS': 'id', 'ms-Arab': 'id', min: 'id', su: 'id',
@@ -61,26 +61,18 @@ window.voiceLanguageOverrides = {
 };
 // Voice choices are application data. Keep the saved choice when the catalog
 // is temporarily unavailable, including while the page is starting up.
+// Saved `cloud:<id>` choices are honored as legacy ids: they resolve to a
+// browser voice, never to a fetched catalog. No /voices request is made.
 window.isCloudVoiceChoice = id => /^cloud:[a-z0-9-]{1,40}$/.test(id || '');
 window.showCloudVoiceStatus = message => {
   const element=document.getElementById('cloudVoiceStatus');
-  if(element)element.textContent=message;
+  if(element)element.textContent=message || '';
 };
 window.loadCloudVoiceChoices = async () => {
-  try {
-    const response=await fetch(window.WaifuProxyAPI.TTS_URL+'/voices',{signal:AbortSignal.timeout(5000)});
-    if(!response.ok)return;
-    const catalog=await response.json();
-    if(!Array.isArray(catalog.voices))return;
-    const choices=catalog.voices.filter(v=>/^[a-z0-9-]{1,40}$/.test(v.id||'') && typeof v.name==='string' && v.name.length<=80)
-      .slice(0,80).map(v=>({id:'cloud:'+v.id,name:v.name,language:v.language||'en-US',provider:'cloud',gender:v.gender||''}));
-    window.voices.splice(0,window.voices.length,...window.voices.filter(v=>!window.isCloudVoiceChoice(v.id)),...choices);
-    if(typeof populateVoiceSelector==='function')populateVoiceSelector();
-  }catch{}
+  // Retired public service: the catalog endpoint is gone. Keep the saved
+  // choice as-is; fetchTTSBuffer maps it to a browser voice at playback time.
+  window.showCloudVoiceStatus?.('');
 };
 
-window.reportVoiceEvent=(event,info={})=>{
-  try { fetch(window.WaifuProxyAPI.TTS_URL+'/events',{method:'POST',headers:{'Content-Type':'application/json',...window.WaifuProxyAPI.requestHeaders?.()},
-    body:JSON.stringify({event,voice_id:info.voice_id||window.selectedVoiceId||'default',served_voice:info.served_voice,
-      fallback:!!info.fell_back,preview:!!info.preview}),keepalive:true,signal:AbortSignal.timeout(3000)}).catch(()=>{}); } catch {}
-};
+// Voice events are local only; there is no /events reporting endpoint.
+window.reportVoiceEvent = () => {};

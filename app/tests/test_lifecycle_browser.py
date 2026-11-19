@@ -146,38 +146,22 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(len(self.calls),0)
         self.assertFalse(f.evaluate('isProcessing'))
 
-    def test_image_generation_failure_manual_recovery_and_display_only_reload(self):
-        f=self.open(embed=True);self.image_mode='failed';self.send(f,'/image cozy room square')
-        f.locator('.image-status').filter(has_text='Generation failed').wait_for()
-        self.assertEqual(self.image_count,1)
-        entry=f.evaluate('conversationContext.at(-1).id')
-        self.image_mode='success';self.display_fails=True
-        f.get_by_role('button',name='Generate again',exact=True).click()
-        f.locator('.image-status').filter(has_text='Display failed').wait_for()
-        self.assertEqual(self.image_count,2)
-        self.assertEqual(f.evaluate('conversationContext.at(-1).id'),entry)
-        self.display_fails=False
-        f.get_by_role('button',name='Reload image',exact=True).click()
-        f.locator('.image-status').filter(has_text='Loaded in this browser').wait_for()
-        self.assertEqual(self.image_count,2)
-        self.assertIn('browser display loaded',f.evaluate('contextForModel(conversationContext).at(-1).content'))
-        self.send(f,'Next question')
-        f.wait_for_function('!isProcessing')
-        self.assertTrue(f.locator('.chat-image').is_visible())
-        self.assertTrue(f.locator('.chat-image').evaluate('(img) => img.complete && img.naturalWidth > 0'))
-        self.assertEqual(self.image_count,2)
-        self.calls.clear();self.page.reload();f=self.page.frames[1]
-        f.wait_for_function('waifuBootComplete')
-        f.locator('.image-status').filter(has_text='Loaded in this browser').wait_for()
-        self.assertEqual(self.image_count,2)
-
-    def test_blocked_auth_rate_have_no_generate_again(self):
+    def test_image_generation_is_unavailable_locally(self):
         f=self.open(embed=True)
-        for mode in ['blocked','auth','rate']:
-            self.image_mode=mode;self.send(f,'/image scene '+mode)
+        self.send(f,'/image cozy room square')
+        f.locator('.message.model-message').filter(has_text='Pictures are unavailable in local-only mode').wait_for()
+        self.assertEqual(self.image_count,0)
+        self.assertEqual(f.get_by_role('button',name='Generate again',exact=True).count(),0)
+        self.assertFalse(self.errors,self.errors)
+
+    def test_no_image_requests_are_made(self):
+        f=self.open(embed=True)
+        for index in range(3):
+            self.send(f,'/image scene '+str(index))
             f.wait_for_function('!isProcessing && getActiveTurn().effects === 0')
-            self.assertEqual(f.get_by_role('button',name='Generate again',exact=True).count(),0)
-        self.assertEqual(self.image_count,3)
+        self.assertEqual(self.image_count,0)
+        self.assertEqual(f.locator('.message.model-message').filter(has_text='Pictures are unavailable in local-only mode').count(),3)
+        self.assertFalse(self.errors,self.errors)
 
     def test_missing_corrupt_rejected_blobs_and_abandoned_display_callbacks(self):
         f=self.open(embed=True)

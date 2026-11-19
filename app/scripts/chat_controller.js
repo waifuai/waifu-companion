@@ -202,9 +202,9 @@ window.renderAttemptState = renderAttemptState;
 window.resumeUserQueue = resumeUserQueue;
 window.getActiveTurn = () => activeTurn;
 
-// /image flow: draws a picture through the image endpoint and drops it into
-// the chat. The prompt goes out as-is; a short in-character caption is added
-// and stored so chat reloads and the LLM context both know the image exists.
+// /image flow: the retired public picture endpoint used to draw a picture and
+// drop it into the chat. Generation is now a local no-op with an "unavailable"
+// outcome; the rendering helpers stay for chats saved with older pictures.
 // Maps an emotion label to the expression and pose it plays. One function so
 // the keyword guess on the streaming reply and the decision upgrade for the
 // finished reply apply the exact same animation per label; unknown labels
@@ -264,19 +264,10 @@ async function handleImageRequest(prompt, aspect = '1:1', caption = null, owner 
   const op = entry.imageOperation; op.generation = 'pending'; op.display = 'unknown'; op.retryable = false;
   entry.attemptId = owner.attemptId; saveTurnState(); renderImageOperation(entry, owner);
   return ownedEffect(owner, async () => {
-    if (typeof trackEvent === 'function') trackEvent('image_generation_started');
-    try {
-      const result = await awaitTurn(window.WaifuProxyAPI.generateImage(prompt, aspect, null, null, turnOptions(owner)), turnOptions(owner));
-      if (!turnIsCurrent(owner)) return;
-      entry.imageUrl = result.url; op.generation = 'generated'; op.display = 'loading';
-      if (typeof trackEvent === 'function') trackEvent('image_generation_completed');
-    } catch (error) {
-      if (!turnIsCurrent(owner)) return;
-      op.generation = error.blocked ? 'blocked' : 'failed';
-      op.retryable = !error.blocked && ![401,403,429].includes(error.status) && (error.retryable === true || error.network || error instanceof TypeError || error.status >= 500);
-      if (typeof trackEvent === 'function') trackEvent('image_generation_failed', { blocked: !!error.blocked, timed_out: !!error.timedOut });
-    }
-    if (!turnIsCurrent(owner)) return;
+    // Retired public service: pictures are disabled locally. No /image request
+    // is made; the entry gets a clear, local "unavailable" outcome.
+    op.generation = 'unavailable'; op.display = 'unknown'; op.retryable = false;
+    debugLog('Pictures are unavailable in local-only mode.', 'info');
     saveTurnState(); renderImageOperation(entry, owner);
   });
 }
@@ -293,7 +284,7 @@ function renderImageOperation(entry, owner = null, load = true) {
   const label = document.createElement('span'); label.className = 'image-status'; label.setAttribute('role', 'status'); panel.appendChild(label);
   const status = () => {
     const state = op.generation === 'generated' ? ({ loaded:'loaded', failed:'displayFailed', interrupted:'interrupted', unknown:'unknown' }[op.display] || 'loading') : op.generation;
-    const keys = { pending:['picture.pending','Drawing…'], loading:['picture.loading','Generated / loading…'], loaded:['picture.loaded','Loaded in this browser'], blocked:['picture.blocked','Blocked'], failed:['picture.failed','Generation failed'], displayFailed:['picture.displayFailed','Display failed'], stopped:['picture.stopped','Stopped'], interrupted:['picture.interrupted','Interrupted'], unknown:['picture.unknown','Generated / display unconfirmed'] };
+    const keys = { pending:['picture.pending','Drawing…'], loading:['picture.loading','Generated / loading…'], loaded:['picture.loaded','Loaded in this browser'], blocked:['picture.blocked','Blocked'], failed:['picture.failed','Generation failed'], displayFailed:['picture.displayFailed','Display failed'], stopped:['picture.stopped','Stopped'], interrupted:['picture.interrupted','Interrupted'], unavailable:['picture.unavailable','Pictures are unavailable in local-only mode'], unknown:['picture.unknown','Generated / display unconfirmed'] };
     const [key, fallback] = keys[state] || keys.unknown; label.dataset.i18n = key; label.textContent = tr(key, fallback);
   };
   status();
@@ -485,8 +476,7 @@ window.maybeSummarizeConversation = maybeSummarizeConversation;
 
 async function sendMessageInternal(message, isAmbient = false, cachedResponse = null, ttsPreloadBuffer = null, retryUser = null) {
   if (isProcessing) return;
-  const owner = beginOwnedTurn(retryUser, isAmbient); // Before context, image decisions or any await.
-  let imagePromise = null;
+  const owner = beginOwnedTurn(retryUser, isAmbient); // Before context and any await.
   try {
     if (!isAmbient && !retryUser) {
       const id = addMessage(message, true, null, null, 'en-US');
@@ -497,12 +487,9 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
     }
     const direct = message.match(/^\/(?:image|img)\b\s*(.*)/i);
     if (direct && !isAmbient) {
-      owner.imageOnly = true;
-      let prompt = direct[1].trim(); let aspect = getImageAspect();
-      const shape = prompt.match(/\s+(portrait|landscape|square)\s*$/i);
-      if (shape) { aspect = {portrait:'2:3',landscape:'3:2',square:'1:1'}[shape[1].toLowerCase()]; prompt = prompt.slice(0,shape.index).trim(); }
-      if (prompt) { owner.status = 'completed'; isProcessing = false; isAIResponding = false; await handleImageRequest(prompt, aspect, null, owner); }
-      else { addMessage(tr('chat.imagePromptHelp', 'Describe what you want me to draw: /image a cozy cafe at sunset'), false); owner.status = 'failed'; }
+      owner.status = 'failed'; isProcessing = false; isAIResponding = false;
+      // Retired public service: there is no picture generator to call.
+      addMessage(tr('chat.imageUnavailable', 'Pictures are unavailable in local-only mode. Bring your own key for text chat; pictures stay off.'), false);
       return;
     }
     owner.stream = createStreamingMessage(owner.language);
@@ -517,7 +504,7 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       invalidateTurn('failed'); updateQueueUI();
     }, 90000);
     owner.deadline = deadline;
-    if (!isAmbient && typeof getImageDecision === 'function') imagePromise = ownedEffect(owner, () => getImageDecision(message, turnOptions(owner)));
+    // Retired public service: no image decision runs before the reply.
     const options = { ...turnOptions(owner), stream: typeof resolveLLMProvider === 'function' && !!resolveLLMProvider(),
       purpose: isAmbient ? 'ambient' : 'chat', onChunk(text) {
         if (!turnIsCurrent(owner)) return;
@@ -535,10 +522,6 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       const text = await getTransliteration(owner.reply.content, owner.language, turnOptions(owner));
       if (turnIsCurrent(owner) && conversationContext.includes(owner.reply)) appendTransliteration(owner.stream.messageDiv, text);
     });
-    if (imagePromise) ownedEffect(owner, async () => {
-      const request = await imagePromise;
-      if (request && turnIsCurrent(owner)) await handleImageRequest(request.prompt, request.aspect, null, owner);
-    });
     if (!isAmbient && typeof maybeAutoBackground === 'function') ownedEffect(owner, () => maybeAutoBackground(owner));
     if (response.settingsUpdate && window.allowAIModSettings) window.applyAIProposedSettings?.(response.settingsUpdate);
     ownedEffect(owner, () => maybeSummarizeConversation(false, owner));
@@ -551,7 +534,6 @@ async function sendMessageInternal(message, isAmbient = false, cachedResponse = 
       applyEmotionAnimation(response.emotion, owner);
       decision = ownedEffect(owner, () => upgradeEmotionFromDecision(message, owner.reply.content, e => { if (valid()) applyEmotionAnimation(e, owner); }, plan, valid, turnOptions(owner)));
     }
-    if (plan?.needsDecision && !decision && window.WaifuProxyAPI) decision = ownedEffect(owner, () => window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: plan.text, conversation_language: plan.previousLang }, turnOptions(owner)));
     const routing = plan && typeof finishTTSRouting === 'function' ? finishTTSRouting(plan, decision, valid) : null;
     if (window.enableVoice && valid()) playTTS(owner.reply.content, owner.language, owner.reply.id, 0, ttsPreloadBuffer, true, routing);
     onAIResponseFullyFinished(owner);

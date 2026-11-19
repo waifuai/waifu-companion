@@ -83,7 +83,7 @@
     'chat.pictureBlocked': "I can only draw safe-for-work pictures, so I can't make that one. Want something cute instead?",
     'chat.pictureSlow': 'That one took too long and my brush gave up. Try again?',
     'chat.pictureFailed': 'Sorry, my canvas is acting up. Could we try again in a moment?',
-    'chat.imageHelp': 'Describe what to draw, like: /image a cozy cafe at sunset. Add portrait, square or landscape at the end to pick the shape.',
+    'chat.imageHelp': "Picture generation is unavailable. Send a message and I'll reply right here in your browser.",
     'chat.readAloud': 'Read aloud',
     'chat.copy': 'Copy',
     'chat.delete': 'Delete',
@@ -164,14 +164,14 @@
     'settings.keyPlaceholder': 'Stays in this browser',
     'settings.model': 'Model',
     'settings.pictures': 'Pictures',
-    'settings.picturesNote': 'Ask for a selfie or a drawing, or type <code>/image</code> and a description. Pictures are drawn by WaifuAI Cloud.',
+    'settings.picturesNote': "Picture generation is unavailable in this browser-only build. Replies use the built-in local engine or a provider you configure yourself.",
     'settings.voice': 'Voice',
     'settings.readAloud': 'Read her replies aloud',
     'settings.herVoice': 'Her voice',
     'settings.matchLanguage': "Match the reply's language",
     'settings.voiceVolume': 'Voice volume',
     'settings.voiceNote': "Replies are read aloud in the reply's language. You can also pick your browser's own voice instead.",
-    'settings.micNote': 'Hold the mic button to talk, or tap it to start and tap again to stop. Speech is transcribed by WaifuAI Cloud.',
+    'settings.micNote': "Hold the mic button to talk, or tap it to start and tap again to stop. Speech is recognized by your browser.",
     'settings.voiceAutoSend': 'Send right after speaking',
     'settings.radio': 'Radio',
     'settings.radioVolume': 'Radio volume',
@@ -185,9 +185,9 @@
     'settings.dataNote': 'Chats, memories and settings are saved in this browser only.',
     'settings.export': 'Export chats',
     'settings.deleteAll': 'Delete all chats',
-    'settings.providerNoteOwn': 'Your key is saved in this browser only and sent only to %{target}. Pictures and voice still go through WaifuAI Cloud.',
+    'settings.providerNoteOwn': "Your key is saved in this browser only and sent only to %{target}. Voice uses this browser's speech engine.",
     'settings.providerTargetEndpoint': 'your endpoint',
-    'settings.providerNoteCloud': 'Free and keyless. Messages go to WaifuAI Cloud to generate replies and may be logged to improve the service.',
+    'settings.providerNoteCloud': "Replies are generated in this browser. Nothing is sent to a server and no key is needed.",
     'settings.deleteAllConfirm': 'Delete all saved chats in this browser?',
     'settings.exportNone': 'No chats to export yet.',
 
@@ -254,8 +254,8 @@
     'persona.custom.desc': 'Write your own',
 
     // ── Providers ──
-    'provider.cloud.name': 'WaifuAI Cloud',
-    'provider.cloud.desc': 'Free, no key needed',
+    'provider.cloud.name': "Built-in local replies",
+    'provider.cloud.desc': "Works offline, no key needed",
     'provider.openrouter.name': 'OpenRouter',
     'provider.openrouter.desc': 'Your own key',
     'provider.groq.name': 'Groq',
@@ -273,7 +273,7 @@
 
     // ── Chat errors ──
     'error.setEndpoint': 'Set the endpoint URL in Settings first.',
-    'error.setKey': 'Add your %{provider} key in Settings, or switch back to WaifuAI Cloud.',
+    'error.setKey': "Add your %{provider} key in Settings, or switch back to built-in local replies.",
     'error.setModel': 'Set a model name in Settings first.',
     'error.tooMany': 'Too many messages right now. Wait a minute and try again.',
     'error.rejected': 'The provider rejected the key. Check it in Settings.',
@@ -285,8 +285,8 @@
     'error.contextTooLarge': 'This request is too large. Compress older memory or shorten the input. Your saved text is kept.',
 
     // ── Voice (proxy transcription) ──
-    'voice.transcribeFailed': 'Transcription failed (HTTP %{status}).',
-    'voice.transcribeSlow': 'Transcription took too long. Please try again.',
+    'voice.transcribeFailed': "Speech recognition failed. Please try again.",
+    'voice.transcribeSlow': "Speech recognition took too long. Please try again.",
     'voice.busy': 'Voice input is busy right now. Try again in a moment.',
     'voice.failed': 'Voice input failed: %{message}',
     'voice.heardNothing': "I couldn't hear anything in that recording. Check your microphone and try again.",

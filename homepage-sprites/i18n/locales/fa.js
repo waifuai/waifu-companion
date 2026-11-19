@@ -83,7 +83,7 @@
     'chat.pictureBlocked': 'من فقط می‌توانم تصویرهای مناسب محیط کار بکشم، پس آن یکی را نمی‌توانم بسازم. چیز بامزه‌ای می‌خواهی؟',
     'chat.pictureSlow': 'آن یکی خیلی طول کشید و قلم‌مویم تسلیم شد. دوباره امتحان کنم؟',
     'chat.pictureFailed': 'ببخشید، بومم دارد بدقلقی می‌کند. می‌شود لحظه‌ای دیگر دوباره امتحان کنیم؟',
-    'chat.imageHelp': 'توضیح بده چه بکشم، مثل: /image یک کافه دنج هنگام غروب. برای انتخاب شکل، در پایان portrait، square یا landscape را اضافه کن.',
+    'chat.imageHelp': "تولید تصویر در دسترس نیست. پیامی بنویسید تا همینجا در مرورگرتان پاسخ بدهم.",
     'chat.readAloud': 'خواندن با صدای بلند',
     'chat.copy': 'کپی',
     'chat.delete': 'حذف',
@@ -164,14 +164,14 @@
     'settings.keyPlaceholder': 'در همین مرورگر می‌ماند',
     'settings.model': 'مدل',
     'settings.pictures': 'تصاویر',
-    'settings.picturesNote': 'یک سلفی یا نقاشی بخواه، یا <code dir="ltr">/image</code> و توضیح آن را بنویس. تصاویر را WaifuAI Cloud می‌کشد.',
+    'settings.picturesNote': "تولید تصویر در این نسخه فقط-مرورگری در دسترس نیست. پاسخ‌ها از موتور محلی داخلی یا ارائهدهندهای که خودتان تنظیم میکنید استفاده میکنند.",
     'settings.voice': 'صدا',
     'settings.readAloud': 'خواندن پاسخ‌هایش با صدای بلند',
     'settings.herVoice': 'صدای او',
     'settings.matchLanguage': 'هماهنگ با زبان پاسخ',
     'settings.voiceVolume': 'بلندی صدای گوینده',
     'settings.voiceNote': 'پاسخ‌ها به زبان همان پاسخ بلند خوانده می‌شوند. همچنین می‌توانی صدای خود مرورگرت را انتخاب کنی.',
-    'settings.micNote': 'برای حرف زدن دکمه میکروفون را نگه دار، یا بزن تا شروع شود و دوباره بزن تا بایستد. گفتار را WaifuAI Cloud به متن تبدیل می‌کند.',
+    'settings.micNote': "برای حرف زدن دکمه میکروفون را نگه دار، یا بزن تا شروع شود و دوباره بزن تا بایستد. گفتار توسط مرورگرتان تشخیص داده میشود.",
     'settings.voiceAutoSend': 'بلافاصله پس از حرف زدن بفرست',
     'settings.radio': 'رادیو',
     'settings.radioVolume': 'بلندی صدای رادیو',
@@ -185,9 +185,9 @@
     'settings.dataNote': 'گفتگوها، حافظه‌ها و تنظیمات فقط در همین مرورگر ذخیره می‌شوند.',
     'settings.export': 'خروجی گفتگوها',
     'settings.deleteAll': 'حذف همه گفتگوها',
-    'settings.providerNoteOwn': 'کلید تو فقط در همین مرورگر ذخیره می‌شود و تنها به %{target} فرستاده می‌شود. تصاویر و صدا همچنان از WaifuAI Cloud می‌گذرند.',
+    'settings.providerNoteOwn': "Your key is saved in this browser only and sent only to %{target}. Voice uses this browser's speech engine.",
     'settings.providerTargetEndpoint': 'نشانی خودت',
-    'settings.providerNoteCloud': 'رایگان و بدون کلید. پیام‌ها برای ساختن پاسخ به WaifuAI Cloud می‌روند و ممکن است برای بهبود سرویس ثبت شوند.',
+    'settings.providerNoteCloud': "Replies are generated in this browser. Nothing is sent to a server and no key is needed.",
     'settings.deleteAllConfirm': 'همه گفتگوهای ذخیره‌شده در این مرورگر حذف شوند؟',
     'settings.exportNone': 'هنوز گفتگویی برای خروجی گرفتن نیست.',
 
@@ -254,8 +254,8 @@
     'persona.custom.desc': 'خودت بنویس',
 
     // ── Providers ──
-    'provider.cloud.name': 'WaifuAI Cloud',
-    'provider.cloud.desc': 'رایگان، بدون نیاز به کلید',
+    'provider.cloud.name': "Built-in local replies",
+    'provider.cloud.desc': "Works offline, no key needed",
     'provider.openrouter.name': 'OpenRouter',
     'provider.openrouter.desc': 'کلید خودت',
     'provider.groq.name': 'Groq',
@@ -273,7 +273,7 @@
 
     // ── Chat errors ──
     'error.setEndpoint': 'اول نشانی Endpoint را در تنظیمات بگذار.',
-    'error.setKey': 'کلید %{provider} خود را در تنظیمات اضافه کن، یا به WaifuAI Cloud برگرد.',
+    'error.setKey': "کلید %{provider} خود را در تنظیمات اضافه کن، یا به پاسخهای محلی داخلی برگرد.",
     'error.setModel': 'اول نام مدل را در تنظیمات بگذار.',
     'error.tooMany': 'همین حالا پیام‌ها خیلی زیاد است. یک دقیقه صبر کن و دوباره امتحان کن.',
     'error.rejected': 'ارائه‌دهنده کلید را رد کرد. در تنظیمات بررسی‌اش کن.',
@@ -285,8 +285,8 @@
     'error.contextTooLarge': 'این درخواست خیلی بزرگ است. حافظه قدیمی‌تر را فشرده کن یا متن ورودی را کوتاه کن. متن ذخیره‌شده‌ات نگه داشته شد.',
 
     // ── Voice (proxy transcription) ──
-    'voice.transcribeFailed': 'تبدیل به متن شکست خورد (HTTP %{status}).',
-    'voice.transcribeSlow': 'تبدیل به متن خیلی طول کشید. دوباره امتحان کن.',
+    'voice.transcribeFailed': "تشخیص گفتار ناموفق بود. لطفاً دوباره تلاش کنید.",
+    'voice.transcribeSlow': "تشخیص گفتار خیلی طول کشید. لطفاً دوباره تلاش کنید.",
     'voice.busy': 'ورودی صدا همین حالا مشغول است. لحظه‌ای دیگر دوباره امتحان کن.',
     'voice.failed': 'ورودی صدا شکست خورد: %{message}',
     'voice.heardNothing': 'در آن ضبط چیزی نشنیدم. میکروفون را بررسی کن و دوباره امتحان کن.',

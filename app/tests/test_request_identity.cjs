@@ -3,177 +3,46 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
-const { webcrypto } = require('node:crypto');
 
-function client({ visitorStorage = new Map(), sessionStorage = new Map(), blocked = false, stallSpeech = null, i18n = null, crossChatMemory = null, userMemory = '' } = {}) {
+function client() {
   const calls = [];
-  const timers = new Set();
-  const stalled = signal => new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(new Error('Aborted')), { once: true }));
-  const storage = map => ({
-    getItem(key) { if (blocked) throw new Error('Storage unavailable'); return map.get(key) ?? null; },
-    setItem(key, value) { if (blocked) throw new Error('Storage unavailable'); map.set(key, value); }
-  });
   const context = vm.createContext({
-    crypto: webcrypto, sessionStorage: storage(sessionStorage),
-    AppStorage: {
-      ...storage(visitorStorage), KEYS: {}, getString: (_key, value) => value,
-      getJSON: (_key, value) => value, getBoolean: (_key, value) => value
-    },
+    crypto: {}, sessionStorage: { getItem: () => 'mock-session' },
+    AppStorage: { getItem: () => 'mock-visitor' },
     URLSearchParams, FormData, Blob, AbortController,
-    window: {
-      WaifuI18n: i18n,
-      ...(crossChatMemory !== null ? { crossChatMemory, userMemory } : {})
-    },
-    setTimeout(fn, ms) { const timer = { fn, ms }; timers.add(timer); return timer; },
-    clearTimeout(timer) { timers.delete(timer); },
-    debugNet() {}, debugError() {},
-    async fetch(url, options) {
-      calls.push({ url, ...options });
-      if (url.endsWith('/transcribe') && stallSpeech === 'fetch') return stalled(options.signal);
-      return {
-        ok: true, status: 200, body: { cancel: () => Promise.resolve() },
-        headers: new Headers({ 'X-Image-Url': 'https://image.test/result.png' }),
-        json: async () => stallSpeech === 'body' ? stalled(options.signal) : ({ choices: [{ message: { content: 'Mock reply' } }], text: 'Mock transcript' })
-      };
-    }
+    window: {},
+    setTimeout: () => 0, clearTimeout() {},
+    async fetch(url, options) { calls.push({ url, options }); throw new Error('no network expected'); }
   });
-  context.window.ConversationBudget = require('../scripts/context_budget.js');
   for (const script of ['llm_provider_base.js', 'waifu_proxy.js']) {
     vm.runInContext(readFileSync(path.join(__dirname, '../scripts', script), 'utf8'), context);
   }
-  return { api: context.window.WaifuProxyAPI, calls, timers };
+  return { api: context.window.WaifuProxyAPI, calls };
 }
 
-for (const stage of ['fetch', 'body']) {
-  test('speech timeout includes stalled ' + stage + ' and does not retry', async () => {
-    const { api, calls, timers } = client({ stallSpeech: stage });
-    const pending = api.transcribeAudio(new Blob(['invented audio']));
-    await new Promise(resolve => setImmediate(resolve));
-    const timer = [...timers][0];
-    assert.equal(timer.ms, 75000);
-    timer.fn();
-    await assert.rejects(pending, /took too long/);
-    assert.equal(calls.length, 1);
-    assert.equal(timers.size, 0);
-  });
-}
-
-test('internal completions share the chat identity through the HTTP transport', async () => {
+test('the retired proxy never builds a request or makes a network call', async () => {
   const { api, calls } = client();
-  const messages = [{ role: 'user', content: 'Mock request' }];
-  await api.createCompletion({ messages });
-  const identity = calls[0].headers;
-  assert.ok(identity['x-session-id']);
-  assert.ok(identity['x-visitor-id']);
-  for (const purpose of ['title', 'summary', 'ambient', 'image_prompt', 'background_prompt']) {
-    for (const stream of [false, true]) {
-      await api[stream ? 'createCompletionStream' : 'createCompletion']({ messages, purpose });
-      const request = calls.at(-1);
-      assert.equal(request.headers['x-session-id'], identity['x-session-id']);
-      assert.equal(request.headers['x-visitor-id'], identity['x-visitor-id']);
-      assert.equal(request.headers['X-Waifu-Purpose'], purpose);
-      assert.equal(JSON.parse(request.body).stream, stream);
-      assert.deepEqual(JSON.parse(request.body).messages, messages);
-      assert.equal(JSON.parse(request.body).client_settings, undefined);
-    }
-  }
-  assert.equal(identity['X-Waifu-Purpose'], undefined);
-  assert.ok(JSON.parse(calls[0].body).client_settings);
+  assert.throws(() => api.buildRequest({ messages: [] }, false));
+  await assert.rejects(() => api.createCompletion({ messages: [], purpose: 'chat' }));
+  await assert.rejects(() => api.createCompletionStream({ messages: [], purpose: 'ambient' }));
+  assert.equal(calls.length, 0);
 });
 
-test('an internal call can establish identity before the first chat', async () => {
+test('request headers are empty: no session or visitor identity leaves the page', () => {
+  const { api } = client();
+  assert.equal(Object.keys(api.requestHeaders()).length, 0);
+});
+
+test('image, voice and decision endpoints cannot be reached', async () => {
   const { api, calls } = client();
-  await api.createCompletion({ messages: [], purpose: 'summary' });
-  await api.createCompletion({ messages: [] });
-  assert.ok(calls[0].headers['x-session-id']);
-  assert.ok(calls[0].headers['x-visitor-id']);
-  for (const header of ['x-session-id', 'x-visitor-id']) {
-    assert.equal(calls[0].headers[header], calls[1].headers[header]);
-  }
+  assert.equal((await api.generateImage('Mock picture', '1:1', null, 'background')).unavailable, true);
+  assert.equal(await api.decide(['live2d_emotion_v1'], { reply: 'hi' }), null);
+  await assert.rejects(() => api.transcribeAudio(new Blob(['mock audio'])));
+  assert.equal(calls.length, 0);
 });
 
-test('image and speech calls share identity without overriding multipart content type', async () => {
-  const { api, calls } = client();
-  await api.createCompletion({ messages: [], purpose: 'image_prompt' });
-  const identity = calls[0].headers;
-  assert.equal((await api.generateImage('Mock picture', '1:1', null, 'background')).url, 'https://image.test/result.png');
-  const audio = new Blob(['mock audio'], { type: 'audio/webm' });
-  await api.transcribeAudio(audio, { filename: 'sample.webm', language: 'en', prompt: 'Mock hint' });
-  for (const request of calls.slice(1)) {
-    for (const header of ['x-session-id', 'x-visitor-id']) {
-      assert.equal(request.headers[header], identity[header]);
-    }
-  }
-  assert.equal(calls[1].headers['X-Waifu-Purpose'], 'background');
-  const speech = calls[2];
-  assert.equal(speech.headers['Content-Type'], undefined);
-  assert.equal(speech.headers['content-type'], undefined);
-  assert.ok(speech.body instanceof FormData);
-  assert.equal(speech.body.get('file').name, 'sample.webm');
-  assert.equal(speech.body.get('file').type, 'audio/webm');
-  assert.equal(speech.body.get('language'), 'en');
-  assert.equal(speech.body.get('prompt'), 'Mock hint');
-});
-
-test('existing stored IDs survive reload and the visitor ID survives a new tab', async () => {
-  const visitorStorage = new Map([['waifuVisitorId', 'existing-visitor']]);
-  const sessionStorage = new Map([['waifuSessionId', 'existing-session']]);
-  for (let i = 0; i < 2; i++) {
-    const { api, calls } = client({ visitorStorage, sessionStorage });
-    await api.createCompletion({ messages: [], purpose: 'title' });
-    assert.equal(calls[0].headers['x-visitor-id'], 'existing-visitor');
-    assert.equal(calls[0].headers['x-session-id'], 'existing-session');
-  }
-  const { api, calls } = client({ visitorStorage });
-  await api.createCompletion({ messages: [], purpose: 'ambient' });
-  assert.equal(calls[0].headers['x-visitor-id'], 'existing-visitor');
-  assert.notEqual(calls[0].headers['x-session-id'], 'existing-session');
-});
-
-test('unavailable storage still allows internal and speech requests', async () => {
-  const { api, calls } = client({ blocked: true });
-  await api.createCompletion({ messages: [], purpose: 'summary' });
-  await api.transcribeAudio(new Blob(['mock audio']));
-  for (const request of calls) {
-    assert.equal(request.headers['x-session-id'], undefined);
-    assert.equal(request.headers['x-visitor-id'], undefined);
-  }
-});
-
-
-test('decision transport preserves a long completed reply and bounds oversized evidence', async () => {
-  const {api,calls}=client();
-  for(const n of [2600,9000]) {
-    const reply='Opening. '+'x'.repeat(n)+' I am thrilled!';
-    await api.decide(['live2d_emotion_v1'],{reply});
-    const state=JSON.parse(calls.at(-1).body).state;
-    assert.ok(state.reply.endsWith('I am thrilled!'));
-    assert.ok(state.reply.length<=4096);
-    if(n===2600)assert.equal(state.reply,reply);
-  }
-});
-
- test('chat settings carry the interface snapshot; reply prompts and internal requests stay independent',async()=>{
- const snapshot={interface_locale:'ja',interface_locale_preference:'auto',interface_locale_status:'ready',interface_locale_version:1};
- const {api,calls}=client({i18n:{snapshot:()=>snapshot}});
- await api.createCompletion({messages:[{role:'system',content:'- Language: English'},{role:'user',content:'Invented'}]});
- const settings=JSON.parse(calls[0].body).client_settings;
- for(const [key,value] of Object.entries(snapshot))assert.equal(settings[key],value);
- await api.createCompletion({messages:[],purpose:'title'});
- assert.equal(JSON.parse(calls[1].body).client_settings,undefined);
- });
-
-test('chat requests flag when they carried cross-chat memory', async () => {
-  const carried = client({ crossChatMemory: true, userMemory: 'Name: Rei' });
-  await carried.api.createCompletion({ messages: [{ role: 'user', content: 'Hi' }] });
-  assert.equal(JSON.parse(carried.calls[0].body).client_settings.cross_chat_memory, 1);
-  const off = client({ crossChatMemory: false, userMemory: 'Name: Rei' });
-  await off.api.createCompletion({ messages: [{ role: 'user', content: 'Hi' }] });
-  assert.equal(JSON.parse(off.calls[0].body).client_settings.cross_chat_memory, undefined);
-  const empty = client({ crossChatMemory: true, userMemory: '   ' });
-  await empty.api.createCompletion({ messages: [{ role: 'user', content: 'Hi' }] });
-  assert.equal(JSON.parse(empty.calls[0].body).client_settings.cross_chat_memory, undefined);
-  const unset = client();
-  await unset.api.createCompletion({ messages: [{ role: 'user', content: 'Hi' }] });
-  assert.equal(JSON.parse(unset.calls[0].body).client_settings.cross_chat_memory, undefined);
+test('the proxy is never selectable as a configured provider', () => {
+  const { api } = client();
+  assert.equal(api.isConfigured(), false);
+  assert.equal(api.getModel(), 'local-fallback');
 });

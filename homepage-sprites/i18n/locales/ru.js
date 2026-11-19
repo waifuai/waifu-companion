@@ -84,7 +84,7 @@
     'chat.pictureBlocked': "Я умею рисовать только безопасные картинки, так что эту не нарисую. Хочешь что-нибудь милое вместо неё?",
     'chat.pictureSlow': 'Эта картинка рисовалась слишком долго, и моя кисть сдалась. Попробуем ещё раз?',
     'chat.pictureFailed': 'Извини, мой холст барахлит. Может, попробуем ещё раз через минуту?',
-    'chat.imageHelp': 'Опишите, что нарисовать, например: /image уютное кафе на закате. Добавьте в конце portrait, square или landscape, чтобы выбрать форму.',
+    'chat.imageHelp': "Создание изображений недоступно. Напишите сообщение — я отвечу прямо здесь, в вашем браузере.",
     'chat.readAloud': 'Читать вслух',
     'chat.copy': 'Копировать',
     'chat.delete': 'Удалить',
@@ -170,14 +170,14 @@
     'settings.keyPlaceholder': 'Остаётся в этом браузере',
     'settings.model': 'Модель',
     'settings.pictures': 'Картинки',
-    'settings.picturesNote': 'Попросите селфи или рисунок либо введите <code dir="ltr">/image</code> и описание. Картинки рисует WaifuAI Cloud.',
+    'settings.picturesNote': "Создание изображений недоступно в этой версии, работающей только в браузере. Ответы используют встроенный локальный механизм или провайдера, который вы настроили сами.",
     'settings.voice': 'Голос',
     'settings.readAloud': 'Читать её ответы вслух',
     'settings.herVoice': 'Её голос',
     'settings.matchLanguage': 'Подстраивать под язык ответа',
     'settings.voiceVolume': 'Громкость голоса',
     'settings.voiceNote': 'Ответы зачитываются на языке ответа. Также можно выбрать голос вашего браузера.',
-    'settings.micNote': 'Удерживайте кнопку микрофона, чтобы говорить, или нажмите, чтобы начать, и нажмите снова, чтобы остановить. Речь распознаёт WaifuAI Cloud.',
+    'settings.micNote': "Удерживайте кнопку микрофона, чтобы говорить, или нажмите один раз для начала и ещё раз для остановки. Речь распознаёт ваш браузер.",
     'settings.voiceAutoSend': 'Отправлять сразу после речи',
     'settings.radio': 'Радио',
     'settings.radioVolume': 'Громкость радио',
@@ -191,9 +191,9 @@
     'settings.dataNote': 'Чаты, память и настройки сохраняются только в этом браузере.',
     'settings.export': 'Экспорт чатов',
     'settings.deleteAll': 'Удалить все чаты',
-    'settings.providerNoteOwn': 'Ваш ключ сохраняется только в этом браузере и отправляется только в %{target}. Картинки и голос по-прежнему идут через WaifuAI Cloud.',
+    'settings.providerNoteOwn': "Your key is saved in this browser only and sent only to %{target}. Voice uses this browser's speech engine.",
     'settings.providerTargetEndpoint': 'ваш эндпоинт',
-    'settings.providerNoteCloud': 'Бесплатно и без ключа. Сообщения отправляются в WaifuAI Cloud для создания ответов и могут записываться в журнал для улучшения сервиса.',
+    'settings.providerNoteCloud': "Replies are generated in this browser. Nothing is sent to a server and no key is needed.",
     'settings.deleteAllConfirm': 'Удалить все сохранённые чаты в этом браузере?',
     'settings.exportNone': 'Пока нет чатов для экспорта.',
 
@@ -260,8 +260,8 @@
     'persona.custom.desc': 'Напишите свой',
 
     // ── Providers ──
-    'provider.cloud.name': 'WaifuAI Cloud',
-    'provider.cloud.desc': 'Бесплатно, без ключа',
+    'provider.cloud.name': "Built-in local replies",
+    'provider.cloud.desc': "Works offline, no key needed",
     'provider.openrouter.name': 'OpenRouter',
     'provider.openrouter.desc': 'Свой ключ',
     'provider.groq.name': 'Groq',
@@ -279,7 +279,7 @@
 
     // ── Chat errors ──
     'error.setEndpoint': 'Сначала укажите URL эндпоинта в настройках.',
-    'error.setKey': 'Добавьте свой ключ %{provider} в настройках или вернитесь к WaifuAI Cloud.',
+    'error.setKey': "Добавьте ключ %{provider} в настройках или вернитесь к встроенным локальным ответам.",
     'error.setModel': 'Сначала укажите название модели в настройках.',
     'error.tooMany': 'Сейчас слишком много сообщений. Подождите минуту и попробуйте снова.',
     'error.rejected': 'Провайдер отклонил ключ. Проверьте его в настройках.',
@@ -291,8 +291,8 @@
     'error.contextTooLarge': 'Этот запрос слишком большой. Сожмите старую память или сократите ввод. Ваш текст сохранён.',
 
     // ── Voice (proxy transcription) ──
-    'voice.transcribeFailed': 'Не удалось распознать речь (HTTP %{status}).',
-    'voice.transcribeSlow': 'Распознавание речи заняло слишком много времени. Попробуйте снова.',
+    'voice.transcribeFailed': "Распознавание речи не удалось. Попробуйте ещё раз.",
+    'voice.transcribeSlow': "Распознавание речи заняло слишком много времени. Попробуйте ещё раз.",
     'voice.busy': 'Голосовой ввод сейчас занят. Попробуйте снова через минуту.',
     'voice.failed': 'Сбой голосового ввода: %{message}',
     'voice.heardNothing': 'Я не расслышала ничего в этой записи. Проверь микрофон и попробуй снова.',

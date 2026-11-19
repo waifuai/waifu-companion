@@ -48,7 +48,7 @@
       "@type": "WebApplication",
       "name": "WaifuAI",
       "url": "https://waifuai.com/",
-      "description": "Free open-source AI companion featuring Live2D animations, local Kokoro TTS voice synthesis, conversation memory, and fully customizable personas. Powered by OpenRouter LLMs.",
+      "description": "Free open-source AI companion featuring Live2D animations, local Kokoro TTS voice synthesis, conversation memory, and fully customizable personas. Local replies by default; optional bring-your-own LLM keys.",
       "applicationCategory": "EntertainmentApplication",
       "operatingSystem": "Web",
       "offers": {
@@ -105,7 +105,7 @@
         <ul>
           <li>Live2D animated waifu characters with emotion expressions</li>
           <li>Local voice synthesis using Kokoro TTS — runs in your browser</li>
-          <li>Powered by OpenRouter and Groq — supports 100+ LLMs including free models</li>
+          <li>Optional BYO providers — OpenRouter, Groq and OpenAI-compatible keys stay opt-in</li>
           <li>Conversation memory and rolling chat summaries</li>
           <li>Custom persona system prompts — build any character you want</li>
           <li>Ambient mode — AI speaks unprompted during silence</li>
@@ -227,14 +227,14 @@
         </div>
         <div class="provider-section" style="border-left: 3px solid #6366f1; padding-left: 12px; margin-bottom: 16px;">
           <div class="provider-section-header">
-            <h4 data-i18n="provider.cloudTitle">✨ WaifuAI Cloud (Default)</h4>
+            <h4 data-i18n="provider.cloudTitle">✨ Local Replies (Default)</h4>
           </div>
           <div class="settings-item">
             <div class="value-display" style="margin-top: 4px; color: #cbd5e1;" data-i18n-html="provider.cloudActive">
-              <strong>Active automatically for all guests.</strong> Powered by WaifuAI Cloud. No API key required!
+              <strong>Replies are generated on this device.</strong> No account or API key needed.
             </div>
             <div class="value-display" style="margin-top: 4px; font-size: 0.85em; opacity: 0.75;" data-i18n="provider.cloudNote">
-              To bring your own API key instead, simply check one of the custom providers below.
+              Want model replies instead? Opt in with your own key below.
             </div>
           </div>
         </div>
@@ -385,7 +385,7 @@
             <option value="9:16" data-i18n="model.aspectTall">Tall, phone wallpaper (9:16)</option>
             <option value="16:9" data-i18n="model.aspectWide">Wide, desktop wallpaper (16:9)</option>
           </select>
-          <div class="value-display" data-i18n="model.aspectDesc">Shape of the pictures she draws for you.</div>
+          <div class="value-display" data-i18n="model.aspectDesc">Picture settings are kept for saved chats; picture generation is unavailable locally.</div>
         </div>
         <div class="settings-item">
           <label data-i18n="model.addCustomLabel">➕ Add Custom Model</label>
@@ -534,7 +534,7 @@
           <label>
             <input type="checkbox" id="enablePrimaryVoiceCheckbox" /> <span data-i18n="voice.primaryLabel">🔈 Enable Voice Replies</span></label>
           <div class="value-display" data-i18n="voice.primaryDesc">
-            Primary speech synthesis through WaifuAI Cloud, in the reply's language.
+            Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.
           </div>
         </div>
         <div class="settings-item">
@@ -585,10 +585,9 @@
             <label for="sttEngineSelector" data-i18n="voice.sttLabel">🎤 Voice Input (STT)</label>
             <select id="sttEngineSelector" class="settings-select">
               <option value="webspeech" data-i18n="voice.sttBrowser">Browser (Web Speech API)</option>
-              <option value="proxy" data-i18n="voice.sttCloud">WaifuAI Cloud</option>
             </select>
             <div class="value-display" data-i18n="voice.sttDesc">
-              Speech-to-text engine for the chat microphone. Records your mic and transcribes via WaifuAI Cloud - works in browsers without the Web Speech API.
+              Voice input uses your browser Web Speech API. No audio is uploaded.
             </div>
           </div>
           <div class="button-row" style="margin-top: 15px;">
@@ -746,7 +745,7 @@
           <label>
             <input type="checkbox" id="enableAmbientQueueCheckbox" /> <span data-i18n="ambient.modeLabel">🍃 Ambient Mode</span></label>
           <div class="value-display" data-i18n="ambient.modeDesc">
-            The AI will speak unprompted after periods of silence (pauses after 10 unreplied messages on Free Cloud; unlimited with custom API key).
+            The AI will speak unprompted after periods of silence (pauses after 10 unreplied messages in local mode; unlimited with a custom API key).
           </div>
           <div id="ambientPromptContainer" style="margin-top: 10px;">
             <label data-i18n="ambient.promptLabel" style="font-size: 0.85em; opacity: 0.8; display: block; margin-bottom: 5px;"></label>
@@ -768,7 +767,7 @@
           </div>
           <div id="ambientMaxConsecutiveStatus" style="font-size: 0.85em; margin-top: 4px; line-height: 1.4;"></div>
           <div class="value-display" data-i18n="ambient.maxDesc" style="font-size: 0.82em; opacity: 0.65; margin-top: 3px;">
-            Pause unprompted thoughts after this many unreplied messages (1-50 or Unlimited; clamped to 10 on Free Cloud).
+            Pause unprompted thoughts after this many unreplied messages (1-50 or Unlimited; clamped to 10 in local mode).
           </div>
         </div>
         <div class="settings-item">
@@ -918,7 +917,7 @@
 
     <!-- Radio Stream Player -->
     <div class="radio-container" style="display: none;">
-      <audio id="radioPlayer" src="https://listen.moe/stream" aria-label="Anime radio stream player" data-i18n-aria-label="app.radioPlayer" onerror="handleAudioError(this)">
+      <audio id="radioPlayer" src="https://listen.moe/stream" aria-label="Anime radio stream player" data-i18n-aria-label="app.radioPlayer" onerror="window.handleAudioError?.(this)">
         Your browser does not support the audio element or the stream format.
       </audio>
     </div>
@@ -1044,7 +1043,6 @@
     <script src="scripts/chat_manager.js?v=20261103-memory"></script>
     <script src="scripts/chat_controller.js?v=20261103-memory"></script>
     <script src="scripts/tutorial.js"></script>
-    <script src="scripts/mic_capture.js"></script>
     <script src="scripts/stt_controller.js"></script>
     <script type="module" src="scripts/kokoro_manager.js"></script>
     <script src="scripts/main.js"></script>

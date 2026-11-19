@@ -794,7 +794,7 @@ function handleClearBackground(){
   }
 }
 
-/* AI backgrounds (generated through WaifuAI Cloud's /image) */
+/* AI backgrounds (the retired public image service is disabled locally) */
 
 // Appended to every background prompt: the avatar stands in front of the
 // background, so a second character in it would compete with her.
@@ -845,100 +845,18 @@ function checkBackground(options) {
 }
 async function getBackgroundScene(force = false, options = backgroundOptions()) {
   checkBackground(options);
-  const messages = (typeof contextForModel === 'function' ? contextForModel(conversationContext || []) : [])
-    .filter(m => m.role === 'user' || m.role === 'assistant')
-    .slice(-8);
-  if (!messages.length) return null;
-  const clip = (t) => String(t || '').slice(0, 300);
-  const current = S.getString(K.BG_SCENE, '') || '(none)';
-
-  // Scheduled checks honor the cloud's selected action. An uncertain or
-  // unavailable answer leaves scene selection to the existing writing call.
-  // Forced and manual generations always request a scene description.
-  let writeScene = force;
-  if (!force && window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function') {
-    try {
-      const answers = await window.WaifuProxyAPI.decide(['background_action_v1'], {
-        current_scene: clip(current),
-        recent_messages: messages.map(m => ({ role: m.role, text: clip(m.content) }))
-      }, options);
-      checkBackground(options);
-      const background = answers && answers.background_action_v1;
-      if (background && background.choice_id === 'keep') {
-        debugLog('BG: cloud says the scene still fits, skipping the writing call', 'info');
-        return null;
-      }
-      writeScene = background?.choice_id === 'change';
-    } catch (e) {
-      checkBackground(options);
-      debugError('BG action unavailable', e);
-    }
-  }
-
-  checkBackground(options);
-  const input = `Current background: ${current}\n\nLatest messages:\n`
-    + messages.map(m => `${m.role === 'user' ? 'User' : 'Companion'}: ${clip(m.content)}`).join('\n');
-
-  const completion = await callConfiguredLLM([
-    { role: 'system', content: BG_SCENE_SYSTEM_PROMPT(writeScene) },
-    { role: 'user', content: input }
-  ], null, 'background_prompt', options);
-  checkBackground(options);
-  const m = String((completion && completion.content) || '').match(/SCENE:\s*([^\n]+)/i);
-  if (!m) return null;
-  const scene = m[1].replace(/^[\s"'[<]+|[\s"'\]>]+$/g, '').trim();
-  if (scene.length < 8 || UNSAFE_IMAGE_WORDS.test(scene)) return null;
-  return scene;
+  // Retired public service: no /decisions call and no background_prompt
+  // completion. Scene generation is a local no-op.
+  return null;
 }
 
 // Draws scene and makes it the background once it has loaded, so the
 // screen never flashes blank. Resolves true when the background changed.
 async function generateBackground(scene, source, eventType, options = backgroundOptions()) {
   checkBackground(options);
-  if (bgGenerationInFlight) { setBgStatus(tr('background.statusAlready', 'Already drawing a background…')); return false; }
-  if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) return false;
-  bgGenerationInFlight = true;
-  setBgStatus(tr('background.statusDrawing', 'Drawing background…'));
-  try {
-    const { url } = await window.WaifuProxyAPI.generateImage(`${scene}, ${BG_PROMPT_SUFFIX}`, getBackgroundAspect(), null, 'background', options);
-    checkBackground(options);
-    const displayUrl = await ImageStore.resolve(url);
-    checkBackground(options);
-    if (!displayUrl) throw new Error('Background image unavailable');
-    const loading = new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = resolve;
-      img.onerror = () => reject(new Error(tr('error.imageLoad', 'Background image failed to load.')));
-      img.src = displayUrl;
-    });
-    if (typeof awaitTurn === 'function') await awaitTurn(loading, options); else await loading;
-    checkBackground(options);
-    saveToBgLibrary(url, scene);
-    renderBackgroundLibrary();
-    setBgStatus('');
-    // The user may have picked a background while this one was drawing: keep
-    // it in the library, but leave their pick on screen.
-    if (source === 'auto' && S.getString(K.BG_SOURCE, 'manual') === 'manual') return false;
-    applyBackgroundImage(url, source);
-    S.setString(K.BG_SCENE, scene);
-    bgMessagesSinceChange = 0;
-    bgMessagesSinceCheck = 0;
-    debugLog(`BG: new background (${eventType}): "${scene.substring(0, 60)}"`, 'info');
-    if (typeof trackEvent === 'function') trackEvent('background_changed', { type: eventType });
-    return true;
-  } catch (e) {
-    if (options.signal?.aborted || (options.valid && !options.valid())) return false;
-    debugError('BG generation failed', e);
-    setBgStatus(e && e.blocked
-      ? tr('background.errorBlocked', 'The image service did not allow this background. Try another description.')
-      : e && e.timedOut
-        ? tr('background.errorSlow', 'The image service took too long. Please try again.')
-        : tr('background.errorFailed', 'Could not draw the background. Please try again.'));
-    return false;
-  } finally {
-    bgGenerationInFlight = false;
-    if (options.signal?.aborted || (options.valid && !options.valid())) setBgStatus('');
-  }
+  // Retired public service: no /image request is made.
+  setBgStatus(tr('background.localOnly', 'Background generation is unavailable in local-only mode.'));
+  return false;
 }
 
 async function handleGenerateBackground() {
@@ -952,14 +870,8 @@ async function handleGenerateBackground() {
 // The user asked for it, but it follows the story, so Change With the Story
 // keeps updating it ('auto' rather than 'manual').
 async function handleGenerateBackgroundFromContext() {
-  if (bgGenerationInFlight) { setBgStatus(tr('background.statusAlready', 'Already drawing a background…')); return; }
-  setBgStatus(tr('background.statusReading', 'Reading the conversation…'));
-  const options = backgroundOptions();
-  let scene = null;
-  try { scene = await getBackgroundScene(true, options); } catch (e) { debugError('BG scene failed', e); }
-  if (!options.valid()) return;
-  if (!scene) { setBgStatus(tr('background.statusChatFirst', 'Chat a little first, then try again.')); return; }
-  await generateBackground(scene, 'auto', 'ai_conversation', options);
+  setBgStatus(tr('background.localOnly', 'Background generation is unavailable in local-only mode.'));
+  return false;
 }
 
 function getBgAutoMode() {
@@ -975,36 +887,8 @@ function getBgAutoEveryN() {
 // Called once per real user turn (chat_controller.js). Runs in the background
 // and never throws.
 async function maybeAutoBackground(owner = null) {
-  const options = backgroundOptions(owner);
-  try {
-    checkBackground(options);
-    const mode = getBgAutoMode();
-    if (mode === 'off' || bgGenerationInFlight) return;
-    const source = S.getString(K.BG_SOURCE, 'manual');
-    if (source === 'manual') return;
-    bgMessagesSinceChange++;
-    bgMessagesSinceCheck++;
-
-    if (mode === 'every') {
-      if (bgMessagesSinceChange < getBgAutoEveryN()) return;
-      bgMessagesSinceCheck = 0;
-      const scene = await getBackgroundScene(true, options);
-      checkBackground(options);
-      if (scene) await generateBackground(scene, 'auto', 'auto_every', options);
-      return;
-    }
-
-    const minGap = source === 'default' ? BG_SCENE_FIRST_CHECK : BG_SCENE_MIN_GAP;
-    if (bgMessagesSinceChange < minGap) return;
-    if (bgMessagesSinceChange > minGap && bgMessagesSinceCheck < BG_SCENE_CHECK_EVERY) return;
-    bgMessagesSinceCheck = 0;
-    const scene = await getBackgroundScene(false, options);
-    checkBackground(options);
-    debugLog(`BG: scene check: ${scene ? `"${scene.substring(0, 60)}"` : 'same'}`, 'info');
-    if (scene) await generateBackground(scene, 'auto', 'auto_scene', options);
-  } catch (e) {
-    debugError('BG auto update failed', e);
-  }
+  // Retired public service: no background generation or decision calls.
+  return;
 }
 
 function syncBgAutoControls() {
@@ -1330,17 +1214,15 @@ const MIN_AMBIENT_DELAY_SECONDS = 3;
 window.consecutiveAmbientCount = 0;
 
 // Dynamic ambient cap: reads user preference from slider (1-50, where 50 = Unlimited).
-// Free WaifuAI Cloud proxy is safely clamped to 10 to protect shared quota,
-// while custom API keys (Groq, OpenRouter, OpenAI-compatible) honor up to Unlimited.
+// Local replies are clamped to 10; BYO keys (Groq, OpenRouter,
+// OpenAI-compatible) honor up to Unlimited.
 function getMaxConsecutiveAmbient() {
   const provider = typeof resolveLLMProvider === 'function' ? resolveLLMProvider() : null;
   const userSetting = Number(window.ambientMaxConsecutive);
   const target = (!Number.isFinite(userSetting) || userSetting <= 0) ? 10 : userSetting;
   const desiredLimit = target >= 50 ? Infinity : target;
 
-  if (!provider || provider.name === 'waifu_proxy') {
-    return Math.min(desiredLimit, 10);
-  }
+  if (!provider) return Math.min(desiredLimit, 10);
   return desiredLimit;
 }
 window.getMaxConsecutiveAmbient = getMaxConsecutiveAmbient;
@@ -1351,7 +1233,7 @@ function updateAmbientMaxConsecutiveDisplay() {
   const slider = document.getElementById('ambientMaxConsecutive');
   const rawVal = slider ? parseInt(slider.value, 10) : Number(window.ambientMaxConsecutive || 10);
   const provider = typeof resolveLLMProvider === 'function' ? resolveLLMProvider() : null;
-  const isCloud = !provider || provider.name === 'waifu_proxy';
+  const isLocal = !provider;
   const label = rawVal >= 50 ? 'Unlimited (∞)' : String(rawVal);
 
   // Update the value number (just text, no HTML)
@@ -1359,13 +1241,13 @@ function updateAmbientMaxConsecutiveDisplay() {
 
   // Update the status badge (separate div, block-level, always visible)
   if (statusEl) {
-    if (isCloud && rawVal > 10) {
+    if (isLocal && rawVal > 10) {
       statusEl.innerHTML =
-        '<span style="color:#f59e0b; font-weight:600;">⚠️ Clamped to 10 on Free Cloud</span>' +
+        '<span style="color:#f59e0b; font-weight:600;">' + tr('ambient.clampedCloud', '⚠️ Clamped to 10 in local mode') + '</span>' +
         '<br><span style="color:#fbbf24; opacity:0.85;">Add your own API key (Groq / OpenRouter / OpenAI Compatible) to unlock up to ' +
         (rawVal >= 50 ? 'Unlimited' : rawVal) + '.</span>';
       statusEl.style.display = '';
-    } else if (!isCloud && rawVal > 10) {
+    } else if (!isLocal && rawVal > 10) {
       statusEl.innerHTML = '<span style="color:#4ade80; font-weight:600;">✅ Custom API Key Active — full limit honored</span>';
       statusEl.style.display = '';
     } else {

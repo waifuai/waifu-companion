@@ -80,7 +80,7 @@
     'chat.pictureBlocked': '安全な画像しか描けないので、それは描けません。代わりにかわいいものはいかがですか？',
     'chat.pictureSlow': '時間がかかりすぎて筆が止まってしまいました。もう一度試しますか？',
     'chat.pictureFailed': 'ごめんなさい、キャンバスの調子が悪いようです。少ししてからもう一度試してもいいですか？',
-    'chat.imageHelp': '描きたいものを説明してください。例：/image 夕暮れの居心地のいいカフェ。最後に portrait、square、landscape を付けると形を選べます。',
+    'chat.imageHelp': "画像生成は利用できません。メッセージを送れば、このブラウザ内で返信します。",
     'chat.readAloud': '読み上げ',
     'chat.copy': 'コピー',
     'chat.delete': '削除',
@@ -161,14 +161,14 @@
     'settings.keyPlaceholder': 'このブラウザー内に保存されます',
     'settings.model': 'モデル',
     'settings.pictures': '画像',
-    'settings.picturesNote': '自撮りや絵を頼むか、<code dir="ltr">/image</code> と説明を入力してください。画像は WaifuAI Cloud が描きます。',
+    'settings.picturesNote': "このブラウザ専用ビルドでは画像生成を利用できません。返信は内蔵のローカルエンジンか、自分で設定したプロバイダーを使用します。",
     'settings.voice': '音声',
     'settings.readAloud': '彼女の返信を読み上げる',
     'settings.herVoice': '彼女の声',
     'settings.matchLanguage': '返信の言語に合わせる',
     'settings.voiceVolume': '声の音量',
     'settings.voiceNote': '返信はその言語の声で読み上げられます。ブラウザー自身の音声を選ぶこともできます。',
-    'settings.micNote': 'マイクボタンを長押しして話すか、タップで開始、もう一度タップで停止します。音声は WaifuAI Cloud が文字起こしします。',
+    'settings.micNote': "マイクボタンを押し続けて話すか、タップで開始してもう一度タップで停止します。音声はブラウザが認識します。",
     'settings.voiceAutoSend': '話した直後に送信',
     'settings.radio': 'ラジオ',
     'settings.radioVolume': 'ラジオの音量',
@@ -182,9 +182,9 @@
     'settings.dataNote': 'チャット、メモリー、設定はこのブラウザーにのみ保存されます。',
     'settings.export': 'チャットをエクスポート',
     'settings.deleteAll': 'すべてのチャットを削除',
-    'settings.providerNoteOwn': 'キーはこのブラウザーにのみ保存され、%{target} にのみ送信されます。画像と音声はこれまでどおり WaifuAI Cloud を経由します。',
+    'settings.providerNoteOwn': "Your key is saved in this browser only and sent only to %{target}. Voice uses this browser's speech engine.",
     'settings.providerTargetEndpoint': 'あなたのエンドポイント',
-    'settings.providerNoteCloud': '無料・キー不要。メッセージは返信を生成するため WaifuAI Cloud に送信され、サービスの改善のために記録されることがあります。',
+    'settings.providerNoteCloud': "Replies are generated in this browser. Nothing is sent to a server and no key is needed.",
     'settings.deleteAllConfirm': 'このブラウザーに保存されたすべてのチャットを削除しますか？',
     'settings.exportNone': 'エクスポートできるチャットはまだありません。',
 
@@ -251,8 +251,8 @@
     'persona.custom.desc': '自分で書く',
 
     // ── Providers ──
-    'provider.cloud.name': 'WaifuAI Cloud',
-    'provider.cloud.desc': '無料、キー不要',
+    'provider.cloud.name': "Built-in local replies",
+    'provider.cloud.desc': "Works offline, no key needed",
     'provider.openrouter.name': 'OpenRouter',
     'provider.openrouter.desc': '自分のキー',
     'provider.groq.name': 'Groq',
@@ -270,7 +270,7 @@
 
     // ── Chat errors ──
     'error.setEndpoint': '先に設定でエンドポイントURLを入力してください。',
-    'error.setKey': '設定で %{provider} のキーを追加するか、WaifuAI Cloud に戻してください。',
+    'error.setKey': "設定に %{provider} のキーを追加するか、内蔵のローカル返信に戻してください。",
     'error.setModel': '先に設定でモデル名を入力してください。',
     'error.tooMany': '現在メッセージが多すぎます。1分待ってからもう一度お試しください。',
     'error.rejected': 'プロバイダーがキーを拒否しました。設定で確認してください。',
@@ -282,8 +282,8 @@
     'error.contextTooLarge': 'このリクエストは大きすぎます。古いメモリーを圧縮するか入力を短くしてください。保存されたテキストは保持されます。',
 
     // ── Voice (proxy transcription) ──
-    'voice.transcribeFailed': '文字起こしに失敗しました（HTTP %{status}）。',
-    'voice.transcribeSlow': '文字起こしに時間がかかりすぎました。もう一度お試しください。',
+    'voice.transcribeFailed': "音声認識に失敗しました。もう一度お試しください。",
+    'voice.transcribeSlow': "音声認識に時間がかかりすぎました。もう一度お試しください。",
     'voice.busy': '現在音声入力が混み合っています。少ししてからもう一度お試しください。',
     'voice.failed': '音声入力に失敗しました：%{message}',
     'voice.heardNothing': 'その録音では何も聞き取れませんでした。マイクを確認してもう一度お試しください。',

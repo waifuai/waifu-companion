@@ -34,9 +34,9 @@ function resolveLLMProvider() {
   if (window.useOpenRouter && window.OpenRouterAPI && window.OpenRouterAPI.isConfigured()) {
     return { name: 'openrouter', api: window.OpenRouterAPI, model: window.OpenRouterAPI.getModel() };
   }
-  if (window.WaifuProxyAPI && window.WaifuProxyAPI.isConfigured()) {
-    return { name: 'waifu_proxy', api: window.WaifuProxyAPI, model: window.WaifuProxyAPI.getModel() };
-  }
+  // The public proxy was retired. With no BYO key configured there is no
+  // provider at all: the caller falls straight through to the local fallback
+  // engine without attempting a request.
   return null;
 }
 window.resolveLLMProvider = resolveLLMProvider;
@@ -228,14 +228,6 @@ Current Application Settings:
 - Summary Length: ${window.summaryLengthPreference}
 `;
 
-  const appearance = currentAvatarAppearance();
-  const selfLook = appearance || prompt('appearance', 'an anime-style avatar, an adult woman');
-
-  // The picture itself is decided and described by getImageDecision; the
-  // reply only reacts. Writing an exact English tag inside an in-character,
-  // often non-English reply is what the small model kept getting wrong.
-  const identityRule = 'For roleplay, an explicit description of the companion in the custom persona or conversation takes precedence over the displayed avatar for that scene, including self-description and selfies. The avatar appearance below is a default only. Do not confuse the user with the companion or replace an explicitly requested third-party subject.';
-  const pictureRule = prompt('pictures', "You can draw pictures, including pictures of yourself (your avatar's appearance: %{appearance}). When the user asks for a picture, photo, selfie or drawing, a separate application operation attempts to draw it. An offer or returned URL is not confirmed delivery. Use application outcome notes as evidence: generated, loading, loaded in this browser, blocked, failed or interrupted. Browser load does not prove the person saw it, and you cannot inspect its contents. Do not invent successful sending or visibility; react in character without promising completion. Never write out the picture's description, tags or brackets yourself, and never turn a picture request down by saying you are an AI, have no body, or can't make images. Nude or sexual pictures are never drawn: playfully suggest a cute alternative instead.", { appearance: selfLook });
   const replyRule = prompt('plain', 'Respond with plain conversational dialogue only — one natural message that is displayed and spoken aloud exactly as written. Never wrap the reply in JSON, code fences, or labels like "reply:"; body language and feelings come through in the words themselves.');
   const languageReminder = targetLanguageName
     ? prompt('reminder', 'Important: even if the user writes in another language or sends only a short message, reply only in %{language} — unless they explicitly ask you to switch.', { language: targetLanguageName })
@@ -245,9 +237,6 @@ Current Application Settings:
 
 ${coreIdentity}${customPersona}${userMemoryContext}${summaryContext}${currentSettingsContext}
 ${contextInfo.join('\n\n')}
-
-${pictureRule}
-${identityRule}
 
 ${replyRule}
 
@@ -383,56 +372,11 @@ window.pictureCharacterContext=pictureCharacterContext;
 // asks for a picture, and writes the English description for it. Resolves
 // with {prompt, aspect} or null, and never throws: a failed decision just
 // means no picture this turn.
+// Retired public service: picture generation and its decision step are gone.
+// No /image, /decisions or image_prompt completion is attempted locally.
 async function getImageDecision(userMessage, options = {}) {
   checkTurn(options);
-  if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.generateImage === 'function')) return null;
-  try {
-    // Only the companion's last reply and the new message: given a longer
-    // history, the model kept re-drawing for a request it had already answered.
-    const clip = (s) => String(s || '').slice(0, 300);
-    const prevReply = [...contextForModel(conversationContext)].reverse().find(m => m.role === 'assistant');
-    if (!PICTURE_REQUEST_WORDS.test(userMessage || '') && !(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))) return null;
-    const previous = prevReply ? clipPictureContext(prevReply.content) : undefined;
-
-    // Honor the cloud's selected action; an uncertain or unavailable answer
-    // leaves the existing judgment to the writing call.
-    let writePicture = false;
-    if (typeof window.WaifuProxyAPI.decide === 'function') {
-      try {
-        const answers = await awaitTurn(window.WaifuProxyAPI.decide(['picture_action_v1'], {
-          user_message: clip(userMessage),
-          previous_reply: previous,
-          picture_offered: Boolean(prevReply && PICTURE_OFFER_WORDS.test(prevReply.content))
-        }, options), options);
-        checkTurn(options);
-        const picture = answers && answers.picture_action_v1;
-        if (picture && picture.choice_id === 'none') {
-          debugLog('Image decision: cloud says no picture, skipping the writing call', 'info');
-          return null;
-        }
-        writePicture = picture?.choice_id === 'draw';
-      } catch (e) {
-        checkTurn(options);
-        debugError('Image action unavailable', e);
-      }
-    }
-
-    checkTurn(options);
-    const characterContext = pictureCharacterContext();
-    const input = `Character context (resolve companion appearance, not a new picture request): ${characterContext}\n\nCompanion's previous message: ${previous || '(none)'}\n\nUser's NEW message: ${clipCharacterContext(userMessage,2000)}`;
-
-    const completion = await callConfiguredLLM([
-      { role: 'system', content: (writePicture ? IMAGE_WRITER_SYSTEM_PROMPT : IMAGE_DECISION_SYSTEM_PROMPT)(currentAvatarAppearance()) },
-      { role: 'user', content: input }
-    ], null, 'image_prompt', options);
-    checkTurn(options);
-    const decision = parseImageDecision(completion && completion.content);
-    debugLog(`Image decision: ${decision ? `draw "${decision.prompt.substring(0, 60)}" (${decision.aspect})` : 'none'}`, 'info');
-    return decision;
-  } catch (e) {
-    debugError('Image decision failed', e);
-    return null;
-  }
+  return null;
 }
 
 // Builds the full message array for a chat completion. conversationContext
@@ -485,40 +429,11 @@ function inferEmotion(text) {
   return 'neutral';
 }
 
-// Expression upgrade for the finished reply: WaifuAI Cloud reads how the
-// companion is expressing itself (multilingual, sarcasm, roleplay — what the
-// keyword guess structurally cannot judge) and the answer re-applies the
-// animation using the best-fitting valid expression. The keyword guess sets the
-// initial expression; on no valid answer nothing changes here. Resolves
-// quietly; never throws.
+// Retired public service: no expression-decision call. The locally inferred
+// emotion from the reply stands; this kept signature is a local no-op.
 async function upgradeEmotionFromDecision(userMessage, reply, applyEmotion, speechPlan = null, valid = () => true, options = {}) {
-  try {
-    if (!(window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function')) return;
-    const clip = (s) => String(s || '').slice(0, 300);
-    // The finished reply was already pushed onto the context, so the window
-    // excludes it: it arrives on its own as the primary evidence.
-    const recent = contextForModel(conversationContext).slice(-5, -1)
-      .map(m => ({ role: m.role, text: clip(m.content) }))
-      .filter(e => e.text);
-    const tasks = ['live2d_emotion_v1'];
-    if (speechPlan && speechPlan.needsDecision && !speechPlan.finished && !speechPlan.pending) tasks.push('live2d_tts_language_v1');
-    checkTurn(options);
-    const answers = await awaitTurn(window.WaifuProxyAPI.decide(tasks, {
-      reply: String(reply || ''),
-      user_message: clip(userMessage),
-      recent_context: recent,
-      ...(tasks.length > 1 ? { conversation_language: speechPlan.previousLang } : {}),
-      ...(tasks.length > 1 && speechPlan.text !== String(reply).trim() ? { spoken_reply: speechPlan.text } : {})
-    }, options), options);
-    const answer = answers && answers.live2d_emotion_v1;
-    if (valid() && answer && ['happy', 'sad', 'surprised', 'thoughtful', 'excited', 'neutral'].includes(answer.choice_id)) {
-      debugLog(`Emotion decision: ${answer.choice_id} (confidence ${answer.confidence ?? 'n/a'})`, 'info');
-      applyEmotion(answer.choice_id);
-    }
-    return answers;
-  } catch (e) {
-    debugError('Emotion decision failed', e);
-  }
+  checkTurn(options);
+  return null;
 }
 
 // Salvages the "reply" field from a malformed JSON wrapper — the failure mode
@@ -660,6 +575,18 @@ function localFallbackReply(error, userMessage, purpose, replyLanguage) {
     const reply = window.LocalFallbackEngine.getResponse(userMessage, replyLanguage);
     debugLog('Using local offline fallback for this turn.', 'warn');
     reply.isFallback = true;
+    // Anonymous fallback insight only: engine/tone/pattern/emotion, the size
+    // bucket and the reply language. Never the message or the persona text.
+    if (typeof trackEvent === 'function') {
+      trackEvent('offline_fallback_reply', {
+        engine: reply.engine || 'unknown',
+        persona: reply.persona || 'assistant',
+        pattern: reply.pattern || 'offline.generic',
+        emotion: reply.emotion || 'neutral',
+        reply_length: String(reply.reply || '').length,
+        reply_language: replyLanguage || 'auto'
+      });
+    }
     return reply;
   } catch (e) {
     debugError('Local offline fallback failed', e);

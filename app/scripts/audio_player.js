@@ -150,12 +150,9 @@ async function getTTSRouting(text, provided = null, valid = () => true) {
   const signature = JSON.stringify([ttsConversationKey(), voiceId, ttsRoutingAuto(), ttsRoutingFingerprint()]);
   if (plan && plan.signature !== signature) plan = prepareTTSRouting(text);
   if (plan && plan.needsDecision && !plan.finished && !plan.pending && valid()) {
-    let request = null;
-    if (window.WaifuProxyAPI && typeof window.WaifuProxyAPI.decide === 'function') {
-      const recent = (typeof contextForModel === 'function' ? contextForModel(window.conversationContext || []) : (window.conversationContext || [])).slice(-4).map(m => ({ role: m.role, text: String(m.content || '').slice(0, 300) }));
-      request = window.WaifuProxyAPI.decide(['live2d_tts_language_v1'], { reply: plan.text, conversation_language: plan.previousLang, recent_context: recent });
-    }
-    plan = await finishTTSRouting(plan, request, valid);
+    // The retired decision service is gone: settle with no request so the
+    // router keeps its locally detected language. No network attempt.
+    plan = await finishTTSRouting(plan, null, valid);
   } else if (plan && plan.pending && !plan.finished) plan = await plan.pending;
   return plan;
 }
@@ -293,111 +290,64 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
   debugLog(`TTS: Input voiceId: "${voiceId}"`, 'info');
 
   const voiceConfig = voices.find(v => v.id === voiceId);
-  // Selections from the removed on-client voice catalog fall back to the
-  // cloud voice, which is keyed by the reply's language alone.
-  const provider = voiceConfig ? voiceConfig.provider : 'cloud';
+  // Cloud voices are retired. A saved 'cloud' or 'cloud:<id>' choice now
+  // resolves to the browser voice for the reply's language.
+  const legacyCloudId = voiceId === 'cloud' || /^cloud:/.test(voiceId);
+  const provider = voiceConfig ? voiceConfig.provider : 'browser';
   let routingLang = routingPlan ? routingPlan.lang
     : (window.TTSLanguageRouter ? window.TTSLanguageRouter.analyze(textChunk).lang : null);
   // A pinned voice keeps its identity. Detect the text language independently,
-  // without adding a language decision when automatic routing is disabled.
-  if (!routingLang && /^cloud:/.test(voiceId) && window.TTSLanguageRouter) routingLang = window.TTSLanguageRouter.analyze(textChunk).lang;
-  // Browser and Kokoro selections keep gender/provider routing; the cloud
-  // voice needs only the language.
+  // without adding a decision when automatic routing is disabled.
+  if (!routingLang && legacyCloudId && window.TTSLanguageRouter) routingLang = window.TTSLanguageRouter.analyze(textChunk).lang;
+
   let routed = null;
-  if (provider !== 'cloud' && window.TTSLanguageRouter) {
+  if (provider !== 'kokoro' && window.TTSLanguageRouter) {
     routed = window.TTSLanguageRouter.selectVoice(voices, voiceId, routingLang, window.enableAutoTtsLang !== false);
-    // Unsupported primary languages must not switch to browser speech.
-    if (routed.unsupportedPrimary) return null;
+    if (routed.unsupportedPrimary && !legacyCloudId) return null;
   }
 
-  const audioContext = getTTSAudioContext();
-  let primaryError = null;
-  // True once the primary provider was tried and failed, so analytics/logging
-  // can tell "user chose browser TTS" apart from "primary is down".
-  let fellBack = false;
-  // Set when the primary voice is disabled but the fallback voice is on:
-  // the browser voice is then the chosen speaker, after Kokoro below.
+  const explicitBrowser = provider === 'browser' && voiceId !== 'cloud' && !legacyCloudId;
+  if (explicitBrowser) {
+    return { kind: 'browser', text: textChunk, voiceId, lang: routed ? routed.lang : routingLang,
+      provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
+  }
+
+  // A saved legacy cloud id follows the primary/fallback toggles: with both
+  // off the user is muted; with only the primary off the chosen fallback voice
+  // speaks. An explicit browser choice above ignores the primary checkbox.
   let manualFallbackVoice = null;
-
-  // 1. WaifuAI Cloud speech (primary by default): the endpoint picks the
-  // voice from the reply language unless the user pinned a catalog choice.
-  if (provider === 'cloud' && window.enablePrimaryVoice !== false) {
-    const lang = routingLang || 'en-US';
-    debugLog(`TTS: === Cloud speech flow START (lang: ${lang}) ===`, 'info');
-    try {
-      const params = new URLSearchParams({ text: textChunk });
-      if (routingLang) params.set('lang', routingLang);
-      if(/^cloud:[a-z0-9-]{1,40}$/.test(voiceId))params.set('voice',voiceId.slice(6));
-      if(routingPlan?.preview)params.set('preview','1');
-      const response = await fetch(`${window.WaifuProxyAPI.TTS_URL}?${params}`, { signal: AbortSignal.timeout(30000), headers:window.WaifuProxyAPI.requestHeaders?.() || {} });
-      debugLog(`TTS: Response status: ${response.status}`, 'info');
-
-      if (response.status === 204) {
-        const err = new Error('Cloud speech is unavailable right now');
-        err.status = 503;
-        throw err;
-      }
-      if (!response.ok) {
-        const err = new Error(`Cloud speech HTTP ${response.status}`);
-        err.status = response.status;
-        throw err;
-      }
-      const bytes = await response.arrayBuffer();
-      if (!bytes.byteLength) throw new Error('Cloud speech returned no audio');
-      const buffer = await audioContext.decodeAudioData(bytes);
-      debugLog(`TTS: Cloud speech decoded successfully, duration: ${buffer.duration.toFixed(2)}s`, 'info');
-      const backup=response.headers.get('X-Tts-Fallback')==='1';
-      window.showCloudVoiceStatus?.(backup?'Using a backup voice for this audio. Your choice is saved.':'');
-      return { kind: 'buffer', buffer, voiceId, requestedVoice:voiceId==='cloud'?'default':voiceId.replace(/^cloud:/,''), servedVoice:response.headers.get('X-Tts-Voice-Id')||'unknown', lang, provider: response.headers.get('X-Tts-Provider') || 'cloud', fellBack: backup, unsupported: false, routingSignature: routingPlan && routingPlan.signature };
-    } catch (err) {
-      debugError('TTS: Cloud speech failed', err, { voiceId, textLen: textChunk.length });
-      window.showCloudVoiceStatus?.('Voice unavailable. Your choice is saved.');
-      if(typeof trackEvent==='function')trackEvent('tts_unavailable',{voice_id:voiceId,preview:!!routingPlan?.preview});
-      window.reportVoiceEvent?.('tts_unavailable',{voice_id:voiceId,preview:!!routingPlan?.preview});
-      primaryError = err;
-      fellBack = true;
-    }
-  } else if (provider === 'browser') {
-    // A browser voice selection keeps its gender/provider when auto routing
-    // supplies a language, rather than inheriting a routed cloud voice. It
-    // speaks regardless of the primary checkbox: that checkbox disables the
-    // cloud voice, not browser speech.
-    return { kind: 'browser', text: textChunk, voiceId, lang: routed ? routed.lang : routingLang, provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
-  } else if (window.enablePrimaryVoice === false) {
-    debugLog('TTS: Primary voice disabled.', 'info');
-    // The user turned the primary voice off and enabled the fallback voice,
-    // so the fallback browser voice is the chosen speaker — not an automatic
-    // fallback on failure (failures stay silent so the queue can retry).
-    // Kokoro below still wins when it is enabled and ready.
-    if (window.enableFallbackVoice !== false) {
-      manualFallbackVoice = window.ttsFallbackVoiceId || 'browser-female';
-    } else {
-      fellBack = true;
-    }
+  if (window.enablePrimaryVoice === false) {
+    if (window.enableFallbackVoice === false) return null;
+    manualFallbackVoice = window.ttsFallbackVoiceId || 'browser-female';
   }
 
-  // 2. Local Kokoro.
+  if (provider === 'browser') {
+    return { kind: 'browser', text: textChunk, voiceId: manualFallbackVoice || voiceId,
+      lang: routed ? routed.lang : routingLang, provider: 'browser', fellBack: !!manualFallbackVoice,
+      routingSignature: routingPlan && routingPlan.signature };
+  }
+
+  // Local Kokoro (ONNX). No request leaves the device.
   if ((!routingLang || routingLang.split('-')[0] === 'en') && window.enableKokoro && window.isKokoroReady && typeof window.generateKokoroAudioBuffer === 'function') {
     try {
       const kokoroVoice = provider === 'kokoro' ? voiceId : window.selectedKokoroVoiceId || 'af_heart';
       const kokoroBuffer = await window.generateKokoroAudioBuffer(textChunk, kokoroVoice);
-      if (kokoroBuffer) return { kind: 'buffer', buffer: kokoroBuffer, voiceId: kokoroVoice, lang: (voices.find(v => v.id === kokoroVoice) || {}).language || 'en-US', provider: 'kokoro', fellBack, routingSignature: routingPlan && routingPlan.signature };
+      if (kokoroBuffer) return { kind: 'buffer', buffer: kokoroBuffer, voiceId: kokoroVoice, lang: (voices.find(v => v.id === kokoroVoice) || {}).language || 'en-US', provider: 'kokoro', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
     } catch (kokoroErr) {
       debugLog(`TTS: Local Kokoro generation failed: ${kokoroErr.message}`, 'error');
-      fellBack = true;
     }
   } else if (window.enableKokoro && !window.isKokoroReady) {
     debugLog('TTS: Local Kokoro still preloading. Skipping speech.', 'info');
   }
 
-  // 3. The manually enabled fallback voice, for the disabled-primary case.
   if (manualFallbackVoice) {
     return { kind: 'browser', text: textChunk, voiceId: manualFallbackVoice, lang: routingLang, provider: 'browser', fellBack: false, routingSignature: routingPlan && routingPlan.signature };
   }
-
-  // Automatic browser fallback is disabled, including for saved preferences.
-  // Explicit browser selections are handled above. Keep queue rate-limit handling.
-  if (primaryError && primaryError.status === 429) throw primaryError;
+  // A saved Kokoro selection that is not ready falls back to browser speech
+  // when the fallback voice is enabled, instead of leaving the reply silent.
+  if (provider === 'kokoro' && window.enableFallbackVoice !== false) {
+    return { kind: 'browser', text: textChunk, voiceId: window.ttsFallbackVoiceId || 'browser-female', lang: routingLang, provider: 'browser', fellBack: true, routingSignature: routingPlan && routingPlan.signature };
+  }
   return null;
 }
 window.fetchTTSBuffer = fetchTTSBuffer;

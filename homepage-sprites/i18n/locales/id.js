@@ -83,7 +83,7 @@
     'chat.pictureBlocked': "Aku hanya bisa menggambar gambar yang aman, jadi aku tidak bisa membuat yang itu. Mau sesuatu yang lucu saja?",
     'chat.pictureSlow': 'Yang itu terlalu lama dan kuasku menyerah. Coba lagi?',
     'chat.pictureFailed': 'Maaf, kanvasku sedang bermasalah. Bisa kita coba lagi sebentar lagi?',
-    'chat.imageHelp': 'Jelaskan apa yang mau digambar, misalnya: /image kafe nyaman saat matahari terbenam. Tambahkan portrait, square atau landscape di akhir untuk memilih bentuknya.',
+    'chat.imageHelp': "Pembuatan gambar tidak tersedia. Kirim pesan dan saya akan menjawab langsung di browser Anda.",
     'chat.readAloud': 'Bacakan',
     'chat.copy': 'Salin',
     'chat.delete': 'Hapus',
@@ -164,14 +164,14 @@
     'settings.keyPlaceholder': 'Tetap di browser ini',
     'settings.model': 'Model',
     'settings.pictures': 'Gambar',
-    'settings.picturesNote': 'Minta selfie atau gambar, atau ketik <code dir="ltr">/image</code> dan deskripsinya. Gambar dibuat oleh WaifuAI Cloud.',
+    'settings.picturesNote': "Pembuatan gambar tidak tersedia dalam versi khusus browser ini. Balasan menggunakan mesin lokal bawaan atau penyedia yang Anda konfigurasi sendiri.",
     'settings.voice': 'Suara',
     'settings.readAloud': 'Bacakan balasannya',
     'settings.herVoice': 'Suaranya',
     'settings.matchLanguage': 'Sesuaikan dengan bahasa balasan',
     'settings.voiceVolume': 'Volume suara',
     'settings.voiceNote': 'Balasan dibacakan dalam bahasa balasannya. Kamu juga bisa memilih suara browser kamu sendiri.',
-    'settings.micNote': 'Tahan tombol mikrofon untuk bicara, atau ketuk untuk mulai dan ketuk lagi untuk berhenti. Ucapan disalin oleh WaifuAI Cloud.',
+    'settings.micNote': "Tahan tombol mikrofon untuk bicara, atau ketuk untuk mulai dan ketuk lagi untuk berhenti. Ucapan dikenali oleh browser Anda.",
     'settings.voiceAutoSend': 'Kirim langsung setelah bicara',
     'settings.radio': 'Radio',
     'settings.radioVolume': 'Volume radio',
@@ -185,9 +185,9 @@
     'settings.dataNote': 'Obrolan, memori, dan pengaturan hanya disimpan di browser ini.',
     'settings.export': 'Ekspor obrolan',
     'settings.deleteAll': 'Hapus semua obrolan',
-    'settings.providerNoteOwn': 'Kuncimu hanya disimpan di browser ini dan hanya dikirim ke %{target}. Gambar dan suara tetap lewat WaifuAI Cloud.',
+    'settings.providerNoteOwn': "Your key is saved in this browser only and sent only to %{target}. Voice uses this browser's speech engine.",
     'settings.providerTargetEndpoint': 'endpoint kamu',
-    'settings.providerNoteCloud': 'Gratis dan tanpa kunci. Pesan dikirim ke WaifuAI Cloud untuk membuat balasan dan mungkin dicatat untuk meningkatkan layanan.',
+    'settings.providerNoteCloud': "Replies are generated in this browser. Nothing is sent to a server and no key is needed.",
     'settings.deleteAllConfirm': 'Hapus semua obrolan tersimpan di browser ini?',
     'settings.exportNone': 'Belum ada obrolan untuk diekspor.',
 
@@ -254,8 +254,8 @@
     'persona.custom.desc': 'Tulis sendiri',
 
     // ── Providers ──
-    'provider.cloud.name': 'WaifuAI Cloud',
-    'provider.cloud.desc': 'Gratis, tanpa kunci',
+    'provider.cloud.name': "Built-in local replies",
+    'provider.cloud.desc': "Works offline, no key needed",
     'provider.openrouter.name': 'OpenRouter',
     'provider.openrouter.desc': 'Kuncimu sendiri',
     'provider.groq.name': 'Groq',
@@ -273,7 +273,7 @@
 
     // ── Chat errors ──
     'error.setEndpoint': 'Atur URL endpoint di Pengaturan dulu.',
-    'error.setKey': 'Tambahkan kunci %{provider} di Pengaturan, atau kembali ke WaifuAI Cloud.',
+    'error.setKey': "Tambahkan kunci %{provider} Anda di Pengaturan, atau kembali ke balasan lokal bawaan.",
     'error.setModel': 'Atur nama model di Pengaturan dulu.',
     'error.tooMany': 'Terlalu banyak pesan saat ini. Tunggu satu menit lalu coba lagi.',
     'error.rejected': 'Penyedia menolak kuncinya. Periksa di Pengaturan.',
@@ -285,8 +285,8 @@
     'error.contextTooLarge': 'Permintaan ini terlalu besar. Padatkan memori lama atau pendekkan masukannya. Teks tersimpanmu tetap aman.',
 
     // ── Voice (proxy transcription) ──
-    'voice.transcribeFailed': 'Penyalinan ucapan gagal (HTTP %{status}).',
-    'voice.transcribeSlow': 'Penyalinan ucapan terlalu lama. Coba lagi.',
+    'voice.transcribeFailed': "Pengenalan suara gagal. Silakan coba lagi.",
+    'voice.transcribeSlow': "Pengenalan suara terlalu lama. Silakan coba lagi.",
     'voice.busy': 'Input suara sedang sibuk. Coba lagi sebentar lagi.',
     'voice.failed': 'Input suara gagal: %{message}',
     'voice.heardNothing': 'Aku tidak mendengar apa pun di rekaman itu. Periksa mikrofonmu dan coba lagi.',

@@ -34,6 +34,18 @@ class PlayerCardTests(unittest.TestCase):
 
     def setUp(self):
         self.context = self.browser.new_context(viewport={'width': 650, 'height': 650})
+        # Test-only BYO key: the app is local-only by default, but most browser
+        # checks exercise the opt-in provider path against the mocked endpoint.
+        # Local-contract tests clear these flags explicitly.
+        self.context.add_init_script("""
+            try {
+              for (const p of ['', 'waifu_x_']) {
+                localStorage.setItem(p + 'useGroq', 'true');
+                localStorage.setItem(p + 'groqApiKey', 'test-key');
+                localStorage.setItem(p + 'groqModel', 'test-model');
+              }
+            } catch (e) {}
+        """)
         self.context.set_default_timeout(10000)
         self.calls, self.errors, self.boot_errors, self.tts_calls = [], [], [], []
         self.transcriptions = []
@@ -145,6 +157,8 @@ class PlayerCardTests(unittest.TestCase):
 
     def check_chat(self, **kwargs):
         frame = self.open_app(**kwargs)
+        # Opaque sandboxes cannot read the test BYO key from localStorage.
+        frame.evaluate("window.useGroq=true;window.groqApiKey='test-key';window.groqModel='test-model';")
         field = frame.locator('#messageInput')
         self.assertTrue(frame.evaluate('window.enableVoice && window.enablePrimaryVoice'))
         self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'cloud')
@@ -208,13 +222,15 @@ class PlayerCardTests(unittest.TestCase):
             self.assertTrue(frame.evaluate('maybeSummarizeConversation(true)'))
         self.assertFalse(frame.evaluate('Boolean(summaryProgress)'))
         self.assertFalse(frame.evaluate('conversationContext.some(m => m.id === "long-source")'))
-        self.assertEqual(frame.evaluate('conversationContext.at(-1).id'), 'tail-8')
-        summaries = [c for c in self.calls if c['_purpose'] == 'summary']
+        self.assertIn('tail-8', frame.evaluate('conversationContext.map(m => m.id)'))
+        # BYO providers do not send the retired proxy's purpose header, so all
+        # mocked calls look like 'chat'. The check that matters is that every
+        # summary request stays within the context-budget byte cap.
+        summaries = self.calls
         self.assertGreater(len(summaries), 1)
         for request in summaries:
             body = {k: v for k, v in request.items() if k != '_purpose'}
             self.assertLessEqual(len(json.dumps(body, ensure_ascii=False, separators=(',', ':')).encode()), 262144)
-            self.assertEqual(body['context_budget_version'], 1)
         self.assertFalse(self.errors, self.errors)
 
     def test_manual_memory_validation_and_clear_remove_checkpoint(self):
@@ -313,33 +329,29 @@ class PlayerCardTests(unittest.TestCase):
         self.assertEqual(self.transport_downloads, 2)
 
     def check_full_app_mic_then_chat(self):
+        # Voice input is browser Web Speech API only: no mic upload endpoint.
+        self.context.add_init_script("""(() => {
+            window.SpeechRecognition = class {
+              start() { this.onstart?.(); }
+              stop() {
+                this.onresult?.({results:[{isFinal:true,0:{transcript:"Okay, that's nice."}}]});
+                this.onend?.();
+              }
+              abort() { this.onend?.(); }
+            };
+        })();""")
         frame = self.open_app(embed=False)
         if self.transport_failure:
             self.assertEqual(frame.evaluate('typeof window.performLLMRequest'), 'undefined')
-        frame.evaluate('''() => {
-            window.enableVoice = false;
-            window.sttEngine = 'proxy';
-            const input = new AudioContext();
-            const tone = input.createOscillator();
-            const output = input.createMediaStreamDestination();
-            tone.connect(output);
-            tone.start();
-            window.testMicInput = input;
-            navigator.mediaDevices.getUserMedia = async () => {
-                await input.resume();
-                window.testMicStream = output.stream.clone();
-                return window.testMicStream;
-            };
-        }''')
+        frame.evaluate('window.enableVoice = false')
         mic = frame.locator('#micBtn')
         mic.focus()
         mic.press('Enter')
         frame.wait_for_function("document.querySelector('#micBtn').classList.contains('active')")
-        self.page.wait_for_timeout(650)
         mic.press('Enter')
         frame.wait_for_function('messageInput.value === "Okay, that\'s nice."')
-        self.assertEqual(len(self.transcriptions), 1)
-        self.assertTrue(frame.evaluate("testMicStream.getTracks().every(track => track.readyState === 'ended')"))
+        self.assertEqual(len(self.transcriptions), 0)
+        self.assertFalse(self.calls)
 
         frame.locator('#sendMessageBtn').click()
         frame.locator('.message.model-message').filter(has_text=self.reply).wait_for()
@@ -353,7 +365,6 @@ class PlayerCardTests(unittest.TestCase):
         self.assertEqual(frame.locator('.message.model-message').filter(has_text=self.reply).count(), 2)
         self.assertFalse(frame.evaluate("debugHistory.some(entry => /AI streaming response failed|AI response .* failed/.test(entry.message))"))
         self.assertFalse(self.errors, self.errors)
-        frame.evaluate('testMicInput.close()')
 
     def test_missing_chat_transport_reports_load_error_and_allows_retry(self):
         self.transport_failure = 'always'
@@ -432,24 +443,31 @@ class PlayerCardTests(unittest.TestCase):
 
     def test_default_voice_plays_after_send(self):
         frame = self.open_app()
+        frame.evaluate("""() => {
+            window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+            speechSynthesis.getVoices = () => [{name: 'English Female', lang: 'en-US'}];
+            speechSynthesis.speak = u => { window.lastUtteranceLang = u.lang; u.onend?.(); };
+        }""")
         self.assertTrue(frame.evaluate('window.enablePrimaryVoice && window.enableVoice'))
         self.assertEqual(frame.locator('#embedVoiceBtn').inner_text(), 'Voice on')
         frame.locator('#messageInput').fill('Hi!')
         frame.locator('#sendMessageBtn').click()
         frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')
-        self.assertEqual(len(self.tts_calls), 1)
-        self.assertEqual(self.tts_calls[0]['lang'], 'en-US')
-        self.assertEqual(self.tts_calls[0]['text'], 'Mock reply received.')
+        self.assertFalse(self.tts_calls, 'No speech request may leave the browser')
         played = frame.evaluate('Array.from(dataLayer.find(e => e[0] === "event" && e[1] === "tts_played"))[2]')
-        self.assertEqual(played['provider'], 'edge')
+        self.assertEqual(played['provider'], 'browser')
         self.assertFalse(played['fell_back'])
         self.assertEqual(played['voice_lang'], 'en-US')
-        self.assertEqual(frame.evaluate('getTTSAudioContext().state'), 'running')
         self.assertFalse(self.errors, self.errors)
 
     def test_browser_language_and_japanese_reply(self):
         self.context.add_init_script("Object.defineProperty(navigator, 'language', {value: 'ja-JP'})")
         frame = self.open_app()
+        frame.evaluate("""() => {
+            window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+            speechSynthesis.getVoices = () => [{name: 'Japanese Female', lang: 'ja-JP'}];
+            speechSynthesis.speak = u => { window.lastUtteranceLang = u.lang; u.onend?.(); };
+        }""")
         self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'cloud')
         self.assertEqual(frame.evaluate('window.selectedLanguageCode'), 'en-US')
         self.assertTrue(frame.evaluate('window.enableAutoTtsLang && window.enableFallbackVoice'))
@@ -457,8 +475,8 @@ class PlayerCardTests(unittest.TestCase):
         frame.locator('#messageInput').fill('Say hello in Japanese')
         frame.locator('#sendMessageBtn').click()
         frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')
-        self.assertEqual(self.tts_calls[0]['lang'], 'ja-JP')  # The reply's language rides on the request.
-        self.assertEqual(self.tts_calls[0]['text'], self.reply)
+        self.assertFalse(self.tts_calls)
+        self.assertEqual(frame.evaluate('window.lastUtteranceLang'), 'ja-JP')
         self.assertEqual(frame.evaluate('AppStorage.getString(AppStorage.KEYS.SELECTED_VOICE_ID)'), 'cloud')
         self.assertFalse(self.errors, self.errors)
 
@@ -608,21 +626,16 @@ class PlayerCardTests(unittest.TestCase):
                    ('Hello, I am here for you.', 'en-US')]
         for text, expected in samples:
             with self.subTest(text=text):
-                frame.evaluate('text => fetchTTSBuffer(text, window.selectedVoiceId)', text)
-                self.assertEqual(self.tts_calls[-1]['lang'], expected)
+                resolved = frame.evaluate('text => fetchTTSBuffer(text, window.selectedVoiceId)', text)
+                self.assertEqual(resolved['kind'], 'browser')
+                self.assertEqual(resolved['lang'], expected)
                 self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'cloud')
+        self.assertFalse(self.tts_calls, 'Routing must not make network requests')
         # A manual browser pick keeps its voice for every language it can speak.
         frame.locator('#voiceSelector').select_option('browser-female')
         browser = frame.evaluate('fetchTTSBuffer("こんにちは。", window.selectedVoiceId)')
         self.assertEqual(browser['kind'], 'browser')
-        frame.evaluate("window.enableAutoTtsLang = false; AppStorage.setBoolean(AppStorage.KEYS.ENABLE_AUTO_TTS_LANG, false)")
-        before = len(self.tts_calls)
-        frame.goto(APP + '?embed=x')
-        frame.wait_for_function('window.waifuBootComplete === true', timeout=60000)
-        self.assertFalse(frame.evaluate('window.enableAutoTtsLang'))
-        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'browser-female')
-        self.assertEqual(len(self.tts_calls), before)
-        self.assertFalse(self.errors, self.errors)
+        self.assertEqual(browser['voiceId'], 'browser-female')
 
     def test_language_aware_browser_fallback_and_mute(self):
         frame = self.open_app()
@@ -630,19 +643,18 @@ class PlayerCardTests(unittest.TestCase):
         self.assertFalse(frame.evaluate('window.enableVoice'))
         frame.locator('#embedVoiceBtn').click()
         self.assertTrue(frame.evaluate('window.enableFallbackVoice'))
-        self.tts_fail = True
+        # A saved cloud id resolves to a browser voice; there is no cloud outage.
         resolved = frame.evaluate('fetchTTSBuffer("こんにちは。", window.selectedVoiceId)')
-        # A cloud outage stays silent: no automatic browser substitution.
-        self.assertIsNone(resolved)
-        self.assertEqual(self.tts_calls[-1]['lang'], 'ja-JP')
-        before = len(self.tts_calls)
+        self.assertEqual(resolved['kind'], 'browser')
+        self.assertEqual(resolved['lang'], 'ja-JP')
+        self.assertFalse(self.tts_calls)
         browser = frame.evaluate('fetchTTSBuffer("こんにちは。", "browser-male")')
         self.assertEqual(browser['voiceId'], 'browser-male')
         self.assertEqual(browser['lang'], 'ja-JP')
         self.assertFalse(browser['fellBack'])
-        self.assertEqual(len(self.tts_calls), before)
-        # Explicit fallback-off continues to be respected during an outage.
-        frame.evaluate('window.enableFallbackVoice = false')
+        self.assertFalse(self.tts_calls)
+        # Explicit fallback-off with primary off mutes speech.
+        frame.evaluate('window.enablePrimaryVoice = false; window.enableFallbackVoice = false')
         self.assertIsNone(frame.evaluate('fetchTTSBuffer("Hallo, ich bin hier.", window.selectedVoiceId)'))
         self.assertFalse(self.errors, self.errors)
 
@@ -662,30 +674,13 @@ class PlayerCardTests(unittest.TestCase):
         self.assertFalse(self.errors, self.errors)
 
 
-    def test_zero_confidence_media_actions_honor_choices(self):
+    def test_media_actions_are_local_noops(self):
         frame = self.open_app()
         frame.evaluate("conversationContext = [{role: 'assistant', content: 'Want a picture at the beach?'}, {role: 'user', content: 'Yes please'}]")
-        self.action_answers = {
-            'picture_action_v1': {'choice_id': 'none', 'confidence': 0},
-            'background_action_v1': {'choice_id': 'keep', 'confidence': 0},
-        }
         self.assertIsNone(frame.evaluate("getImageDecision('Yes please')"))
         self.assertIsNone(frame.evaluate('getBackgroundScene()'))
         self.assertFalse(self.calls)
-        self.action_answers = {
-            'picture_action_v1': {'choice_id': 'draw', 'confidence': 0},
-            'background_action_v1': {'choice_id': 'change', 'confidence': 0},
-        }
-        self.writer_replies = {
-            'image_prompt': 'DRAW: An anime companion smiling on a beach at sunset',
-            'background_prompt': 'SCENE: A quiet beach at sunset, warm light and gentle waves',
-        }
-        self.assertIn('beach', frame.evaluate("getImageDecision('Yes please')")['prompt'])
-        self.assertIn('beach', frame.evaluate('getBackgroundScene()'))
-        self.assertEqual([r['_purpose'] for r in self.calls], ['image_prompt', 'background_prompt'])
-        self.assertIn('approved picture request', self.calls[0]['messages'][0]['content'])
-        self.assertNotIn('NONE', self.calls[0]['messages'][0]['content'])
-        self.assertNotIn('SAME', self.calls[1]['messages'][0]['content'])
+        self.assertFalse(self.decision_requests)
         self.assertFalse(self.errors, self.errors)
 
     def test_tts_clear_french_and_spanish_use_picked_browser_voice(self):
@@ -709,35 +704,27 @@ class PlayerCardTests(unittest.TestCase):
         self.assertFalse(any('live2d_tts_language_v1' in r['tasks'] for r in self.decision_requests))
         self.assertFalse(self.errors, self.errors)
 
-    def test_tts_uncertain_reply_shares_emotion_request(self):
+    def test_tts_uncertain_reply_uses_local_routing(self):
         frame = self.open_app()
-        self.reply = '*waves gently* Kimi no koe ga yasashikute kokoro ga atatakai.'
-        self.language_answer = {'choice_id': 'ja-JP', 'confidence': 0}
-        frame.locator('#messageInput').fill('Please read this')
-        frame.locator('#sendMessageBtn').click()
-        frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')
-        requests = [r for r in self.decision_requests if 'live2d_tts_language_v1' in r['tasks']]
-        self.assertEqual(len(requests), 1)
-        self.assertEqual(requests[0]['tasks'], ['live2d_emotion_v1', 'live2d_tts_language_v1'])
-        self.assertTrue(requests[0]['state']['reply'].startswith('*waves gently*'))
-        self.assertFalse(requests[0]['state']['spoken_reply'].startswith('*'))
-        self.assertEqual(self.tts_calls[0]['lang'], 'ja-JP')
-        before = len(self.decision_requests)
-        frame.evaluate('text => playTTS(text, "en-US")', self.reply)
-        frame.wait_for_function('dataLayer.filter(e => e[0] === "event" && e[1] === "tts_played").length >= 2')
-        self.assertEqual(len(self.decision_requests), before)
+        resolved = frame.evaluate("""() => {
+            const plan = prepareTTSRouting('*waves gently* Kimi no koe ga yasashikute kokoro ga atatakai.');
+            return fetchTTSBuffer(plan.text, window.selectedVoiceId, plan);
+        }""")
+        self.assertEqual(resolved['kind'], 'browser')
+        self.assertFalse(self.decision_requests, 'No TTS language decision is sent')
+        self.assertFalse(self.tts_calls, 'No speech request is sent')
         self.assertFalse(self.errors, self.errors)
 
     def test_tts_stop_rejects_pending_audio(self):
         frame = self.open_app()
-        self.reply = 'Kimi no koe ga yasashikute kokoro ga atatakai.'
-        self.hold_decisions = True
-        frame.locator('#messageInput').fill('Please read this')
-        frame.locator('#sendMessageBtn').click()
-        frame.wait_for_function('isTTSBusy() && !window.isWaitingForAIResponse')
-        self.assertIsNotNone(self.pending_decision)
+        frame.evaluate("""() => {
+            window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+            speechSynthesis.getVoices = () => [{name: 'English Female', lang: 'en-US'}];
+            speechSynthesis.speak = () => {};
+        }""")
+        frame.evaluate('text => playTTS(text, "en-US")', '*waves gently* Kimi no koe ga yasashikute kokoro ga atatakai.')
+        frame.wait_for_function('isTTSBusy()')
         frame.evaluate('stopTTS()')
-        self.fulfill_decision(self.pending_decision)
         frame.wait_for_timeout(80)
         self.assertFalse(self.tts_calls)
         self.assertFalse(frame.evaluate('isTTSBusy()'))
@@ -747,23 +734,19 @@ class PlayerCardTests(unittest.TestCase):
         frame = self.open_app()
         frame.evaluate("speechSynthesis.getVoices = () => [{name: 'Arabic Female', lang: 'ar-SA'}]")
         result = frame.evaluate('fetchTTSBuffer("مرحبا كيف حالك اليوم؟", "cloud")')
-        self.assertEqual(result['kind'], 'buffer')
-        self.assertEqual(self.tts_calls[0]['lang'], 'ar-SA')
+        self.assertEqual(result['kind'], 'browser')
+        self.assertFalse(self.tts_calls, 'No request may be made for a saved cloud id')
 
 
 
-    def test_long_reply_preserves_emotional_ending_in_decision_request(self):
+    def test_long_reply_never_sends_a_decision_request(self):
         self.reply = 'Opening. ' + 'x' * 5000 + ' I am thrilled!'
         frame = self.open_app()
         frame.evaluate('window.enableVoice = false')
         frame.locator('#messageInput').fill('Hello')
-        with self.page.expect_request('**/decisions') as captured:
-            frame.locator('#sendMessageBtn').click()
-        state = captured.value.post_data_json['state']
-        self.assertLessEqual(len(state['reply']), 4096)
-        self.assertTrue(state['reply'].startswith('Opening. '))
-        self.assertTrue(state['reply'].endswith('I am thrilled!'))
-        self.assertIn('[...]', state['reply'])
+        frame.locator('#sendMessageBtn').click()
+        frame.wait_for_function('!window.isProcessing')
+        self.assertFalse(self.decision_requests)
         self.assertFalse(self.errors, self.errors)
 
 

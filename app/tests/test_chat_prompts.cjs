@@ -50,7 +50,7 @@ test('reply-language selection overrides UI without changing it or requiring its
   assert.ok(sys.startsWith('Responde en Español (es-ES)'));
   assert.match(sys, /Eres Haru/);
   assert.match(sys, /Nunca mezcles idiomas/);
-  assert.match(sys, /Puedes dibujar imágenes/);
+  assert.doesNotMatch(sys, /Puedes dibujar imágenes|You can draw pictures/);
   assert.match(sys, /Responde solo con diálogo/);
   assert.doesNotMatch(sys, /You are Haru|Respond with plain|Reply in/);
   assert.match(sys, /- Language: es-ES/); // Stable settings metadata keys.

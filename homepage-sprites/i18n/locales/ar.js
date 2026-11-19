@@ -83,7 +83,7 @@
     'chat.pictureBlocked': 'لا أستطيع رسم إلا صورًا لائقة، لذلك لا يمكنني رسم هذه. تريد شيئًا لطيفًا بدلًا منها؟',
     'chat.pictureSlow': 'استغرقت هذه وقتًا طويلًا وتوقّف فرشاتي. حاول مرة أخرى؟',
     'chat.pictureFailed': 'عذرًا، لوحتي تتعطّل. هل نحاول مرة أخرى بعد قليل؟',
-    'chat.imageHelp': 'صِف ما تريد رسمه، مثل: /image مقهى دافئ عند الغروب. أضف portrait أو square أو landscape في النهاية لاختيار الشكل.',
+    'chat.imageHelp': "توليد الصور غير متاح. اكتب رسالة وسأرد عليك هنا في متصفحك.",
     'chat.readAloud': 'قراءة بصوت عالٍ',
     'chat.copy': 'نسخ',
     'chat.delete': 'حذف',
@@ -171,14 +171,14 @@
     'settings.keyPlaceholder': 'يبقى في هذا المتصفح',
     'settings.model': 'النموذج',
     'settings.pictures': 'الصور',
-    'settings.picturesNote': 'اطلب سيلفي أو رسمة، أو اكتب <code dir="ltr">/image</code> ثم وصفًا. تُرسم الصور بواسطة WaifuAI Cloud.',
+    'settings.picturesNote': "توليد الصور غير متاح في هذه النسخة التي تعمل داخل المتصفح. الردود تستخدم المحرك المحلي المدمج أو مزوّدًا تضيفه بنفسك.",
     'settings.voice': 'الصوت',
     'settings.readAloud': 'قراءة ردودها بصوت عالٍ',
     'settings.herVoice': 'صوتها',
     'settings.matchLanguage': 'مطابقة لغة الرد',
     'settings.voiceVolume': 'مستوى الصوت',
     'settings.voiceNote': 'تُقرأ الردود بصوت يطابق لغة الرد. يمكنك أيضًا اختيار صوت متصفحك بدلًا من ذلك.',
-    'settings.micNote': 'اضغط زر الميكروفون مطوّلًا للتحدث، أو انقر للبدء ثم انقر مرة أخرى للإيقاف. يُفرَّغ الكلام عبر WaifuAI Cloud.',
+    'settings.micNote': "اضغط زر الميكروفون مطوّلًا للتحدث، أو انقر للبدء ثم انقر مرة أخرى للإيقاف. يتعرف المتصفح على الكلام.",
     'settings.voiceAutoSend': 'الإرسال فور انتهاء الكلام',
     'settings.radio': 'الراديو',
     'settings.radioVolume': 'مستوى الراديو',
@@ -192,9 +192,9 @@
     'settings.dataNote': 'تُحفظ المحادثات والذكريات والإعدادات في هذا المتصفح فقط.',
     'settings.export': 'تصدير المحادثات',
     'settings.deleteAll': 'حذف كل المحادثات',
-    'settings.providerNoteOwn': 'يُحفظ مفتاحك في هذا المتصفح فقط ويُرسل إلى %{target} فقط. تمر الصور والصوت عبر WaifuAI Cloud كما هو.',
+    'settings.providerNoteOwn': "Your key is saved in this browser only and sent only to %{target}. Voice uses this browser's speech engine.",
     'settings.providerTargetEndpoint': 'نقطة نهايتك',
-    'settings.providerNoteCloud': 'مجاني وبدون مفتاح. تُرسل الرسائل إلى WaifuAI Cloud لتوليد الردود وقد تُسجَّل لتحسين الخدمة.',
+    'settings.providerNoteCloud': "Replies are generated in this browser. Nothing is sent to a server and no key is needed.",
     'settings.deleteAllConfirm': 'حذف كل المحادثات المحفوظة في هذا المتصفح؟',
     'settings.exportNone': 'لا توجد محادثات للتصدير بعد.',
 
@@ -261,8 +261,8 @@
     'persona.custom.desc': 'اكتب شخصيتك',
 
     // ── Providers ──
-    'provider.cloud.name': 'WaifuAI Cloud',
-    'provider.cloud.desc': 'مجاني، دون الحاجة إلى مفتاح',
+    'provider.cloud.name': "Built-in local replies",
+    'provider.cloud.desc': "Works offline, no key needed",
     'provider.openrouter.name': 'OpenRouter',
     'provider.openrouter.desc': 'مفتاحك الخاص',
     'provider.groq.name': 'Groq',
@@ -280,7 +280,7 @@
 
     // ── Chat errors ──
     'error.setEndpoint': 'عيِّن رابط نقطة النهاية في الإعدادات أولًا.',
-    'error.setKey': 'أضف مفتاح %{provider} في الإعدادات، أو ارجع إلى WaifuAI Cloud.',
+    'error.setKey': "أضف مفتاح %{provider} في الإعدادات، أو ارجع إلى الردود المحلية المدمجة.",
     'error.setModel': 'عيِّن اسم النموذج في الإعدادات أولًا.',
     'error.tooMany': 'هناك رسائل كثيرة الآن. انتظر دقيقة وحاول مرة أخرى.',
     'error.rejected': 'رفض المزوّد المفتاح. تحقق منه في الإعدادات.',
@@ -292,8 +292,8 @@
     'error.contextTooLarge': 'هذا الطلب كبير جدًا. اضغط الذاكرة الأقدم أو اختصر الإدخال. يُحفظ نصك المحفوظ.',
 
     // ── Voice (proxy transcription) ──
-    'voice.transcribeFailed': 'فشل التفريغ (HTTP %{status}).',
-    'voice.transcribeSlow': 'استغرق التفريغ وقتًا طويلًا. حاول مرة أخرى.',
+    'voice.transcribeFailed': "فشل التعرف على الكلام. يرجى المحاولة مرة أخرى.",
+    'voice.transcribeSlow': "استغرق التعرف على الكلام وقتًا طويلًا. يرجى المحاولة مرة أخرى.",
     'voice.busy': 'الإدخال الصوتي مشغول الآن. حاول مرة أخرى بعد قليل.',
     'voice.failed': 'فشل الإدخال الصوتي: %{message}',
     'voice.heardNothing': 'لم أسمع شيئًا في هذا التسجيل. تحقق من ميكروفونك وحاول مرة أخرى.',

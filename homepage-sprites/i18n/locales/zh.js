@@ -83,7 +83,7 @@
     'chat.pictureBlocked': '我只能画安全的内容，所以这张画不了。换成可爱的主题好吗？',
     'chat.pictureSlow': '这张画得太久了，我的画笔撑不住了。再试一次？',
     'chat.pictureFailed': '抱歉，我的画布出问题了。稍后再试一次好吗？',
-    'chat.imageHelp': '描述想画的内容，例如：/image 日落时的温馨咖啡馆。在结尾加上 portrait、square 或 landscape 可以选择比例。',
+    'chat.imageHelp': "图片生成不可用。发一条消息，我就在这个浏览器里直接回复你。",
     'chat.readAloud': '朗读',
     'chat.copy': '复制',
     'chat.delete': '删除',
@@ -164,14 +164,14 @@
     'settings.keyPlaceholder': '仅保存在此浏览器中',
     'settings.model': '模型',
     'settings.pictures': '图片',
-    'settings.picturesNote': '要一张自拍或画作，或者输入 <code dir="ltr">/image</code> 加上描述。图片由 WaifuAI Cloud 绘制。',
+    'settings.picturesNote': "这个纯浏览器版本不支持图片生成。回复使用内置本地引擎，或你自行配置的服务提供方。",
     'settings.voice': '语音',
     'settings.readAloud': '朗读她的回复',
     'settings.herVoice': '她的声音',
     'settings.matchLanguage': '匹配回复的语言',
     'settings.voiceVolume': '语音音量',
     'settings.voiceNote': '回复会以回复的语言朗读；你也可以改用浏览器自带的声音。',
-    'settings.micNote': '按住麦克风按钮说话，或点一下开始、再点一下结束。语音由 WaifuAI Cloud 转录。',
+    'settings.micNote': "按住麦克风按钮说话，或点一下开始、再点一下停止。语音由你的浏览器识别。",
     'settings.voiceAutoSend': '说完后立即发送',
     'settings.radio': '电台',
     'settings.radioVolume': '电台音量',
@@ -185,9 +185,9 @@
     'settings.dataNote': '聊天、记忆和设置只保存在此浏览器中。',
     'settings.export': '导出聊天',
     'settings.deleteAll': '删除所有聊天',
-    'settings.providerNoteOwn': '你的密钥只保存在此浏览器中，并且只发送到 %{target}。图片和语音仍会经过 WaifuAI Cloud。',
+    'settings.providerNoteOwn': "Your key is saved in this browser only and sent only to %{target}. Voice uses this browser's speech engine.",
     'settings.providerTargetEndpoint': '你的接口',
-    'settings.providerNoteCloud': '免费且无需密钥。消息会发送到 WaifuAI Cloud 生成回复，并可能被记录以改进服务。',
+    'settings.providerNoteCloud': "Replies are generated in this browser. Nothing is sent to a server and no key is needed.",
     'settings.deleteAllConfirm': '删除此浏览器中所有已保存的聊天？',
     'settings.exportNone': '还没有聊天可以导出。',
 
@@ -254,8 +254,8 @@
     'persona.custom.desc': '自己写一个',
 
     // ── Providers ──
-    'provider.cloud.name': 'WaifuAI Cloud',
-    'provider.cloud.desc': '免费，无需密钥',
+    'provider.cloud.name': "Built-in local replies",
+    'provider.cloud.desc': "Works offline, no key needed",
     'provider.openrouter.name': 'OpenRouter',
     'provider.openrouter.desc': '使用你自己的密钥',
     'provider.groq.name': 'Groq',
@@ -273,7 +273,7 @@
 
     // ── Chat errors ──
     'error.setEndpoint': '请先在设置里填写接口地址。',
-    'error.setKey': '请在设置里添加你的 %{provider} 密钥，或切回 WaifuAI Cloud。',
+    'error.setKey': "在设置中添加你的 %{provider} 密钥，或切换回内置本地回复。",
     'error.setModel': '请先在设置里填写模型名称。',
     'error.tooMany': '现在消息太多了。请等一分钟再试。',
     'error.rejected': '服务商拒绝了该密钥。请在设置里检查。',
@@ -285,8 +285,8 @@
     'error.contextTooLarge': '这次请求太大了。请压缩较早的记忆或缩短输入。你保存的文本已保留。',
 
     // ── Voice (proxy transcription) ──
-    'voice.transcribeFailed': '转录失败（HTTP %{status}）。',
-    'voice.transcribeSlow': '转录耗时太长。请重试。',
+    'voice.transcribeFailed': "语音识别失败，请重试。",
+    'voice.transcribeSlow': "语音识别耗时过长，请重试。",
     'voice.busy': '语音输入现在正忙。请稍后再试。',
     'voice.failed': '语音输入失败：%{message}',
     'voice.heardNothing': '这段录音里我没听到任何声音。请检查麦克风后再试。',

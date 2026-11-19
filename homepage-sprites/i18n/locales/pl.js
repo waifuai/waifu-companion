@@ -83,7 +83,7 @@
     'chat.pictureBlocked': 'Potrafię rysować tylko bezpieczne obrazki, więc tego nie zrobię. Może coś słodkiego zamiast tego?',
     'chat.pictureSlow': 'Tamten zajął zbyt dużo czasu i mój pędzel się poddał. Spróbować jeszcze raz?',
     'chat.pictureFailed': 'Przepraszam, moje płótno szwankuje. Możemy spróbować jeszcze raz za chwilę?',
-    'chat.imageHelp': 'Opisz, co narysować, np.: /image przytulna kawiarnia o zachodzie słońca. Dodaj na końcu portrait, square lub landscape, aby wybrać kształt.',
+    'chat.imageHelp': "Generowanie obrazów jest niedostępne. Napisz wiadomość, a odpowiem tutaj w Twojej przeglądarce.",
     'chat.readAloud': 'Czytaj na głos',
     'chat.copy': 'Kopiuj',
     'chat.delete': 'Usuń',
@@ -164,14 +164,14 @@
     'settings.keyPlaceholder': 'Zostaje w tej przeglądarce',
     'settings.model': 'Model',
     'settings.pictures': 'Obrazki',
-    'settings.picturesNote': 'Poproś o selfie lub rysunek albo wpisz <code dir="ltr">/image</code> i opis. Obrazki rysuje WaifuAI Cloud.',
+    'settings.picturesNote': "Generowanie obrazów jest niedostępne w tej wersji działającej tylko w przeglądarce. Odpowiedzi korzystają z wbudowanego lokalnego silnika lub dostawcy skonfigurowanego przez Ciebie.",
     'settings.voice': 'Głos',
     'settings.readAloud': 'Czytaj jej odpowiedzi na głos',
     'settings.herVoice': 'Jej głos',
     'settings.matchLanguage': 'Dopasuj do języka odpowiedzi',
     'settings.voiceVolume': 'Głośność głosu',
     'settings.voiceNote': 'Odpowiedzi są czytane na głos w języku odpowiedzi. Możesz też wybrać własny głos twojej przeglądarki.',
-    'settings.micNote': 'Przytrzymaj przycisk mikrofonu, aby mówić, albo dotknij go, aby zacząć, i dotknij ponownie, aby zatrzymać. Mowę transkrybuje WaifuAI Cloud.',
+    'settings.micNote': "Przytrzymaj przycisk mikrofonu, aby mówić, lub dotknij, aby rozpocząć i dotknij ponownie, aby zatrzymać. Mowę rozpoznaje Twoja przeglądarka.",
     'settings.voiceAutoSend': 'Wyślij zaraz po wypowiedzeniu',
     'settings.radio': 'Radio',
     'settings.radioVolume': 'Głośność radia',
@@ -185,9 +185,9 @@
     'settings.dataNote': 'Czaty, pamięć i ustawienia są zapisywane tylko w tej przeglądarce.',
     'settings.export': 'Eksportuj czaty',
     'settings.deleteAll': 'Usuń wszystkie czaty',
-    'settings.providerNoteOwn': 'Twój klucz jest zapisywany tylko w tej przeglądarce i wysyłany tylko do %{target}. Obrazki i głos nadal przechodzą przez WaifuAI Cloud.',
+    'settings.providerNoteOwn': "Your key is saved in this browser only and sent only to %{target}. Voice uses this browser's speech engine.",
     'settings.providerTargetEndpoint': 'twojego endpointu',
-    'settings.providerNoteCloud': 'Darmowe i bez klucza. Wiadomości trafiają do WaifuAI Cloud, aby wygenerować odpowiedzi, i mogą być zapisywane w logach w celu ulepszania usługi.',
+    'settings.providerNoteCloud': "Replies are generated in this browser. Nothing is sent to a server and no key is needed.",
     'settings.deleteAllConfirm': 'Usunąć wszystkie zapisane czaty w tej przeglądarce?',
     'settings.exportNone': 'Nie ma jeszcze czatów do eksportu.',
 
@@ -254,8 +254,8 @@
     'persona.custom.desc': 'Napisz własną',
 
     // ── Providers ──
-    'provider.cloud.name': 'WaifuAI Cloud',
-    'provider.cloud.desc': 'Darmowe, bez klucza',
+    'provider.cloud.name': "Built-in local replies",
+    'provider.cloud.desc': "Works offline, no key needed",
     'provider.openrouter.name': 'OpenRouter',
     'provider.openrouter.desc': 'Twój własny klucz',
     'provider.groq.name': 'Groq',
@@ -273,7 +273,7 @@
 
     // ── Chat errors ──
     'error.setEndpoint': 'Najpierw ustaw adres URL endpointu w Ustawieniach.',
-    'error.setKey': 'Dodaj klucz %{provider} w Ustawieniach albo przełącz się z powrotem na WaifuAI Cloud.',
+    'error.setKey': "Dodaj klucz %{provider} w Ustawieniach lub wróć do wbudowanych lokalnych odpowiedzi.",
     'error.setModel': 'Najpierw ustaw nazwę modelu w Ustawieniach.',
     'error.tooMany': 'Zbyt wiele wiadomości naraz. Poczekaj minutę i spróbuj ponownie.',
     'error.rejected': 'Dostawca odrzucił klucz. Sprawdź go w Ustawieniach.',
@@ -285,8 +285,8 @@
     'error.contextTooLarge': 'To żądanie jest zbyt duże. Skompresuj starszą pamięć lub skróć dane wejściowe. Zapisany tekst został zachowany.',
 
     // ── Voice (proxy transcription) ──
-    'voice.transcribeFailed': 'Transkrypcja nie powiodła się (HTTP %{status}).',
-    'voice.transcribeSlow': 'Transkrypcja trwała zbyt długo. Spróbuj ponownie.',
+    'voice.transcribeFailed': "Rozpoznawanie mowy nie powiodło się. Spróbuj ponownie.",
+    'voice.transcribeSlow': "Rozpoznawanie mowy trwało zbyt długo. Spróbuj ponownie.",
     'voice.busy': 'Wprowadzanie głosowe jest teraz zajęte. Spróbuj ponownie za chwilę.',
     'voice.failed': 'Wprowadzanie głosowe nie powiodło się: %{message}',
     'voice.heardNothing': 'Nie usłyszałam niczego w tym nagraniu. Sprawdź mikrofon i spróbuj ponownie.',

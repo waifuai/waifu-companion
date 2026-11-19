@@ -4,57 +4,40 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
 
-function client(answer) {
-  const decisions = [], writers = [];
+function client() {
+  const calls = [];
   const context = vm.createContext({
     AppStorage: { KEYS: {}, getString: () => 'A cozy room at night' },
     document: { getElementById: () => null, addEventListener() {} },
-    window: { WaifuProxyAPI: { async decide(tasks, state) {
-      decisions.push({ tasks, state });
-      if (answer instanceof Error) throw answer;
-      return answer;
-    } } },
+    window: {},
     conversationContext: [{ role: 'user', content: 'Let us head to the beach' }],
     contextForModel: messages => messages,
-    UNSAFE_IMAGE_WORDS: /\b(zugzwang|zebra)\b/i,
-    async callConfiguredLLM(messages, _event, purpose) {
-      writers.push({ messages, purpose });
-      return { content: 'SCENE: A quiet beach at sunset, gentle waves and warm golden light' };
-    },
-    debugLog() {}, debugError() {}
+    async callConfiguredLLM(...args) { calls.push(args); return { content: 'SCENE: A quiet beach' }; },
+    debugLog() {}, debugError() {}, tr: (_k, fallback) => fallback
   });
   vm.runInContext(readFileSync(path.join(__dirname, '../scripts/settings_handlers.js'), 'utf8'), context);
-  return { context, decisions, writers };
+  return { context, calls };
 }
 
-test('zero-confidence keep skips background writing', async () => {
-  const { context, decisions, writers } = client({ background_action_v1: { choice_id: 'keep', confidence: 0 } });
+test('background scenes are a local no-op with no decision or prompt calls', async () => {
+  const { context, calls } = client();
   assert.equal(await context.getBackgroundScene(), null);
-  assert.equal(decisions.length, 1);
-  assert.equal(writers.length, 0);
+  assert.equal(await context.getBackgroundScene(true), null);
+  assert.equal(calls.length, 0);
 });
 
-test('zero-confidence change asks only for a scene description', async () => {
-  const { context, writers } = client({ background_action_v1: { choice_id: 'change', confidence: 0 } });
-  assert.match(await context.getBackgroundScene(), /beach/);
-  assert.equal(writers.length, 1);
-  assert.equal(writers[0].purpose, 'background_prompt');
-  assert.match(writers[0].messages[0].content, /Always answer SCENE/);
-  assert.doesNotMatch(writers[0].messages[0].content, /SAME/);
+test('background generation makes no image request and reports a local outcome', async () => {
+  const { context, calls } = client();
+  let status = '';
+  context.document.getElementById = id => (id === 'bgGenerateStatus' ? { set textContent(v) { status = v; } } : null);
+  assert.equal(await context.generateBackground('A quiet beach', 'manual', 'ai_prompt'), false);
+  assert.equal(calls.length, 0);
+  assert.match(status, /unavailable in local-only mode/i);
 });
 
-test('uncertain, invalid, unavailable and failed actions retain scene judgment', async () => {
-  for (const answer of [{ background_action_v1: { choice_id: 'uncertain', confidence: 1 } }, { background_action_v1: { choice_id: 'invented' } }, null, new Error('offline')]) {
-    const { context, writers } = client(answer);
-    assert.ok(await context.getBackgroundScene());
-    assert.equal(writers.length, 1);
-    assert.match(writers[0].messages[0].content, /SAME/);
-  }
-});
-
-test('manual generation bypasses the decision and always requests a scene', async () => {
-  const { context, decisions, writers } = client({ background_action_v1: { choice_id: 'keep', confidence: 1 } });
-  assert.ok(await context.getBackgroundScene(true));
-  assert.equal(decisions.length, 0);
-  assert.doesNotMatch(writers[0].messages[0].content, /SAME/);
+test('automatic background updates never generate or decide', async () => {
+  const { context, calls } = client();
+  await context.maybeAutoBackground(null);
+  await context.maybeAutoBackground(null);
+  assert.equal(calls.length, 0);
 });
