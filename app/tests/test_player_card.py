@@ -431,7 +431,7 @@ class PlayerCardTests(unittest.TestCase):
             localStorage.setItem('waifu_x_enablePrimaryVoice', 'false');
             localStorage.setItem('waifu_x_enableFallbackVoice', 'false');
             localStorage.setItem('waifu_x_enableKokoro', 'false');
-            localStorage.setItem('waifu_x_selectedVoiceId', 'en_us_002');
+            localStorage.setItem('waifu_x_selectedVoiceId', 'retired_voice');
             localStorage.setItem('waifu_x_isAmbientQueueEnabled', 'true');
             localStorage.setItem('waifu_x_interfaceLanguage', 'zz-test');
             localStorage.setItem('waifu_x_openRouterApiKey', 'embed-test-key');

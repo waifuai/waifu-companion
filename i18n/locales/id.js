@@ -172,7 +172,7 @@
 
     'voice.title': '🔊 Suara',
     'voice.primaryLabel': '🔈 Aktifkan Balasan Suara',
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
     'voice.kokoroEnableLabel': '🚀 Aktifkan suara lokal (Kokoro)',
     'voice.fallbackEnableLabel': '🔄 Aktifkan suara cadangan (browser)',
     'voice.autoLangLabel': '🌐 Bahasa TTS otomatis',

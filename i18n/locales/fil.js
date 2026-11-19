@@ -160,7 +160,7 @@
   "context.jsonDesc": "Pinipilit ang AI na tumugon sa JSON para sa mga emosyonal na reaksyon, ngunit maaaring magdulot ng mga error sa mas mahihinang LLM.",
   "voice.title": "🔊 Boses",
   "voice.primaryLabel": "🔈 Paganahin ang Voice Replies",
-  "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+  "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
   "voice.kokoroEnableLabel": "🚀 Paganahin ang Lokal na Boses ( Kokoro )",
   "voice.fallbackEnableLabel": "🔄 Paganahin ang Fallback Voice (Browser)",
   "voice.autoLangLabel": "🌐 Auto TTS Wika",

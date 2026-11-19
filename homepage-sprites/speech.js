@@ -17,9 +17,12 @@ const Speech = (() => {
 
   // [id, name, language, gender, group]
   const VOICES = [
+    // Optional external voices. Selecting one is an explicit opt-in; the
+    // default browser voices below never send text anywhere.
+    ...(window.TikTokTTS ? window.TikTokTTS.VOICES.map(v => [v.id, v.name, v.language, v.gender, 'TikTok (external)', 'tiktok']) : []),
     ['browser-female', 'Browser voice (female)', 'en-US', 'female', 'Browser'],
     ['browser-male', 'Browser voice (male)', 'en-US', 'male', 'Browser'],
-  ].map(([id, name, language, gender, group]) => ({ id, name, language, gender, group, provider: 'browser' }));
+  ].map(([id, name, language, gender, group, provider = 'browser']) => ({ id, name, language, gender, group, provider }));
 
   const byId = id => VOICES.find(v => v.id === id);
 
@@ -94,6 +97,22 @@ const Speech = (() => {
   async function resolve(text, plan = null, preview=false) {
     const voice = byId(settings.voiceId) || VOICES[0];
     const target = (plan && plan.lang) || (window.TTSLanguageRouter ? window.TTSLanguageRouter.analyze(stripForTTS(text)).lang : null) || voice.language;
+
+    // A TikTok voice is opt-in by selection. Only this branch sends reply
+    // text to an external speech service; browser voices stay local.
+    if (voice.provider === 'tiktok' && window.TikTokTTS) {
+      try {
+        const audio = await window.TikTokTTS.synthesize(text, voice.id);
+        const decoded = await window.TikTokTTS.decode(audio, ctx);
+        ctx = decoded.context;
+        return { kind: 'buffer', buffer: decoded.buffer, text, voiceId: voice.id,
+          gender: voice.gender, lang: (plan && plan.lang) || voice.language, provider: 'tiktok' };
+      } catch (e) {
+        reportEvent('tts_provider_error', { provider: 'tiktok', voice_id: voice.id });
+        // Fall through to the installed browser voice for the same language.
+      }
+    }
+
     const installed = window.speechSynthesis ? browserVoice(target, voice.gender) : null;
     if (!installed) return { kind: 'silent' };
     return { kind: 'browser', text, gender: voice.gender, lang: installed.lang };
@@ -131,6 +150,32 @@ const Speech = (() => {
       u.onstart=()=>onStart?.();
       u.onend = u.onerror = () => { clearTimeout(watchdog); done(); };
       speechSynthesis.speak(u);
+    });
+  }
+
+  // Plays audio returned by an explicitly chosen external voice. The bytes
+  // are already local; this function only owns playback and lip-sync-free
+  // timing. Browser voices use speakBrowser instead.
+  function playBuffer(buffer,onStart) {
+    const context = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    ctx = context;
+    return new Promise(done => {
+      const node = context.createBufferSource();
+      source = node;
+      node.buffer = buffer;
+      node.connect(context.destination);
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (source === node) source = null;
+        done();
+      };
+      const timer = setTimeout(() => { try { node.stop(); } catch (e) {} finish(); }, buffer.duration * 1000 + 4000);
+      node.onended = finish;
+      node.start();
+      onStart?.();
     });
   }
 
@@ -181,13 +226,14 @@ const Speech = (() => {
         const onStarted=()=>{
           if(!valid())return;
           const info={voice_id:settings.voiceId||'default',served_voice:current.voiceId||settings.voiceId||'default',
-            provider:'browser',fell_back:false,
+            provider:current.provider||'browser',fell_back:false,
             voice_lang:current.lang||'',requested_voice_lang:plan?.lang||'',routing_source:plan?.source||'local',
             routing_cache_hit:!!plan?.cacheHit,decision_requested:!!plan?.decisionRequested,routing_wait_ms:plan?.waitMs||0,preview:!!hooks.sample};
           if(!hooks.sample){reportEvent('tts_chunk_played',info);hooks.onChunk?.(info);}
           if(!reportedPlay){reportedPlay=true;if(!hooks.sample){reportEvent('tts_played',info);hooks.onPlay?.(info);}}
         };
         if (current.kind === 'browser') await speakBrowser(current.text, current.lang, current.gender,onStarted);
+        if (current.kind === 'buffer') await playBuffer(current.buffer,onStarted);
         if (i + 1 < chunks.length && live()) await new Promise(r => setTimeout(r, CHUNK_GAP_MS));
       }
       if (live() && hooks.onEnd) hooks.onEnd();

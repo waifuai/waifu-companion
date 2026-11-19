@@ -4,6 +4,9 @@ window.voices = [
   // Legacy id kept so saved settings still resolve; it now selects a browser
   // SpeechSynthesis voice that follows the reply language.
   { id: 'cloud', name: 'Browser Voice (auto language)', language: 'en-US', gender: 'female', provider: 'browser' },
+  // Optional external TikTok-style voices. Selecting one is an explicit opt-in:
+  // reply text is sent to an external speech service. None is selected by default.
+  ...(window.TikTokTTS ? window.TikTokTTS.VOICES : []),
   // Browser SpeechSynthesis Voices (built-in, no rate limits)
   { id: 'browser-female', name: 'Browser Voice (Female)', language: 'en-US', gender: 'female', provider: 'browser' },
   { id: 'browser-male', name: 'Browser Voice (Male)', language: 'en-US', gender: 'male', provider: 'browser' },

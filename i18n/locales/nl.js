@@ -161,7 +161,7 @@
       "context.jsonDesc": "Dwingt de AI om emotionele reacties in JSON te geven, maar kan fouten veroorzaken bij zwakkere LLM's.",
       "voice.title": "🔊 Stem",
       "voice.primaryLabel": "🔈 Gesproken antwoorden inschakelen",
-      "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+      "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
       "voice.kokoroEnableLabel": "🚀 Lokale stem inschakelen (Kokoro)",
       "voice.fallbackEnableLabel": "🔄 Reservestem inschakelen (browser)",
       "voice.autoLangLabel": "🌐 Automatische TTS-taal",

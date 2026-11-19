@@ -161,7 +161,7 @@
     "context.jsonDesc": "හැඟීම් ප්‍රතිචාර සඳහා JSON ලෙස පිළිතුරු දීමට AI හට බල කරයි, නමුත් දුර්වල LLM වල දෝෂ ඇති විය හැක.",
     "voice.title": "🔊 හඬ",
     "voice.primaryLabel": "🔈 හඬ පිළිතුරු සක්‍රිය කරන්න",
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
     "voice.kokoroEnableLabel": "🚀 දේශීය හඬ සක්‍රිය කරන්න (Kokoro)",
     "voice.fallbackEnableLabel": "🔄 විකල්ප හඬ සක්‍රිය කරන්න (බ්‍රව්සරය)",
     "voice.autoLangLabel": "🌐 ස්වයංක්‍රීය TTS භාෂාව",

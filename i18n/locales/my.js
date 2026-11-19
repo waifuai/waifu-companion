@@ -161,7 +161,7 @@
     "context.jsonDesc": "ခံစားချက်တုံ့ပြန်မှုကို AI က JSON ဖြင့်အဖြေပေးစေသည်၊ အားနည်းသော LLM များတွင် အမှားဖြစ်နိုင်သည်။",
     "voice.title": "🔊 အသံ",
     "voice.primaryLabel": "🔈 အသံဖြင့်အဖြေ ဖွင့်ရန်",
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
     "voice.kokoroEnableLabel": "🚀 စက်တွင်းအသံ ဖွင့်ရန် (Kokoro)",
     "voice.fallbackEnableLabel": "🔄 အရန်အသံ ဖွင့်ရန် (ဘရောက်ဇာ)",
     "voice.autoLangLabel": "🌐 အလိုအလျောက် TTS ဘာသာစကား",

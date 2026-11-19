@@ -540,7 +540,7 @@ function populateVoiceSelector() {
   availableVoices.forEach(voice => {
     const option = document.createElement('option');
     option.value = voice.id;
-    const providerLabel = voice.provider === 'cloud' ? 'Waifu' : voice.provider === 'kokoro' ? 'Kokoro' : voice.provider === 'browser' ? 'Browser' : 'Unknown';
+    const providerLabel = voice.provider === 'cloud' ? 'Waifu' : voice.provider === 'kokoro' ? 'Kokoro' : voice.provider === 'browser' ? 'Browser' : voice.provider === 'tiktok' ? 'external' : 'Unknown';
     option.textContent = voice.provider === 'cloud' ? voice.name : `${voice.name} (${providerLabel})`;
     voiceSelector.appendChild(option);
   });
@@ -563,7 +563,7 @@ function populateVoiceSelector() {
   AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID,selectedVoiceId);
   if(!document.getElementById('cloudVoiceStatus')){
     const status=document.createElement('small');status.id='cloudVoiceStatus';status.setAttribute('role','status');
-    status.textContent='Automatic follows the reply language. A chosen voice stays selected if backup audio is used.';
+    status.textContent='Automatic follows the reply language. A chosen voice stays selected if backup audio is used. TikTok voices are optional and send reply text to an external speech service.';
     status.style.display='block';status.style.margin='6px 0';
     const preview=document.createElement('button');preview.type='button';preview.textContent='Preview voice';preview.id='cloudVoicePreview';
     preview.className='settings-select';preview.style.width='auto';preview.style.cursor='pointer';

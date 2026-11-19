@@ -160,7 +160,7 @@
   "context.jsonDesc": "جذباتی ردعمل کے لیے AI کو JSON میں جواب دینے پر مجبور کرتا ہے، لیکن کمزور LLMs میں غلطیاں پیدا کر سکتا ہے۔",
   "voice.title": "🔊 آواز",
   "voice.primaryLabel": "🔈 صوتی جوابات کو فعال کریں۔",
-  "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+  "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
   "voice.kokoroEnableLabel": "🚀 مقامی آواز کو فعال کریں (Kokoro)",
   "voice.fallbackEnableLabel": "🔄 فال بیک وائس (براؤزر) کو فعال کریں",
   "voice.autoLangLabel": "🌐 آٹو TTS زبان",

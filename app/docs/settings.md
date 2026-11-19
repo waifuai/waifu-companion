@@ -13,7 +13,7 @@ Click the gear icon in the top-left corner of the application.
 - **Language**: Response language (100+ languages), transliteration, AI-translated interface
 
 ### AI
-- **AI Provider**: WaifuAI Cloud (default), OpenRouter, Groq or any OpenAI-compatible API, with fallback models
+- **AI Provider**: Built-in local replies (default), OpenRouter, Groq or any OpenAI-compatible API, with local fallback
 - **Memory**: Conversation memory size, auto-summarization trigger, summary length, editable summary
 - **Ambient & Queue**: User message queue, ambient mode (trigger delay, custom prompt, preload)
 
@@ -22,7 +22,7 @@ Click the gear icon in the top-left corner of the application.
 - **Interface**: Clock, chatbox and message bubble opacity, open Settings on page load
 
 ### Sound
-- **Voice**: TTS providers (TikTok, Kokoro, Browser), voice per provider, volume, voice input (STT)
+- **Voice**: Browser and local Kokoro voices by default; optional external TikTok voices, volume, voice input (STT)
 - **Radio**: Internet radio stream and volume
 
 ### Advanced

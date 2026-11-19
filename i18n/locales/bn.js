@@ -161,7 +161,7 @@
     "context.jsonDesc": "আবেগের প্রতিক্রিয়ায় AI-কে JSON-এ উত্তর দিতে বাধ্য করে, তবে দুর্বল LLM-এ ত্রুটি হতে পারে।",
     "voice.title": "🔊 কণ্ঠ",
     "voice.primaryLabel": "🔈 কণ্ঠে উত্তর চালু করুন",
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
     "voice.kokoroEnableLabel": "🚀 স্থানীয় কণ্ঠ চালু করুন (Kokoro)",
     "voice.fallbackEnableLabel": "🔄 বিকল্প কণ্ঠ চালু করুন (ব্রাউজার)",
     "voice.autoLangLabel": "🌐 স্বয়ংক্রিয় TTS ভাষা",

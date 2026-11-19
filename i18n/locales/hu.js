@@ -161,7 +161,7 @@
       "context.jsonDesc": "Az AI-t JSON-válaszokra kényszeríti az érzelmi reakciókhoz, de gyengébb LLM-eknél hibákat okozhat.",
       "voice.title": "🔊 Hang",
       "voice.primaryLabel": "🔈 Hangos válaszok engedélyezése",
-      "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+      "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
       "voice.kokoroEnableLabel": "🚀 Helyi hang engedélyezése (Kokoro)",
       "voice.fallbackEnableLabel": "🔄 Tartalék hang engedélyezése (böngésző)",
       "voice.autoLangLabel": "🌐 Automatikus TTS-nyelv",

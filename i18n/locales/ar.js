@@ -173,7 +173,7 @@
 
     'voice.title': '🔊 الصوت',
     'voice.primaryLabel': '🔈 تفعيل الردود الصوتية',
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
     'voice.kokoroEnableLabel': '🚀 تفعيل الصوت المحلي (Kokoro)',
     'voice.fallbackEnableLabel': '🔄 تفعيل الصوت الاحتياطي (المتصفح)',
     'voice.autoLangLabel': '🌐 لغة TTS التلقائية',

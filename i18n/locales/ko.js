@@ -161,7 +161,7 @@
     "context.jsonDesc": "감정 표현을 JSON으로 답하도록 하지만 성능이 낮은 LLM에서는 오류가 발생할 수 있어요.",
     "voice.title": "🔊 음성",
     "voice.primaryLabel": "🔈 음성 답변 활성화",
-    "voice.primaryDesc": "음성은 브라우저 목소리를 사용하며, 활성화된 경우 로컬 Kokoro를 사용합니다. 업로드되지 않습니다.",
+    "voice.primaryDesc": "음성은 브라우저 목소리를 사용하며, 활성화된 경우 로컬 Kokoro를 사용합니다. 업로드되지 않습니다. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
     "voice.kokoroEnableLabel": "🚀 로컬 음성 활성화 (Kokoro)",
     "voice.fallbackEnableLabel": "🔄 대체 음성 활성화 (브라우저)",
     "voice.autoLangLabel": "🌐 TTS 언어 자동 설정",

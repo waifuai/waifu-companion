@@ -168,7 +168,8 @@ function resolveVoiceForText(text, voiceId, plan = null) {
   if (!window.TTSLanguageRouter) return { voiceId, lang: null };
   const a = plan || window.TTSLanguageRouter.analyze(text);
   const routed = window.TTSLanguageRouter.selectVoice(voices, voiceId, a.lang, window.enableAutoTtsLang !== false);
-  return { voiceId: routed.voiceId, lang: routed.lang };
+  return { voiceId: routed.voiceId, lang: routed.lang, provider: routed.provider,
+    unsupportedPrimary: !!routed.unsupportedPrimary };
 }
 window.detectVoiceLang = detectVoiceLang;
 window.detectLatinVoiceLang = detectLatinVoiceLang;
@@ -321,6 +322,28 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
     manualFallbackVoice = window.ttsFallbackVoiceId || 'browser-female';
   }
 
+  const chosenVoiceId = routed && routed.voiceId ? routed.voiceId : voiceId;
+  const chosenConfig = voices.find(v => v.id === chosenVoiceId);
+  const chosenProvider = chosenConfig ? chosenConfig.provider : provider;
+  let tiktokFailed = false;
+
+  // Optional external TikTok voices. Nothing reaches this branch for the
+  // default browser voice or for a local Kokoro choice: picking a TikTok voice
+  // is the explicit opt-in that sends reply text to the external service.
+  if (chosenProvider === 'tiktok' && !manualFallbackVoice && window.TikTokTTS && window.TikTokTTS.isVoice(chosenVoiceId)) {
+    try {
+      const audioContext = getTTSAudioContext();
+      const audio = await window.TikTokTTS.synthesize(textChunk, chosenVoiceId);
+      const decoded = await window.TikTokTTS.decode(audio, audioContext);
+      return { kind: 'buffer', buffer: decoded.buffer, voiceId: chosenVoiceId,
+        lang: routed ? routed.lang : routingLang, provider: 'tiktok', fellBack: false,
+        routingSignature: routingPlan && routingPlan.signature };
+    } catch (err) {
+      debugError('TTS: TikTok voice failed', err, { voiceId: chosenVoiceId, textLen: textChunk.length });
+      tiktokFailed = true;
+    }
+  }
+
   if (provider === 'browser') {
     return { kind: 'browser', text: textChunk, voiceId: manualFallbackVoice || voiceId,
       lang: routed ? routed.lang : routingLang, provider: 'browser', fellBack: !!manualFallbackVoice,
@@ -346,6 +369,9 @@ async function fetchTTSBuffer(textChunk, voiceId, routingPlan = null) {
   // A saved Kokoro selection that is not ready falls back to browser speech
   // when the fallback voice is enabled, instead of leaving the reply silent.
   if (provider === 'kokoro' && window.enableFallbackVoice !== false) {
+    return { kind: 'browser', text: textChunk, voiceId: window.ttsFallbackVoiceId || 'browser-female', lang: routingLang, provider: 'browser', fellBack: true, routingSignature: routingPlan && routingPlan.signature };
+  }
+  if (tiktokFailed && window.enableFallbackVoice !== false) {
     return { kind: 'browser', text: textChunk, voiceId: window.ttsFallbackVoiceId || 'browser-female', lang: routingLang, provider: 'browser', fellBack: true, routingSignature: routingPlan && routingPlan.signature };
   }
   return null;

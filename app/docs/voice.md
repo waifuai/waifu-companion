@@ -4,10 +4,10 @@ Waifu Companion supports multiple text-to-speech engines, real-time lip-sync, au
 
 ## Text-to-Speech (TTS)
 
-Three TTS providers are available, each can be independently enabled/disabled:
+Browser SpeechSynthesis and Kokoro are the default local providers. TikTok voices are optional: selecting one sends reply text to an external speech service. Each can be independently enabled/disabled.
 
-### TikTok TTS (Primary)
-Free TTS API with the largest voice selection. Enable in Settings > Voice > Enable TikTok TTS.
+### TikTok TTS (optional external)
+Free TTS API with the largest voice selection. Choose a TikTok voice in Settings > Voice > Voice. No TikTok voice is selected by default.
 
 **Voices (35+):**
 - **English (US)**: Female (F1, F2), Male (M1, M2, M3, M4)
@@ -79,17 +79,14 @@ Use your microphone to speak to your companion:
 
 Powered by the Web Speech API. Requires microphone permissions.
 
-### WaifuAI Cloud
+### Browser only
+The public transcription service was retired. Speech input is handled by the browser's Web Speech API:
 
-Cross-engine alternative that works in browsers without the Web Speech API:
+1. Click the microphone icon to start recognition
+2. Speak; the transcript is placed in the chat input
+3. Optional auto-send submits it immediately
 
-1. Select **Voice Input (STT) -> WaifuAI Cloud** in Settings > Voice
-2. Click the microphone icon to start recording (MediaRecorder, Opus/WebM)
-3. Click again to stop; the recording is transcribed via WaifuAI Cloud (`/transcribe`) and placed in the chat input
-
-No API key is required in the browser. Requires microphone permissions.
-
-> Tip: the app can auto-switch to this engine when the browser reports the Web Speech service as unavailable.
+Requires microphone permissions and a browser with Web Speech support (Chromium-based browsers work best).
 
 ## Internet Radio
 
@@ -111,8 +108,7 @@ UI interactions produce subtle sound effects powered by Tone.js:
 - **TTS Volume**: Text-to-speech volume
 - **Radio Volume**: Internet radio volume
 - **Sound Effects**: Toggle UI sound effects on/off
-- **Enable TikTok TTS**: Primary voice engine toggle
-- **Enable Kokoro Voice**: Local ONNX engine toggle
+- **Voice**: Choose Browser, Kokoro, or an optional external TikTok voice- **Enable Kokoro Voice**: Local ONNX engine toggle
 
 ## TTS Queue
 

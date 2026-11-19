@@ -9,12 +9,12 @@ function runtime() {
     document:{querySelectorAll:()=>[],getElementById:()=>null},highlightSentence(){},
     trackEvent:(name,data)=>events.push({name,data}),
     getTTSAudioContext:()=>({decodeAudioData:async()=>({duration:0})}),
-    URL,URLSearchParams,AbortSignal,
+    URL,URLSearchParams,AbortSignal,atob,
     fetch:async(url)=>{requests.push(String(url));throw new Error('no network expected');},
     conversationContext:[],speechSynthesis:{getVoices:()=>[{name:'English Female',lang:'en-US'}],cancel(){}},
   });
   window.speechSynthesis=c.speechSynthesis;
-  for(const file of ['tts_language_router.js','voice_config.js','sentence_processor.js','audio_player.js','tts_queue_manager.js','ai_interface.js']) {
+  for(const file of ['tiktok_tts.js','tts_language_router.js','voice_config.js','sentence_processor.js','audio_player.js','tts_queue_manager.js','ai_interface.js']) {
     let source=fs.readFileSync(path.join(__dirname,'../scripts',file),'utf8');
     if(file==='voice_config.js')source=source.slice(0,source.indexOf('];')+2);
     vm.runInContext(source,c);
@@ -146,4 +146,33 @@ test('Stop during browser voice discovery cannot speak after voices arrive',asyn
  r.c.speechSynthesis.speak=()=>spoken++;
  const pending=r.c.speakViaBrowser('Old reply','browser-female','en-US',()=>valid);
  valid=false;r.c.stopTTS();ready();await pending;assert.equal(spoken,0);
+});
+test('TikTok voices are opt-in catalog entries; the default stays local',()=>{
+ const r=runtime();
+ const tiktok=r.window.voices.filter(v=>v.provider==='tiktok');
+ assert.equal(tiktok.length,50);
+ assert.equal(r.window.selectedVoiceId,'cloud');
+ assert.equal(r.window.voices.find(v=>v.id==='cloud').provider,'browser');
+});
+test('an explicitly chosen TikTok voice fetches audio from the external service',async()=>{
+ const r=runtime();const text='Hello, how are you today?';
+ let called=0;
+ r.c.fetch=async(url,opts)=>{
+  called++;assert.equal(String(url),r.window.TikTokTTS.API_URL);
+  assert.deepEqual(JSON.parse(opts.body),{text,voice:'en_us_001'});
+  return {ok:true,status:200,text:async()=>'{"success":true,"data":"AAAA"}'};
+ };
+ const result=await r.c.fetchTTSBuffer(text,'en_us_001');
+ assert.equal(called,1);assert.equal(result.kind,'buffer');assert.equal(result.provider,'tiktok');assert.equal(result.voiceId,'en_us_001');
+});
+test('a failed TikTok request hands off to the browser fallback voice',async()=>{
+ const r=runtime();r.window.ttsFallbackVoiceId='browser-female';
+ r.c.fetch=async()=>({ok:false,status:503});
+ const result=await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001');
+ assert.equal(result.kind,'browser');assert.equal(result.provider,'browser');assert.equal(result.fellBack,true);
+});
+test('a disabled primary voice never contacts the TikTok service',async()=>{
+ const r=runtime();r.window.enablePrimaryVoice=false;r.window.ttsFallbackVoiceId='browser-male';
+ const result=await r.c.fetchTTSBuffer('Hello, how are you today?','en_us_001');
+ assert.equal(result.kind,'browser');assert.equal(result.voiceId,'browser-male');assert.equal(r.requests.length,0);
 });

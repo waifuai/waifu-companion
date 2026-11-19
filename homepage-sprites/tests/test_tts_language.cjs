@@ -196,3 +196,50 @@ test('loading voices returns the local browser catalog without a request',async(
  assert.deepEqual(Array.from(voices,v=>v.id).sort(),['browser-female','browser-male']);
  assert.equal(r.requests(),0);
 });
+
+function tiktokSpeechRuntime(fail = false) {
+ const window={};const requests=[];const played=[];
+ const browser=[{name:'English Female',lang:'en-US'},{name:'Japanese Female',lang:'ja-JP'}];
+ function AudioContextMock(){return {destination:{},decodeAudioData:async()=>({duration:1}),createBufferSource(){return {buffer:null,connect(){},start(){played.push(true)},onended:null,stop(){}};}};}
+ const c=vm.createContext({window,navigator:{language:'en-US'},localStorage:{getItem:()=>null},setTimeout,clearTimeout,
+  speechSynthesis:{getVoices:()=>browser},
+  atob:()=>'\u0000\u0000\u0000',AudioContext:AudioContextMock,
+  fetch:async(url,opts)=>{
+   requests.push({url,body:JSON.parse(opts.body)});
+   if(fail)throw new Error('service unavailable');
+   return {ok:true,status:200,text:async()=>JSON.stringify({success:true,data:'AAAA'})};
+  }});
+ window.speechSynthesis=c.speechSynthesis;window.AudioContext=AudioContextMock;
+ vm.runInContext(fs.readFileSync(routerPath,'utf8'),c);
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../tiktok_tts.js'),'utf8'),c);
+ let source=fs.readFileSync(path.join(__dirname,'../speech.js'),'utf8');
+ source=source.replace('return { VOICES, settings,','return { resolve, playBuffer, VOICES, settings,');
+ vm.runInContext(source+';window.testSpeech=Speech;',c);
+ return {window,speech:window.testSpeech,requests,played};
+}
+test('the opt-in TikTok catalog is returned together with browser voices',async()=>{
+ const r=tiktokSpeechRuntime();const voices=await r.speech.loadVoices();
+ assert.ok(voices.some(v=>v.id==='en_us_002'&&v.provider==='tiktok'&&v.group==='TikTok (external)'));
+ assert.ok(voices.some(v=>v.id==='browser-female'&&v.provider==='browser'));
+ assert.equal(r.requests.length,0);
+});
+test('the default Sprites voice still resolves locally with the TikTok module loaded',async()=>{
+ const r=tiktokSpeechRuntime();
+ const resolved=await r.speech.resolve('Hello, how are you today?');
+ assert.equal(resolved.kind,'browser');assert.equal(resolved.provider,undefined);
+ assert.equal(r.requests.length,0);
+});
+test('a chosen TikTok voice fetches audio and plays the returned buffer',async()=>{
+ const r=tiktokSpeechRuntime();r.speech.settings.voiceId='en_us_002';
+ const resolved=await r.speech.resolve('Hello! This is how I sound.');
+ assert.equal(resolved.kind,'buffer');assert.equal(resolved.provider,'tiktok');
+ assert.equal(r.requests.length,1);assert.equal(r.requests[0].url,r.window.TikTokTTS.API_URL);
+ assert.equal(r.requests[0].body.voice,'en_us_002');
+ await r.speech.playBuffer(resolved.buffer,()=>{});
+ assert.equal(r.played.length,1);
+});
+test('a failed TikTok request falls back to an installed browser voice',async()=>{
+ const r=tiktokSpeechRuntime(true);r.speech.settings.voiceId='en_us_002';
+ const resolved=await r.speech.resolve('Hello!');
+ assert.equal(resolved.kind,'browser');assert.equal(r.requests.length,1);
+});

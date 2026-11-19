@@ -172,7 +172,7 @@
 
     'voice.title': '🔊 Voix',
     'voice.primaryLabel': '🔈 Activer les réponses vocales',
-    "voice.primaryDesc": "La voix utilise la voix du navigateur, ou Kokoro local si activé. Rien n’est téléversé.",
+    "voice.primaryDesc": "La voix utilise la voix du navigateur, ou Kokoro local si activé. Rien n’est téléversé. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
     'voice.kokoroEnableLabel': '🚀 Activer la voix locale (Kokoro)',
     'voice.fallbackEnableLabel': '🔄 Activer la voix de secours (navigateur)',
     'voice.autoLangLabel': '🌐 Langue TTS automatique',

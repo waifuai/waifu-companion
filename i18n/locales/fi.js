@@ -161,7 +161,7 @@
       "context.jsonDesc": "Pakottaa tekoälyn vastaamaan JSON-muodossa tunnereaktioita varten, mutta voi aiheuttaa virheitä heikommilla kielimalleilla.",
       "voice.title": "🔊 Ääni",
       "voice.primaryLabel": "🔈 Ota puhevastaukset käyttöön",
-      "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded.",
+      "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
       "voice.kokoroEnableLabel": "🚀 Ota paikallinen ääni käyttöön (Kokoro)",
       "voice.fallbackEnableLabel": "🔄 Ota varaääni käyttöön (selain)",
       "voice.autoLangLabel": "🌐 Automaattinen TTS-kieli",
