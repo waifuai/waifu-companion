@@ -160,7 +160,7 @@
   "context.jsonDesc": "உணர்ச்சிகரமான எதிர்வினைகளுக்கு JSON இல் பதிலளிக்க AI ஐ கட்டாயப்படுத்துகிறது, ஆனால் பலவீனமான LLMகளில் பிழைகள் ஏற்படலாம்.",
   "voice.title": "🔊 குரல்",
   "voice.primaryLabel": "🔈 குரல் பதில்களை இயக்கவும்",
-  "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+  "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
   "voice.kokoroEnableLabel": "🚀 உள்ளூர் குரலை இயக்கு (Kokoro)",
   "voice.fallbackEnableLabel": "🔄 ஃபால்பேக் குரலை இயக்கு (உலாவி)",
   "voice.autoLangLabel": "🌐 ஆட்டோ TTS மொழி",

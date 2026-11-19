@@ -172,7 +172,7 @@
 
     'voice.title': '🔊 Voz',
     'voice.primaryLabel': '🔈 Ativar respostas de voz',
-    "voice.primaryDesc": "A fusa usa a voz do navegador, ou o Kokoro local se ativado. Nada é enviado. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     'voice.kokoroEnableLabel': '🚀 Ativar voz local (Kokoro)',
     'voice.fallbackEnableLabel': '🔄 Ativar voz reserva (navegador)',
     'voice.autoLangLabel': '🌐 Idioma automático do TTS',

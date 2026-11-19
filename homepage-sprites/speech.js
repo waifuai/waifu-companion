@@ -70,11 +70,13 @@ const Speech = (() => {
 
   // ── Settings ──
   const KEY = window.WaifuSpritesEmbed ? 'ws_embed_speech' : 'ws_speech';
-  // Only browser voices remain. A saved cloud:... id falls back to the
-  // browser default, and a language with no installed voice stays silent.
-  const settings = { enabled: true, voiceId: 'browser-female', volume: 1 };
+  // TikTok US English (F1) is the default when the catalog is loaded. An
+  // unknown saved id falls back to a local browser voice, never to the first
+  // catalog entry.
+  const defaultVoiceId = window.TikTokTTS ? 'en_us_001' : 'browser-female';
+  const settings = { enabled: true, voiceId: defaultVoiceId, volume: 1 };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
-  if (!byId(settings.voiceId)) settings.voiceId = 'browser-female';
+  if (!byId(settings.voiceId)) settings.voiceId = byId('browser-female') ? 'browser-female' : VOICES[0].id;
   function save() { try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) {} }
 
   // ── Audio ──
@@ -95,7 +97,7 @@ const Speech = (() => {
   // next chunk can be prepared while this one plays. No audio bytes are
   // fetched: speechSynthesis owns playback and language selection.
   async function resolve(text, plan = null, preview=false) {
-    const voice = byId(settings.voiceId) || VOICES[0];
+    const voice = byId(settings.voiceId) || byId('browser-female') || VOICES[0];
     const target = (plan && plan.lang) || (window.TTSLanguageRouter ? window.TTSLanguageRouter.analyze(stripForTTS(text)).lang : null) || voice.language;
 
     // A TikTok voice is opt-in by selection. Only this branch sends reply

@@ -189,7 +189,7 @@
     // ── Voice pane ──
     'voice.title': '🔊 Voce',
     'voice.primaryLabel': '🔈 Abilita risposte vocali',
-    "voice.primaryDesc": "La voce usa quella del browser, o Kokoro locale se attivato. Non viene caricato nulla. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     'voice.kokoroEnableLabel': '🚀 Abilita voce locale (Kokoro)',
     'voice.fallbackEnableLabel': '🔄 Abilita voce di riserva (browser)',
     'voice.autoLangLabel': '🌐 Lingua TTS automatica',

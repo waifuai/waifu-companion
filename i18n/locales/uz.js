@@ -160,7 +160,7 @@
   "context.jsonDesc": "AIni hissiy reaktsiyalar uchun JSONda javob berishga majbur qiladi, lekin zaifroq LLMlarda xatoliklarga olib kelishi mumkin.",
   "voice.title": "🔊 Ovoz",
   "voice.primaryLabel": "🔈 Ovozli javoblarni yoqish",
-  "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+  "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
   "voice.kokoroEnableLabel": "🚀 Mahalliy ovozni yoqish (Kokoro)",
   "voice.fallbackEnableLabel": "🔄 Qayta ovozni yoqish (brauzer)",
   "voice.autoLangLabel": "🌐 Avtomatik TTS tili",

@@ -22,7 +22,7 @@ Click the gear icon in the top-left corner of the application.
 - **Interface**: Clock, chatbox and message bubble opacity, open Settings on page load
 
 ### Sound
-- **Voice**: Browser and local Kokoro voices by default; optional external TikTok voices, volume, voice input (STT)
+- **Voice**: TikTok voice by default; browser and Kokoro choices keep speech local, volume, voice input (STT)
 - **Radio**: Internet radio stream and volume
 
 ### Advanced

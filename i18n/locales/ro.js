@@ -161,7 +161,7 @@
       "context.jsonDesc": "Obligă AI-ul să răspundă în JSON pentru reacții emoționale, dar poate cauza erori la modelele LLM mai slabe.",
       "voice.title": "🔊 Voce",
       "voice.primaryLabel": "🔈 Activează răspunsurile vocale",
-      "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+      "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
       "voice.kokoroEnableLabel": "🚀 Activează vocea locală (Kokoro)",
       "voice.fallbackEnableLabel": "🔄 Activează vocea de rezervă (browser)",
       "voice.autoLangLabel": "🌐 Limbă TTS automată",

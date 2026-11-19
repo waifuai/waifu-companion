@@ -128,18 +128,18 @@ test('empty browser inventory never uses an unspecified system voice',()=>{
  const r=runtime();r.c.speechSynthesis.getVoices=()=>[];
  assert.equal(r.c.selectBrowserVoice('browser-female').unsupported,true);
 });
-test('initial default and language-menu defaults select the legacy local voice id',()=>{
- const available=[{id:'cloud',language:'en-US',gender:'female',provider:'browser'}];
+test('initial default and language-menu defaults select the TikTok voice',()=>{
+ const available=[{id:'en_us_001',language:'en-US',gender:'female',provider:'tiktok'},{id:'cloud',language:'en-US',gender:'female',provider:'browser'}];
  const languages=[{code:'fr-FR'}];
  const window={};const c=vm.createContext({window,voices:available,languages,selectedLanguageCode:'fr-FR',selectedVoiceId:'',navigator:{language:'fr-FR'},
   AppStorage:{KEYS:{},getString:()=>'',setString(){}},debugLog(){},populateVoiceSelector(){},document:{getElementById:()=>null}});
  let source=fs.readFileSync(path.join(__dirname,'../scripts/app_init.js'),'utf8');
  const fn=source.slice(source.indexOf('function initVoice()'),source.indexOf('function initVoiceProviders()'));
  vm.runInContext(fn.slice(0,fn.indexOf('  populateVoiceSelector();'))+'}',c);
- c.initVoice();assert.equal(c.selectedVoiceId,'cloud');
+ c.initVoice();assert.equal(c.selectedVoiceId,'en_us_001');
  source=fs.readFileSync(path.join(__dirname,'../scripts/settings_ui.js'),'utf8');
  const helper=source.slice(source.indexOf('  function getDefaultVoiceForLanguage('),source.indexOf('  // Get the default voice for current language'));
- c.availableVoices=available;vm.runInContext(helper,c);assert.equal(c.getDefaultVoiceForLanguage('fr-FR'),'cloud');
+ c.availableVoices=available;vm.runInContext(helper,c);assert.equal(c.getDefaultVoiceForLanguage('fr-FR'),'en_us_001');
 });
 test('Stop during browser voice discovery cannot speak after voices arrive',async()=>{
  const r=runtime();let ready,spoken=0,valid=true;r.c.waitForBrowserVoices=()=>new Promise(resolve=>ready=resolve);
@@ -147,12 +147,13 @@ test('Stop during browser voice discovery cannot speak after voices arrive',asyn
  const pending=r.c.speakViaBrowser('Old reply','browser-female','en-US',()=>valid);
  valid=false;r.c.stopTTS();ready();await pending;assert.equal(spoken,0);
 });
-test('TikTok voices are opt-in catalog entries; the default stays local',()=>{
+test('TikTok voices are present with the historical default id',()=>{
  const r=runtime();
  const tiktok=r.window.voices.filter(v=>v.provider==='tiktok');
  assert.equal(tiktok.length,50);
- assert.equal(r.window.selectedVoiceId,'cloud');
- assert.equal(r.window.voices.find(v=>v.id==='cloud').provider,'browser');
+ assert.equal(r.window.voices.find(v=>v.id==='en_us_001').provider,'tiktok');
+ const state=fs.readFileSync(path.join(__dirname,'../scripts/global_state.js'),'utf8');
+ assert.match(state,/AppState\.selectedVoiceId\s*=\s*'en_us_001'/);
 });
 test('an explicitly chosen TikTok voice fetches audio from the external service',async()=>{
  const r=runtime();const text='Hello, how are you today?';

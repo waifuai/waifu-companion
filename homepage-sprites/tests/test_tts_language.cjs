@@ -217,17 +217,28 @@ function tiktokSpeechRuntime(fail = false) {
  vm.runInContext(source+';window.testSpeech=Speech;',c);
  return {window,speech:window.testSpeech,requests,played};
 }
-test('the opt-in TikTok catalog is returned together with browser voices',async()=>{
+test('the TikTok catalog is returned together with browser voices',async()=>{
  const r=tiktokSpeechRuntime();const voices=await r.speech.loadVoices();
  assert.ok(voices.some(v=>v.id==='en_us_002'&&v.provider==='tiktok'&&v.group==='TikTok (external)'));
  assert.ok(voices.some(v=>v.id==='browser-female'&&v.provider==='browser'));
  assert.equal(r.requests.length,0);
 });
-test('the default Sprites voice still resolves locally with the TikTok module loaded',async()=>{
+test('the default Sprites voice is TikTok and fetches the external service',async()=>{
  const r=tiktokSpeechRuntime();
+ assert.equal(r.speech.settings.voiceId,'en_us_001');
  const resolved=await r.speech.resolve('Hello, how are you today?');
- assert.equal(resolved.kind,'browser');assert.equal(resolved.provider,undefined);
- assert.equal(r.requests.length,0);
+ assert.equal(resolved.kind,'buffer');assert.equal(resolved.provider,'tiktok');
+ assert.equal(r.requests.length,1);assert.equal(r.requests[0].body.voice,'en_us_001');
+});
+test('an explicit browser voice stays local with the TikTok module loaded',async()=>{
+ const r=tiktokSpeechRuntime();r.speech.settings.voiceId='browser-female';
+ const resolved=await r.speech.resolve('Hello, how are you today?');
+ assert.equal(resolved.kind,'browser');assert.equal(r.requests.length,0);
+});
+test('a saved cloud id falls back to browser even with the TikTok catalog loaded',async()=>{
+ const r=tiktokSpeechRuntime();r.speech.settings.voiceId='cloud:tt-jp-001';
+ const resolved=await r.speech.resolve('Hello!',null,true);
+ assert.equal(resolved.kind,'browser');assert.equal(r.requests.length,0);
 });
 test('a chosen TikTok voice fetches audio and plays the returned buffer',async()=>{
  const r=tiktokSpeechRuntime();r.speech.settings.voiceId='en_us_002';

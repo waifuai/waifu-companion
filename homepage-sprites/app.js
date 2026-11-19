@@ -171,7 +171,7 @@
   }
   renderVoiceChoices();
   Speech.loadVoices().then(()=>renderVoiceChoices());
-  if(!$('voiceChoiceStatus')){const status=document.createElement('small');status.id='voiceChoiceStatus';status.className='note';status.style.display='block';status.setAttribute('role','status');status.textContent='TikTok voices are optional and send reply text to an external speech service. A chosen voice stays selected if backup audio is used.';$('voiceSelect').parentElement.after(status);}
+  if(!$('voiceChoiceStatus')){const status=document.createElement('small');status.id='voiceChoiceStatus';status.className='note';status.style.display='block';status.setAttribute('role','status');status.textContent='TikTok US English is the default voice and sends reply text to an external speech service. Choose a browser voice to keep speech local.';$('voiceSelect').parentElement.after(status);}
   function setSpeech(on) {
     Speech.settings.enabled = on;
     Speech.save();

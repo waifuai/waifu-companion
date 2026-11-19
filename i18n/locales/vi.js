@@ -161,7 +161,7 @@
     "context.jsonDesc": "Buộc AI trả lời phản ứng cảm xúc bằng JSON, nhưng có thể gây lỗi với LLM yếu hơn.",
     "voice.title": "🔊 Giọng nói",
     "voice.primaryLabel": "🔈 Bật trả lời bằng giọng nói",
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     "voice.kokoroEnableLabel": "🚀 Bật giọng nói cục bộ (Kokoro)",
     "voice.fallbackEnableLabel": "🔄 Bật giọng nói dự phòng (Trình duyệt)",
     "voice.autoLangLabel": "🌐 Tự động chọn ngôn ngữ TTS",

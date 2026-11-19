@@ -161,7 +161,7 @@
     "context.jsonDesc": "บังคับให้ AI ตอบปฏิกิริยาทางอารมณ์ในรูปแบบ JSON แต่อาจทำให้ LLM ที่ด้อยกว่ามีข้อผิดพลาด",
     "voice.title": "🔊 เสียงพูด",
     "voice.primaryLabel": "🔈 เปิดใช้คำตอบเสียง",
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     "voice.kokoroEnableLabel": "🚀 เปิดใช้เสียงในเครื่อง (Kokoro)",
     "voice.fallbackEnableLabel": "🔄 เปิดใช้เสียงสำรอง (เบราว์เซอร์)",
     "voice.autoLangLabel": "🌐 ภาษา TTS อัตโนมัติ",

@@ -161,7 +161,7 @@
     "context.jsonDesc": "Змушує AI відповідати у JSON для емоційних реакцій, але може спричиняти помилки в слабших LLM.",
     "voice.title": "🔊 Голос",
     "voice.primaryLabel": "🔈 Увімкнути голосові відповіді",
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     "voice.kokoroEnableLabel": "🚀 Увімкнути локальний голос (Kokoro)",
     "voice.fallbackEnableLabel": "🔄 Увімкнути резервний голос (Браузер)",
     "voice.autoLangLabel": "🌐 Автоматична мова TTS",

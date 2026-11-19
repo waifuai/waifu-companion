@@ -546,10 +546,10 @@ function populateVoiceSelector() {
   });
 
   // Determine the best voice for the current language
-  // The cloud voice matches the reply's language on its own, so it is the
-  // default for every locale.
+  // TikTok US English (F1) is the default. Automatic language routing picks
+  // the matching TikTok voice for each reply without changing this setting.
   function getDefaultVoiceForLanguage(langCode) {
-    if (availableVoices.some(v => v.id === 'cloud')) return 'cloud';
+    if (availableVoices.some(v => v.id === 'en_us_001')) return 'en_us_001';
     return availableVoices.find(v => v.gender === 'female')?.id || 'none';
   }
 
@@ -563,7 +563,7 @@ function populateVoiceSelector() {
   AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID,selectedVoiceId);
   if(!document.getElementById('cloudVoiceStatus')){
     const status=document.createElement('small');status.id='cloudVoiceStatus';status.setAttribute('role','status');
-    status.textContent='Automatic follows the reply language. A chosen voice stays selected if backup audio is used. TikTok voices are optional and send reply text to an external speech service.';
+    status.textContent='TikTok US English is the default voice and sends reply text to an external speech service. Automatic routing follows the reply language. Choose a browser or Kokoro voice to keep speech local.';
     status.style.display='block';status.style.margin='6px 0';
     const preview=document.createElement('button');preview.type='button';preview.textContent='Preview voice';preview.id='cloudVoicePreview';
     preview.className='settings-select';preview.style.width='auto';preview.style.cursor='pointer';

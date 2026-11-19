@@ -172,7 +172,7 @@
 
     'voice.title': '🔊 Stimme',
     'voice.primaryLabel': '🔈 Sprachantworten aktivieren',
-    "voice.primaryDesc": "Sprache nutzt die Browserstimme oder lokales Kokoro, wenn aktiviert. Es wird nichts hochgeladen. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     'voice.kokoroEnableLabel': '🚀 Lokale Stimme aktivieren (Kokoro)',
     'voice.fallbackEnableLabel': '🔄 Ausweichstimme aktivieren (Browser)',
     'voice.autoLangLabel': '🌐 Automatische TTS-Sprache',

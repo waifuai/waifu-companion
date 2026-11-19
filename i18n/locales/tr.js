@@ -161,7 +161,7 @@
     "context.jsonDesc": "Duygusal tepkilerde AI'ı JSON yanıt vermeye zorlar, ancak daha zayıf LLM'lerde hatalara yol açabilir.",
     "voice.title": "🔊 Ses",
     "voice.primaryLabel": "🔈 Sesli yanıtları etkinleştir",
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     "voice.kokoroEnableLabel": "🚀 Yerel sesi etkinleştir (Kokoro)",
     "voice.fallbackEnableLabel": "🔄 Yedek sesi etkinleştir (Tarayıcı)",
     "voice.autoLangLabel": "🌐 Otomatik TTS dili",

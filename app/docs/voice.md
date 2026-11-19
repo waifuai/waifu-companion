@@ -4,10 +4,10 @@ Waifu Companion supports multiple text-to-speech engines, real-time lip-sync, au
 
 ## Text-to-Speech (TTS)
 
-Browser SpeechSynthesis and Kokoro are the default local providers. TikTok voices are optional: selecting one sends reply text to an external speech service. Each can be independently enabled/disabled.
+TikTok US English (F1) is the default voice. Browser SpeechSynthesis and Kokoro remain available as local choices. Picking one keeps speech on the device.
 
-### TikTok TTS (optional external)
-Free TTS API with the largest voice selection. Choose a TikTok voice in Settings > Voice > Voice. No TikTok voice is selected by default.
+### TikTok TTS (default)
+Free TTS API with the largest voice selection. The default selection is TikTok US English (F1); automatic language routing picks a matching TikTok voice for each reply. Choosing a browser or Kokoro voice keeps speech local.
 
 **Voices (35+):**
 - **English (US)**: Female (F1, F2), Male (M1, M2, M3, M4)
@@ -108,7 +108,8 @@ UI interactions produce subtle sound effects powered by Tone.js:
 - **TTS Volume**: Text-to-speech volume
 - **Radio Volume**: Internet radio volume
 - **Sound Effects**: Toggle UI sound effects on/off
-- **Voice**: Choose Browser, Kokoro, or an optional external TikTok voice- **Enable Kokoro Voice**: Local ONNX engine toggle
+- **Voice**: TikTok voice by default; choose Browser or Kokoro to keep speech local
+- **Enable Kokoro Voice**: Local ONNX engine toggle
 
 ## TTS Queue
 

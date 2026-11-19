@@ -172,7 +172,7 @@
 
     'voice.title': '🔊 语音',
     'voice.primaryLabel': '🔈 启用语音回复',
-    "voice.primaryDesc": "语音使用浏览器声音，或启用时使用本地 Kokoro。不会上传任何内容。 Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     'voice.kokoroEnableLabel': '🚀 启用本地语音（Kokoro）',
     'voice.fallbackEnableLabel': '🔄 启用备用语音（浏览器）',
     'voice.autoLangLabel': '🌐 自动 TTS 语言',

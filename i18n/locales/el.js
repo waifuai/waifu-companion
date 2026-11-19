@@ -161,7 +161,7 @@
     "context.jsonDesc": "Αναγκάζει το AI να απαντά σε JSON για συναισθηματικές αντιδράσεις, αλλά μπορεί να προκαλεί σφάλματα σε ασθενέστερα LLM.",
     "voice.title": "🔊 Φωνή",
     "voice.primaryLabel": "🔈 Ενεργοποίηση φωνητικών απαντήσεων",
-    "voice.primaryDesc": "Speech uses your browser voice, or local Kokoro when enabled. Nothing is uploaded. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     "voice.kokoroEnableLabel": "🚀 Ενεργοποίηση τοπικής φωνής (Kokoro)",
     "voice.fallbackEnableLabel": "🔄 Ενεργοποίηση εφεδρικής φωνής (Πρόγραμμα περιήγησης)",
     "voice.autoLangLabel": "🌐 Αυτόματη γλώσσα TTS",

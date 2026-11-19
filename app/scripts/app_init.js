@@ -131,10 +131,9 @@ function initVoice() {
   const isSelectedVoiceValid = selectedVoiceId==='none' || /^cloud:[a-z0-9-]{1,40}$/.test(selectedVoiceId) || availableVoices.some(v => v.id === selectedVoiceId);
 
   if (!savedVoiceId || !isSelectedVoiceValid) {
-    // The cloud voice matches the reply's language on its own, so one default
-    // serves every locale. Saved selections from the removed on-client voice
-    // catalog are invalid and reset here.
-    selectedVoiceId = availableVoices.some(v => v.id === 'cloud') ? 'cloud' : 'none';
+    // TikTok US English (F1) is the default voice again. Saved choices still
+    // win, including legacy cloud ids, which resolve to a browser voice.
+    selectedVoiceId = availableVoices.some(v => v.id === 'en_us_001') ? 'en_us_001' : 'none';
     AppStorage.setString(AppStorage.KEYS.SELECTED_VOICE_ID, selectedVoiceId);
     debugLog(`Initialized/Reset voice to default: ${selectedVoiceId}`, 'info');
   } else {

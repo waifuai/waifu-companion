@@ -172,7 +172,7 @@
 
     'voice.title': '🔊 音声',
     'voice.primaryLabel': '🔈 音声返信を有効にする',
-    "voice.primaryDesc": "音声はブラウザの声、または有効な場合はローカルのKokoroを使用します。アップロードはありません。 Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     'voice.kokoroEnableLabel': '🚀 ローカル音声を有効にする（Kokoro）',
     'voice.fallbackEnableLabel': '🔄 フォールバック音声を有効にする（ブラウザ）',
     'voice.autoLangLabel': '🌐 TTS言語の自動切り替え',

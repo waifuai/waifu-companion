@@ -161,7 +161,7 @@ class PlayerCardTests(unittest.TestCase):
         frame.evaluate("window.useGroq=true;window.groqApiKey='test-key';window.groqModel='test-model';")
         field = frame.locator('#messageInput')
         self.assertTrue(frame.evaluate('window.enableVoice && window.enablePrimaryVoice'))
-        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'cloud')
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_001')
         frame.locator('#embedVoiceBtn').click()
         self.assertFalse(frame.evaluate('window.enableVoice'))
         field.click()
@@ -438,7 +438,7 @@ class PlayerCardTests(unittest.TestCase):
         }''')
         frame = self.open_app()
         self.assertFalse(frame.evaluate('window.enableVoice || window.isAmbientQueueEnabled || window.enableKokoro'))
-        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'cloud')
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_001')
         self.assertFalse(self.calls)
 
     def test_default_voice_plays_after_send(self):
@@ -449,14 +449,17 @@ class PlayerCardTests(unittest.TestCase):
             speechSynthesis.speak = u => { window.lastUtteranceLang = u.lang; u.onend?.(); };
         }""")
         self.assertTrue(frame.evaluate('window.enablePrimaryVoice && window.enableVoice'))
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_001')
         self.assertEqual(frame.locator('#embedVoiceBtn').inner_text(), 'Voice on')
         frame.locator('#messageInput').fill('Hi!')
         frame.locator('#sendMessageBtn').click()
         frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')
-        self.assertFalse(self.tts_calls, 'No speech request may leave the browser')
+        self.assertFalse(self.tts_calls, 'No retired /tts request may leave the browser')
         played = frame.evaluate('Array.from(dataLayer.find(e => e[0] === "event" && e[1] === "tts_played"))[2]')
         self.assertEqual(played['provider'], 'browser')
-        self.assertFalse(played['fell_back'])
+        # The harness has no external TikTok audio, so the default voice falls
+        # back to the installed browser voice instead of going silent.
+        self.assertTrue(played['fell_back'])
         self.assertEqual(played['voice_lang'], 'en-US')
         self.assertFalse(self.errors, self.errors)
 
@@ -468,7 +471,7 @@ class PlayerCardTests(unittest.TestCase):
             speechSynthesis.getVoices = () => [{name: 'Japanese Female', lang: 'ja-JP'}];
             speechSynthesis.speak = u => { window.lastUtteranceLang = u.lang; u.onend?.(); };
         }""")
-        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'cloud')
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_001')
         self.assertEqual(frame.evaluate('window.selectedLanguageCode'), 'en-US')
         self.assertTrue(frame.evaluate('window.enableAutoTtsLang && window.enableFallbackVoice'))
         self.reply = 'こんにちは。'
@@ -477,13 +480,13 @@ class PlayerCardTests(unittest.TestCase):
         frame.wait_for_function('dataLayer.some(e => e[0] === "event" && e[1] === "tts_played")')
         self.assertFalse(self.tts_calls)
         self.assertEqual(frame.evaluate('window.lastUtteranceLang'), 'ja-JP')
-        self.assertEqual(frame.evaluate('AppStorage.getString(AppStorage.KEYS.SELECTED_VOICE_ID)'), 'cloud')
+        self.assertEqual(frame.evaluate('AppStorage.getString(AppStorage.KEYS.SELECTED_VOICE_ID)'), 'en_us_001')
         self.assertFalse(self.errors, self.errors)
 
-    def test_browser_language_default_is_cloud_voice(self):
+    def test_browser_language_default_is_tiktok_voice(self):
         self.context.add_init_script("Object.defineProperty(navigator, 'language', {value: 'fr-FR'})")
         frame = self.open_app()
-        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'cloud')
+        self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_001')
 
     def set_browser_languages(self, *tags):
         """Pin navigator.languages/language before any document runs, so the
@@ -629,7 +632,7 @@ class PlayerCardTests(unittest.TestCase):
                 resolved = frame.evaluate('text => fetchTTSBuffer(text, window.selectedVoiceId)', text)
                 self.assertEqual(resolved['kind'], 'browser')
                 self.assertEqual(resolved['lang'], expected)
-                self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'cloud')
+                self.assertEqual(frame.evaluate('window.selectedVoiceId'), 'en_us_001')
         self.assertFalse(self.tts_calls, 'Routing must not make network requests')
         # A manual browser pick keeps its voice for every language it can speak.
         frame.locator('#voiceSelector').select_option('browser-female')
@@ -643,7 +646,7 @@ class PlayerCardTests(unittest.TestCase):
         self.assertFalse(frame.evaluate('window.enableVoice'))
         frame.locator('#embedVoiceBtn').click()
         self.assertTrue(frame.evaluate('window.enableFallbackVoice'))
-        # A saved cloud id resolves to a browser voice; there is no cloud outage.
+        # The default TikTok voice falls back to a browser voice when the external service is unavailable.
         resolved = frame.evaluate('fetchTTSBuffer("こんにちは。", window.selectedVoiceId)')
         self.assertEqual(resolved['kind'], 'browser')
         self.assertEqual(resolved['lang'], 'ja-JP')

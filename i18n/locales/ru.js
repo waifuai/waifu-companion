@@ -172,7 +172,7 @@
 
     'voice.title': '🔊 Голос',
     'voice.primaryLabel': '🔈 Включить голосовые ответы',
-    "voice.primaryDesc": "Речь использует голос браузера или локальный Kokoro, если включён. Ничего не загружается. Choosing a TikTok voice is optional and sends reply text to an external speech service.",
+    "voice.primaryDesc": "The default TikTok voice sends reply text to an external speech service. Choose a browser or Kokoro voice to keep speech local.",
     'voice.kokoroEnableLabel': '🚀 Включить локальный голос (Kokoro)',
     'voice.fallbackEnableLabel': '🔄 Включить резервный голос (браузер)',
     'voice.autoLangLabel': '🌐 Автоматический язык TTS',

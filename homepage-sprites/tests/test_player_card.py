@@ -307,6 +307,7 @@ class PlayerCardTests(unittest.TestCase):
 
     def test_tts_uses_browser_voice_without_cloud_requests(self):
         self.page.goto(APP)
+        self.page.evaluate("() => { Speech.settings.voiceId = 'browser-female'; Speech.save(); }")
         self.instrument_browser_speech()
         self.page.locator('#msgInput').fill('hello')
         self.page.locator('#sendBtn').click()
